@@ -39,6 +39,23 @@ export const REGULARS = {
     hello: 'Kafemde müşterilere kitap ödünç veriyorum. Hafif, eğlenceli, biraz da gizemli olsun.',
     thanks: 'Bunu tezgâhın üstüne koyacağım, herkes soracak.',
     gift: null, giftNote: 'Kafemdeki kitap köşesi senin sayende doldu. Al şu ₺40, benden.' },
+  // hikâye ilerledikçe açılan kasabaların müdavimleri
+  mustafa: { name: 'Bağcı Mustafa', town: 'bozcaada', look: 333, genre: 'roman', likes: ['doga', 'aile', 'umut'],
+    hello: 'Üç kuşaktır bu adada bağ bozarız. Hasat bitti, şimdi okuma zamanı.',
+    thanks: 'Bunu bağ evinin verandasında okuyacağım, üzüm kokusuyla.',
+    gift: null, giftNote: 'Bu yılın ilk şişe şırası ve ₺40: bağdan selam olsun.' },
+  inci: { name: 'Fotoğrafçı İnci', town: 'bozcaada', look: 412, genre: 'siir', likes: ['deniz', 'ask', 'huzun'],
+    hello: 'Adanın ışığını fotoğraflıyorum. Gün batımını beklerken şiir okurum.',
+    thanks: 'Bu kitaptaki bir dizeyi fotoğraf sergimin adı yapacağım.',
+    gift: null, giftNote: 'Karavanının gün batımındaki fotoğrafını çerçeveledim, bir de ₺40 bıraktım.' },
+  nine: { name: 'Masalcı Nine', town: 'sirince', look: 501, genre: 'cocuk', likes: ['buyu', 'cocukluk', 'komik'],
+    hello: 'Köyün çocuklarına her akşam masal anlatırım. Yeni masallar lazım bana, yavrum.',
+    thanks: 'Bu masalı bu akşam anlatacağım; çocuklar uyumadan bitirebilirsem.',
+    gift: null, giftNote: 'Kendi elimle yaptığım incir reçeli ve ₺40. Masallara katkın için.' },
+  cem: { name: 'Arkeolog Cem', town: 'sirince', look: 617, genre: 'tarih', likes: ['savas', 'gizem', 'felsefe'],
+    hello: 'Efes kazısından dönüyorum. Toprağın altındakiler kadar kitapların içindekiler de ilgimi çekiyor.',
+    thanks: 'Kazı çadırında okunacak tam kitap.',
+    gift: null, giftNote: 'Kazıda bulduğumuz bir sikkenin kopyası (aslı müzede!) ve ₺40.' },
 };
 // Hikâyeler: kalp sayısı arttıkça müdavim biraz daha açılır (story[n-1], n kalpteyken söylenir)
 const STORIES = {
@@ -99,6 +116,34 @@ const STORIES = {
     'Menüye yeni bir kahve ekledim: "Sahaf usulü". Ne içinde olduğunu sorma.',
   ],
 };
+STORIES.mustafa = [
+  'Dedem bu bağları dikerken yanında hep bir kitap taşırmış. Ben de öyle yapıyorum artık.',
+  'Bu yıl dolu yağdı, üzümler yarı yarıya. Kitaplar olmasa bu kış zor geçerdi.',
+  'Oğlum şehirden döndü, bağda çalışacak. Akşamları beraber okuyoruz.',
+  'Bağ evini küçük bir okuma odasına çevirdim. Gelen geçen oturup okuyabilsin diye.',
+  'Bu yılki şaraba değil, şıraya senin adını verdik: "Sahaf şırası". Gülme!',
+];
+STORIES.inci = [
+  'İstanbul\'da reklam fotoğrafçısıydım. Bir gün makineyi aldım, buraya geldim, dönmedim.',
+  'Kale duvarının dibinde bir kedi var, her gün aynı saatte aynı taşta oturuyor. Fotoğrafını yüz kere çektim.',
+  'Fotoğraflarımla şiirleri yan yana koyuyorum. Galerici "bu bir kitap olur" dedi.',
+  'Kitabın kapağına karavanının fotoğrafını koymak istiyorum. İzin verir misin?',
+  'Kitap basıldı! İlk nüshası senin rafında olsun.',
+];
+STORIES.nine = [
+  'Altmış yıldır masal anlatırım. Bazılarını ben uydurdum, kimse bilmez.',
+  'Torunumun torunu bu yaz ilk kez masal dinledi. Gözleri tıpkı benimki gibi parladı.',
+  'Kostas Efendi\'yi tanırdım, biliyor musun? Bana ilk masal kitabımı o vermişti.',
+  'Masallarımı biri yazıya geçirsin istiyorum. Belki sen tanırsın birini?',
+  'Ela adında bir kız masallarımı defterine yazıyormuş. Foça\'dan mektup yazdı bana!',
+];
+STORIES.cem = [
+  'Kazıda bir mühürlü kutu bulduk. İçinde... şimdilik söyleyemem.',
+  'Antik kentte bir kütüphane kalıntısı var. Celsus Kütüphanesi. Taşları hâlâ kitap kokuyor sanki.',
+  'Mühürlü kutudan bir parşömen çıktı: eski bir kitap listesi. İnsanlar hep aynı şeyleri okumuş: aşk, savaş, deniz.',
+  'Bir makale yazıyorum: "Seyyar kitapçıların kısa tarihi". Seni de yazacağım.',
+  'Makale yayımlandı! Dipnotta adın var: "Ege\'nin son seyyar sahafı."',
+];
 for (const id in STORIES) REGULARS[id].story = STORIES[id];
 
 // Sabit görünüşler (render/people.js personSVG): kim olduklarına uysun
@@ -111,6 +156,10 @@ const STYLES = {
   ela:    { hair: '#e2b56a', long: true, hat: 0, coat: '#e57f73', skin: '#f6d2b4', tall: 0.84 },
   zeynep: { hair: '#3d2b24', long: true, hat: 2, hatC: '#8bc49a', coat: '#6fb1d6', skin: '#b97d58' },
   bora:   { hair: '#6a4434', beard: true, hat: 0, coat: '#8bc49a', skin: '#eec09c', long: false },
+  mustafa: { hair: '#5a4a42', beard: true, hat: 2, hatC: '#f2c45a', coat: '#7f9c5a', skin: '#d9a07a', long: false },
+  inci:   { hair: '#2e2422', long: true, hat: 1, hatC: '#3d2b24', coat: '#fff1d6', skin: '#f6d2b4' },
+  nine:   { hair: '#ececec', long: true, hat: 0, coat: '#c96f5a', skin: '#eec09c', glasses: true, tall: 0.9 },
+  cem:    { hair: '#a0643c', glasses: true, hat: 2, hatC: '#c9a676', coat: '#c9a676', skin: '#d9a07a', long: false },
 };
 for (const id in STYLES) REGULARS[id].style = STYLES[id];
 REGULARS.ela.voice = 'cocuk';

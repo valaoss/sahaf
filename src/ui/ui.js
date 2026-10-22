@@ -4,7 +4,9 @@ import { BAL } from '../data/balance.js';
 import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../data/towns.js';
 import { BOOK, booksOf, TAGS } from '../data/books.js';
-import { DECOR, SLOTS, PAINTS } from '../data/decor.js';
+import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
+import { THEMES } from '../audio/compose.js';
+import { KOSTAS } from '../data/kostas.js';
 import { shelfCount, shelfCap, genreCount, seasonOf, dayOfSeason } from '../game/state.js';
 import { boxCost, canBuyBox, canTravel, topDemand } from '../game/shop.js';
 import { nextShelf } from '../game/decor.js';
@@ -185,12 +187,16 @@ export function createUI(root, act) {
       <h2>🪴 Süsle ve geliştir</h2>
       <p class="hint">Süsler müşterileri etkiler; her yuvaya bir tane takılır. Aldığın süs sende kalır. 🪙 <b>${S.coins}</b></p>
       ${slots}
-      <h3>Atölye</h3><div class="dgrid">${shelfCard}</div>
+      <h3>Atölye</h3><div class="dgrid">${shelfCard}${Object.keys(UPGRADES).map(k => {
+        const u = UPGRADES[k], has = S.upgrades.includes(k);
+        return `<div class="dcard ${has ? 'is-on' : ''}"><div class="dicon">${u.icon}</div><div><div class="gname">${u.name}</div><div class="gmeta">${u.desc}</div></div>${has ? '<span class="on">✓</span>' : `<button class="btn sm ${S.coins < u.price ? 'off' : ''}" data-upgrade="${k}">₺${u.price} · Al</button>`}</div>`;
+      }).join('')}</div>
       <h3>Karavan boyası</h3><div class="swatches">${paints}</div>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-decor]').forEach(b => b.onclick = () => act('decor-on', b.dataset.decor));
     p.querySelectorAll('[data-paint]').forEach(b => b.onclick = () => act('paint', b.dataset.paint));
     p.querySelector('[data-shelf]')?.addEventListener('click', () => act('shelf'));
+    p.querySelectorAll('[data-upgrade]').forEach(b => b.onclick = () => act('upgrade', b.dataset.upgrade));
     p.querySelector('[data-close]').onclick = closePanel;
     return p;
   }
@@ -234,6 +240,15 @@ export function createUI(root, act) {
   function mapPanel(S) {
     const pins = TOWN_KEYS.map(k => {
       const t = TOWNS[k], here = k === S.town;
+      // henüz yolu bilinmeyen kasaba: soru işaretli, soluk bir iğne
+      if (!S.unlocked.includes(k)) {
+        return `<g class="town locked" data-town="${k}" transform="translate(${t.map.x} ${t.map.y})">
+          <g class="pin"><path d="M0 0 C-18 -24 -26 -36 -26 -50 A26 26 0 1 1 26 -50 C26 -36 18 -24 0 0Z" fill="#c7b6a4" stroke="#fff6e8" stroke-width="5"/>
+          <text y="-38" text-anchor="middle" font-size="30" font-weight="700" fill="#fff6e8">?</text></g>
+          <text y="40" text-anchor="middle" font-size="30" font-weight="600" fill="#a08d7e">???</text>
+          ${EVENTS[eventOf(S.day)]?.town === k ? '<text y="-92" text-anchor="middle" font-size="26" font-weight="700" fill="#a08d7e">🎉 ?</text>' : ''}
+        </g>`;
+      }
       const icons = topDemand(k).map(g => GENRES[g].icon).join(' ');
       return `<g class="town ${here ? 'here' : ''}" data-town="${k}" transform="translate(${t.map.x} ${t.map.y})">
         <g class="pin"><path d="M0 0 C-18 -24 -26 -36 -26 -50 A26 26 0 1 1 26 -50 C26 -36 18 -24 0 0Z" fill="${here ? '#5ea592' : '#f08a7e'}" stroke="#fff6e8" stroke-width="5"/>
@@ -254,6 +269,9 @@ export function createUI(root, act) {
         </g>
         <path d="M560 0 L1600 0 L1600 900 L700 900 C640 840 700 780 640 740 C560 690 520 640 580 590 C640 540 560 500 600 450 C640 400 720 420 700 360 C680 300 560 300 580 240 C600 180 700 190 680 120 C670 70 590 60 560 0Z" fill="#f3e2bf" stroke="#e6cd9f" stroke-width="10"/>
         <path d="M330 300 C380 260 460 280 450 330 C440 380 360 390 330 360 C310 340 310 316 330 300Z" fill="#f3e2bf" stroke="#e6cd9f" stroke-width="8"/>
+        <path d="M200 120 C230 80 300 86 316 126 C330 164 280 196 236 186 C196 176 182 150 200 120Z" fill="#f3e2bf" stroke="#e6cd9f" stroke-width="8"/>
+        <path d="M720 160 C560 120 420 110 300 130" fill="none" stroke="#7fb8c4" stroke-width="6" stroke-dasharray="2 16" stroke-linecap="round"/>
+        <path d="M800 520 C960 500 1100 480 1250 470" fill="none" stroke="#d8b886" stroke-width="10" stroke-dasharray="4 20" stroke-linecap="round"/>
         <g fill="#c4dc9b"><ellipse cx="1150" cy="250" rx="140" ry="60"/><ellipse cx="1300" cy="600" rx="160" ry="70"/><ellipse cx="1200" cy="800" rx="120" ry="50"/></g>
         <g fill="#9cb67f"><circle cx="1110" cy="230" r="18"/><circle cx="1150" cy="216" r="22"/><circle cx="1190" cy="234" r="16"/><circle cx="1280" cy="580" r="20"/><circle cx="1320" cy="570" r="24"/></g>
         <path d="M760 170 C880 260 820 360 790 520 C770 640 860 720 900 790" fill="none" stroke="#d8b886" stroke-width="10" stroke-dasharray="4 20" stroke-linecap="round"/>
@@ -270,10 +288,11 @@ export function createUI(root, act) {
       <div class="row end"><button class="btn" data-close>Kapat</button></div>`, 'wide');
     p.querySelector('[data-close]').onclick = closePanel;
     p.querySelectorAll('[data-town]').forEach(g => {
-      g.onmouseenter = () => { p.querySelector('#blurb').textContent = TOWNS[g.dataset.town].blurb; };
+      const blurb = k => S.unlocked.includes(k) ? TOWNS[k].blurb : 'Haritada silik bir iz… Defterde ilerledikçe buranın yolunu öğreneceksin.';
+      g.onmouseenter = () => { p.querySelector('#blurb').textContent = blurb(g.dataset.town); };
       g.onclick = () => {
         const k = g.dataset.town, why = canTravel(S, k);
-        if (why) { toast(why); p.querySelector('#blurb').textContent = TOWNS[k].blurb; return; }
+        if (why) { toast(why); p.querySelector('#blurb').textContent = blurb(k); return; }
         driveVan(p.querySelector('#van'), TOWNS[S.town].map, TOWNS[k].map, () => act('travel', k));
       };
     });
@@ -310,6 +329,8 @@ export function createUI(root, act) {
         <div><span>Toplam</span><b>🪙 ${S.coins}</b></div>
       </div>
       <p>${profitNote}${T.newTown ? ` Yeni kasabada karavanı merak edenler de uğradı.` : ''}</p>
+      ${(T.unlocked || []).length ? `<p class="tip page">🧭 Yeni bir yol açıldı: <b>${T.unlocked.map(k => TOWNS[k].name).join(', ')}</b> artık haritada!</p>` : ''}
+      ${T.tea ? `<p class="hint">🫖 Çay köşesinden ${T.tea} çay satıldı.</p>` : ''}
       ${(T.haps || []).length ? `<p class="recline">Bugün yaşananlar: ${T.haps.map(id => HAP[id].icon + ' ' + HAP[id].title).join(' · ')}</p>` : ''}
       ${T.quest ? `<p class="tip page">${T.quest.done ? `📌 İlan teslim edildi: +₺${T.quest.coins}${T.quest.rare ? ` ve bir ilk baskı (${BOOK[T.quest.rare].title})` : ''}` : '📌 İlanın süresi doldu; bir dahaki sefere.'}</p>` : ''}
       ${(T.regulars || []).length ? `<p class="recline">Uğrayan müdavimler: ${T.regulars.map(r => `${REGULARS[r.id].name} ${r.grade === 'perfect' ? '💛' : r.grade === 'good' ? '🙂' : '😕'} <span class="hearts">${hearts(S.friends[r.id] || 0)}</span>`).join(' · ')}</p>` : ''}
@@ -330,7 +351,9 @@ export function createUI(root, act) {
     const ev = eventOf(S.day), evT = eventOf(S.day + 1);
     const sp = specialOf(S.day);
     const special = sp ? `<div class="kicker">Bugün · bütün kasabalarda</div><div class="headline">${sp.icon} ${sp.name}</div><p>${sp.note}</p>` : '';
-    const today = ev
+    const today = ev && !S.unlocked.includes(EVENTS[ev].town)
+      ? '<div class="kicker">Bugün · ???</div><div class="headline">🎉 Uzak bir kasabada şenlik</div><p>Haritada henüz olmayan bir yerden müzik sesleri geliyor. Kim bilir, belki bir gün yolun düşer.</p>'
+      : ev
       ? `<div class="kicker">Bugün · ${TOWNS[EVENTS[ev].town].name}</div><div class="headline">🎉 ${EVENTS[ev].name}</div><p>${EVENTS[ev].note}</p>
          <p class="hint">${EVENTS[ev].town === S.town ? 'Tam da buradasın, kaçırma!' : 'Haritadan yola çıkabilirsin.'}</p>`
       : sp ? '' : '<div class="kicker">Bugün</div><div class="headline">Sakin bir gün</div><p>Kasabalarda özel bir etkinlik yok. Raflara özen göstermek için iyi bir gün.</p>';
@@ -377,6 +400,30 @@ export function createUI(root, act) {
     p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
   }
 
+  // 2. bölüm: Kostas'ın dağıttığı kitaplar; bulunanların notu, kalanların ipucu
+  function kostasPanel(S, back = null) {
+    const cards = KOSTAS.map(k => {
+      const got = S.kostasFound.includes(k.book), B = BOOK[k.book];
+      const where = S.unlocked.includes(k.town) ? TOWNS[k.town].name : '???';
+      return got ? `<div class="letterbox"><div class="kicker">🔖 ${B.title} · ${TOWNS[k.town].name}</div><p>“${k.note}”</p></div>`
+        : `<div class="letterbox locked"><div class="kicker">❔ ${where} · ${GENRES[B.genre].icon} ${GENRES[B.genre].name} kolisinde</div></div>`;
+    }).join('');
+    const p = openPanel(`${bookTabs(S, 'book')}<p class="hint">Kostas Efendi kitaplarını kasabalara dağıtmış. Doğru kasabada doğru türden koli alınca arada bir içinden çıkarlar. Hepsini bulana ₺300.</p>
+      <div class="maillist">${cards}</div><div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
+    wireTabs(p, S, back);
+    p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
+  }
+
+  // Kostas'ın kitabı koliden çıktı
+  function kostasFoundPanel(found) {
+    const B = BOOK[found.book];
+    const p = openPanel(`<div class="hap"><div class="big-icon">🔖</div><h2>Kolinin dibinde: ${B.title}</h2>
+      <p class="hint">Kitabın arasından Kostas Efendi'nin el yazısıyla bir not çıktı:</p><p class="say">“${found.note}”</p>
+      ${found.done ? '<p class="tip page">✨ On iki kitabın hepsi bulundu! Kostas Efendi\'nin rafı tamamlandı: +₺300</p>' : ''}</div>
+      <div class="row center"><button class="btn hl" data-close>Rafa koy</button></div>`);
+    p.querySelector('[data-close]').onclick = closePanel;
+  }
+
   // Gün içi olay kartı: seçenekler, sonra sonuç
   function hapPanel(H, onChoose) {
     const p = openPanel(`
@@ -402,7 +449,7 @@ export function createUI(root, act) {
     const p = openPanel(`
       ${bookTabs(S, 'book')}
       <div class="book">
-        <div class="ptabs">${list}</div>
+        <div class="ptabs">${list}${S.pages.length >= PAGES.length ? `<button class="ptab ch2" data-ch2>📚 2. bölüm (${S.kostasFound.length}/${KOSTAS.length})</button>` : ''}</div>
         <div class="pagebody">
           ${cur ? `<h3>${cur.title}</h3><p class="say">${cur.text}</p>` : ''}
           ${np ? `<p class="tip">🔎 Sıradaki sayfa: ${np.hint}${pr ? ` <b>(${pr.now}/${pr.of})</b>` : ''}</p>` : '<p class="tip">✨ Defter tamamlandı. Kütüphane artık senin karavanında yaşıyor.</p>'}
@@ -410,23 +457,26 @@ export function createUI(root, act) {
       </div>
       <div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
     p.querySelectorAll('[data-page]').forEach(b => b.onclick = () => bookPanel(S, b.dataset.page, back));
+    p.querySelector('[data-ch2]')?.addEventListener('click', () => kostasPanel(S, back));
     wireTabs(p, S, back);
     p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
   }
 
   // Ayarlar: müzik, ses efektleri, kaydı sıfırlama (iki adımlı onay)
-  function settingsPanel(set) {
+  function settingsPanel(set, S = null) {
     const row = (k, label) => `<div class="dcard"><div class="dicon">${k === 'music' ? '🎵' : '🔔'}</div><div class="gname">${label}</div>
       <button class="btn sm toggle ${set[k] ? 'hl' : ''}" data-toggle="${k}">${set[k] ? 'Açık' : 'Kapalı'}</button></div>`;
     const p = openPanel(`
       <h2>⚙️ Ayarlar</h2>
       <div class="dgrid one">${row('music', 'Müzik')}${row('sfx', 'Ses efektleri ve yağmur')}</div>
+      ${S?.upgrades.includes('plak') ? `<h3>📻 Plak çalar</h3><div class="swatches">${Object.keys(THEMES).map(k => `<button class="swatch ${set.theme === k ? 'is-on' : ''}" data-theme="${k}"><span>${THEMES[k].name}</span><small>${set.theme === k ? '✓ çalıyor' : 'Çal'}</small></button>`).join('')}</div>` : ''}
       <h3>Kayıt</h3>
       <div class="dcard"><div class="dicon">🗑️</div><div><div class="gname">Baştan başla</div><div class="gmeta">Bütün ilerleme silinir, geri alınamaz.</div></div>
         <button class="btn sm" data-reset>Sıfırla</button></div>
       <p class="hint">Sahaf · müzik ve sesler oyunun içinde üretilir, hiçbir veri toplanmaz.</p>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`);
     p.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => act('toggle', b.dataset.toggle));
+    p.querySelectorAll('[data-theme]').forEach(b => b.onclick = () => act('theme', b.dataset.theme));
     const r = p.querySelector('[data-reset]');
     r.onclick = () => {
       if (r.dataset.armed) return act('reset');
@@ -505,5 +555,5 @@ export function createUI(root, act) {
     }
   }
 
-  return { hud, toast, flyCoin, confetti, hapPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  return { hud, toast, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

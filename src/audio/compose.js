@@ -18,15 +18,27 @@ export const MOTIFS = {
   cunda: [4, 3, 1, 0],
   foca: [0, 1, 2, 4],
   alacati: [2, 4, 3, 4],
+  bozcaada: [1, 3, 4, 3],
+  sirince: [4, 2, 1, 2],
+};
+
+// Plak çalar temaları: akor dizisi, tempo farkı, arpej yoğunluğu (rest: tıngırtıyı atlama ihtimali)
+export const THEMES = {
+  akustik: { name: 'Akustik', tempo: 0, rest: 0.22 },
+  caz:     { name: 'Caz', tempo: 10, rest: 0.3,
+    prog: [[50, [0, 3, 7, 10, 14]], [43, [0, 4, 7, 10, 14]], [48, [0, 4, 7, 11, 14]], [45, [0, 4, 7, 10, 13]]] },  // Dm9 G9 Cmaj9 A7b9
+  ninni:   { name: 'Ninni', tempo: -18, rest: 0.55,
+    prog: [[48, [0, 4, 7, 11]], [41, [0, 4, 7, 11]], [45, [0, 3, 7, 10]], [43, [0, 5, 7, 10]]] },                     // Cmaj7 Fmaj7 Am7 Gsus
 };
 
 export const TEMPO = { 'İlkbahar': 76, 'Yaz': 84, 'Sonbahar': 72, 'Kış': 66 };
 export const BEATS_PER_BAR = 4;
 
 // Bir ölçünün notaları: { t (vuruş), dur (vuruş), midi, inst: 'bass' | 'pluck' | 'pad' | 'bell', vel }
-// opts: { town (motif), lively (festival: daha dolu arpej), night (akşam: çan yok, daha yumuşak) }
+// opts: { town (motif), lively (festival: daha dolu arpej), night (akşam: çan yok, daha yumuşak), theme (plak çalar) }
 export function composeBar(bar, season = 'İlkbahar', opts = {}) {
-  const prog = PROGRESSIONS[season] || PROGRESSIONS['İlkbahar'];
+  const th = THEMES[opts.theme] || THEMES.akustik;
+  const prog = th.prog || PROGRESSIONS[season] || PROGRESSIONS['İlkbahar'];
   const [root, chord] = prog[Math.floor(bar / 2) % prog.length];
   const r = seeded(bar * 131 + 17);
   const notes = [];
@@ -37,7 +49,7 @@ export function composeBar(bar, season = 'İlkbahar', opts = {}) {
   if (bar % 2 === 0) for (const iv of chord.slice(0, 3)) notes.push({ t: 0, dur: 8, midi: root + 12 + iv, inst: 'pad', vel: 0.5 });
   // arpej: sekizlik gitar tıngırtısı, arada boşluk bırakır
   for (let i = 0; i < 8; i++) {
-    if (r() < (opts.lively ? 0.06 : 0.22)) continue;
+    if (r() < (opts.lively ? th.rest * 0.3 : th.rest)) continue;
     const iv = chord[(i + (r() < 0.3 ? 1 : 0)) % chord.length];
     notes.push({ t: i / 2, dur: 1.5, midi: root + 12 + iv + (i >= 4 && r() < 0.4 ? 12 : 0), inst: 'pluck', vel: 0.45 + r() * 0.3 });
   }

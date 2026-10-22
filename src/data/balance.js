@@ -21,6 +21,8 @@ export const BAL = {
   hapChance: 0.55,     // bir günde en az bir olay çıkma ihtimali
   letterChance: 0.35,  // sabah mektup gelme ihtimali (bekleyen tam isabet varsa)
   questChance: 0.4,    // aktif ilan yokken sabah yeni ilan çıkma ihtimali
+  teaChance: 0.15,     // çay köşesi varken müşterinin çay alma ihtimali
+  teaPrice: 3,
   patience: 14,        // öneri isteyen müşterinin bekleme süresi (sn, normal hızda)
   daysPerSeason: 7,
 };

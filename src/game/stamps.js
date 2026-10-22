@@ -21,6 +21,8 @@ const VALUE = {
   letters: S => S.lettersTotal || S.letters.length,
   quests: S => S.questsDone,
   haps: S => S.hapDone.length,
+  kostas: S => S.kostasFound.length,
+  unlocked: S => S.unlocked.length,
   story: S => S.pages.length >= PAGES.length ? 1 : 0,
 };
 

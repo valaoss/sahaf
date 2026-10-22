@@ -24,5 +24,20 @@ export const TOWNS = {
     blurb: 'Taş sokaklar, rüzgâr ve tatilciler. Kalabalık; fantastik ve polisiye satar.',
     sky: ['#f9d79b', '#fff0d2'], sea: ['#a4e0d6', '#69c2c0'], map: { x: 900, y: 790 },
   },
+  // hikâye ilerledikçe açılanlar (unlock: bulunan defter sayfası sayısı)
+  bozcaada: {
+    name: 'Bozcaada', traffic: 18, unlock: { pages: 4 },
+    demand: { siir: 3, roman: 2, tarih: 2, fantastik: 1, cocuk: 1, polisiye: 1 },
+    blurb: 'Rüzgârla çevrili bir ada: bağlar, kale ve sakin bir liman. Şiir ve tarih okuru çok.',
+    sky: ['#f4c3c8', '#fde6dc'], sea: ['#7fc7d8', '#4f9fbd'], map: { x: 250, y: 130 },
+  },
+  sirince: {
+    name: 'Şirince', traffic: 17, unlock: { pages: 7 },
+    demand: { tarih: 3, fantastik: 2, siir: 2, roman: 1, cocuk: 1, polisiye: 1 },
+    blurb: 'Zeytin ve incir bahçeleri arasında taş bir dağ köyü. Masallar ve eski hikâyeler burada yaşar.',
+    sky: ['#e8d3a8', '#fbefd6'], sea: ['#a7d3c9', '#7bb5ad'], map: { x: 1260, y: 470 },
+  },
 };
 export const TOWN_KEYS = Object.keys(TOWNS);
+// oyunun başında açık olan kasabalar
+export const START_TOWNS = TOWN_KEYS.filter(k => !TOWNS[k].unlock);

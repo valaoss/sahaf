@@ -4,25 +4,26 @@ import { BAL, SEASONS } from '../src/data/balance.js';
 import { GENRES, GENRE_KEYS } from '../src/data/genres.js';
 import { TOWNS } from '../src/data/towns.js';
 import { BOOKS, BOOK, TAGS, booksOf } from '../src/data/books.js';
-import { DECOR, SHELF_LEVELS, PAINTS } from '../src/data/decor.js';
+import { DECOR, SHELF_LEVELS, PAINTS, UPGRADES } from '../src/data/decor.js';
 import { newGame, restore, shelfCount, shelfCap, genreCount, seasonOf } from '../src/game/state.js';
 import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot } from '../src/game/shop.js';
 import { SPOTS } from '../src/data/spots.js';
 import { ARCHETYPES, ARCH_KEYS } from '../src/data/archetypes.js';
 import { HAPPENINGS } from '../src/data/happenings.js';
 import { VISITORS } from '../src/data/visitors.js';
-import { HAP, chooseHappening, dueHappening } from '../src/game/happenings.js';
+import { HAP, chooseHappening, dueHappening, eligible } from '../src/game/happenings.js';
+import { KOSTAS, KOSTAS_REWARD } from '../src/data/kostas.js';
 import { offerQuest, settleQuest, questText } from '../src/game/mail.js';
 import { TOWN_KEYS } from '../src/data/towns.js';
 import { WEATHER, EVENTS, EVENT_CHANCE, SEASON } from '../src/data/calendar.js';
 import { PAGES, FINALE_REWARD } from '../src/data/story.js';
-import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, MOTIFS } from '../src/audio/compose.js';
+import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, MOTIFS, THEMES } from '../src/audio/compose.js';
 import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
 import { checkStamps, stampProgress } from '../src/game/stamps.js';
-import { checkStory, nextPage, progressOf } from '../src/game/story.js';
+import { checkStory, nextPage, progressOf, checkUnlocks } from '../src/game/story.js';
 import { weatherOf, eventOf, dayMods, specialOf } from '../src/game/calendar.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../src/data/regulars.js';
-import { effects, equipDecor, upgradeShelf, choosePaint } from '../src/game/decor.js';
+import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from '../src/game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, simulateDay } from '../src/game/day.js';
 
 let passed = 0;
@@ -532,7 +533,7 @@ test('ilk baskı: koleksiyoncu istekleri karşılanabilir, müdavim istekleri te
 
 // --- Faz B: sürprizler ---
 test('olaylar: veri tutarlı (kimlik, seçenek, sonuç metni, bilinen etkiler)', () => {
-  const FX = ['coins', 'crowd', 'lose', 'gain', 'gainTag', 'rare', 'heart', 'buff', 'chance', 'fail'];
+  const FX = ['coins', 'crowd', 'lose', 'gain', 'gainTag', 'rare', 'heart', 'friends', 'buff', 'chance', 'fail'];
   assert.ok(HAPPENINGS.length >= 28);
   assert.equal(new Set(HAPPENINGS.map(h => h.id)).size, HAPPENINGS.length);
   for (const h of HAPPENINGS) {
@@ -679,6 +680,97 @@ test('müzik: kasaba motifi sekiz ölçüde bir, akşam çan yok, festivalde dah
     lively += composeBar(b, 'Yaz', { lively: true }).filter(n => n.inst === 'pluck').length;
   }
   assert.ok(lively > calm * 1.1, `festival ${lively} > ${calm}`);
+});
+
+test('müzik: plak çalar temaları farklı akor ve yoğunlukta, hepsi duyulabilir aralıkta', () => {
+  const sig = th => composeBar(2, 'Yaz', { theme: th }).filter(n => n.inst === 'pad').map(n => n.midi).join(',');
+  assert.notEqual(sig('caz'), sig('akustik'));
+  assert.notEqual(sig('ninni'), sig('akustik'));
+  let ninni = 0, akustik = 0;
+  for (let b = 0; b < 64; b++) {
+    for (const th of Object.keys(THEMES)) for (const n of composeBar(b, 'Kış', { theme: th })) assert.ok(n.midi >= 24 && n.midi <= 100, th);
+    ninni += composeBar(b, 'Yaz', { theme: 'ninni' }).filter(n => n.inst === 'pluck').length;
+    akustik += composeBar(b, 'Yaz', { theme: 'akustik' }).filter(n => n.inst === 'pluck').length;
+  }
+  assert.ok(ninni < akustik * 0.8, 'ninni daha seyrek');
+});
+
+// --- Faz C: dünyanın büyümesi ---
+test('yeni kasabalar: kilitli başlar, hikâyeyle açılır', () => {
+  const S = newGame(1);
+  assert.deepEqual(S.unlocked, ['ayvalik', 'cunda', 'foca', 'alacati']);
+  assert.equal(travel(S, 'bozcaada'), 'Bu kasabanın yolunu henüz bilmiyorsun.');
+  S.pages = PAGES.slice(0, 4).map(p => p.id);
+  assert.deepEqual(checkUnlocks(S), ['bozcaada']);
+  assert.equal(travel(S, 'bozcaada'), null);
+  assert.equal(S.spot, 'liman');
+  S.pages = PAGES.slice(0, 7).map(p => p.id);
+  assert.deepEqual(checkUnlocks(S), ['sirince']);
+  assert.deepEqual(checkUnlocks(S), []);
+  for (const k of TOWN_KEYS) {
+    assert.ok(SPOTS[k] && MOTIFS[k], k);
+    assert.equal(REGULAR_KEYS.filter(id => REGULARS[id].town === k).length, 2, k + ' müdavimleri');
+    for (const g of GENRE_KEYS) assert.ok(TOWNS[k].demand[g] > 0, k + ':' + g);
+  }
+});
+
+test('2. bölüm: Kostas kitapları yalnız hikâye bitince, doğru kasaba ve türde çıkar', () => {
+  const S = newGame(4);
+  S.coins = 1e6; S.shelfLv = 2;
+  const k0 = KOSTAS[0];
+  S.town = k0.town;
+  for (let i = 0; i < 50; i++) { S.shelf = {}; buyBox(S, BOOK[k0.book].genre); }
+  assert.equal(S.kostasFound.length, 0, 'hikâye bitmeden yok');
+  S.pages = PAGES.map(p => p.id);
+  // yanlış tür: çıkmaz
+  for (let i = 0; i < 50; i++) { S.shelf = {}; buyBox(S, GENRE_KEYS.find(g => g !== BOOK[k0.book].genre && !KOSTAS.some(k => k.town === S.town && BOOK[k.book].genre === g))); }
+  assert.equal(S.kostasFound.length, 0, 'yanlış tür');
+  // bütün kasabalarda doğru türler: hepsi bulunur, ödül verilir
+  const coins = S.coins;
+  let done = null, spent = 0;
+  for (const k of KOSTAS) {
+    S.town = k.town;
+    for (let i = 0; i < 60 && !S.kostasFound.includes(k.book); i++) {
+      S.shelf = {}; spent += boxCost(BOOK[k.book].genre); buyBox(S, BOOK[k.book].genre);
+      if (S.lastBox.kostas?.done) done = S.lastBox.kostas;
+    }
+  }
+  assert.equal(S.kostasFound.length, KOSTAS.length);
+  assert.ok(done && done.done, 'son kitapta tamamlandı');
+  assert.equal(S.coins, coins - spent + KOSTAS_REWARD);
+  assert.equal(new Set(KOSTAS.map(k => k.book)).size, KOSTAS.length);
+  for (const k of KOSTAS) assert.ok(BOOK[k.book] && TOWNS[k.town] && k.note, k.book);
+});
+
+test('karavan: çay köşesi çay sattırır ve sabrı artırır; plak çalar alınır', () => {
+  const S = newGame(10);
+  S.coins = 1000;
+  const p0 = effects(S).patience;
+  assert.equal(buyUpgrade(S, 'cay'), null);
+  assert.equal(buyUpgrade(S, 'cay'), 'Bu zaten karavanında.');
+  assert.ok(Math.abs(effects(S).patience - p0 * 1.3) < 1e-9);
+  assert.equal(buyUpgrade(S, 'plak'), null);
+  assert.equal(S.coins, 1000 - UPGRADES.cay.price - UPGRADES.plak.price);
+  openShop(S);
+  for (const b of booksOf('roman')) S.shelf[b.id] = 50;
+  let tea = 0;
+  for (let i = 0; i < 1000; i++) if (resolveCustomer(S, { id: i, wants: 'roman', look: 1 }).tea) tea++;
+  assert.ok(Math.abs(tea / 1000 - BAL.teaChance) < 0.04, 'çay oranı ' + tea);
+});
+
+test('müdavimler arası olaylar: iki taraf da en az 3 kalpteyken çıkar', () => {
+  const S = newGame(2);
+  const H = HAP.ogretmen_doktor;
+  S.friends = { melis: 3, selim: 2 };
+  assert.equal(eligible(S, H), false);
+  S.friends.selim = 3;
+  assert.equal(eligible(S, H), true);
+  openShop(S);
+  const r = chooseHappening(S, 'ogretmen_doktor', 0);
+  assert.equal(S.friends.melis, 4);
+  assert.equal(S.friends.selim, 4);
+  assert.ok(r.tags.some(x => x.includes('Melis')));
+  assert.equal(eligible(S, H), false, 'bir kerelik');
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {

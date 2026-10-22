@@ -7,11 +7,11 @@ import { BAL } from './data/balance.js';
 import { TOWNS } from './data/towns.js';
 import { GENRES } from './data/genres.js';
 import { BOOK } from './data/books.js';
-import { DECOR, PAINTS } from './data/decor.js';
+import { DECOR, PAINTS, UPGRADES } from './data/decor.js';
 import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
 import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
-import { effects, equipDecor, upgradeShelf, choosePaint } from './game/decor.js';
+import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
 import { loadGame, saveGame as persistGame, clearGame } from './core/save.js';
 import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood } from './audio/audio.js';
@@ -86,8 +86,15 @@ const act = (a, arg) => {
   if (a === 'stock') ui.stockPanel(S);
   else if (a === 'paper') { sfx('page'); ui.paperPanel(S); }
   else if (a === 'book') { sfx('page'); ui.bookPanel(S); }
-  else if (a === 'settings') ui.settingsPanel(settings);
-  else if (a === 'toggle') { settings[arg] = !settings[arg]; applySettings(); ui.settingsPanel(settings); }
+  else if (a === 'settings') ui.settingsPanel(settings, S);
+  else if (a === 'theme') { settings.theme = arg; applySettings(); ui.settingsPanel(settings, S); }
+  else if (a === 'upgrade') {
+    const why = buyUpgrade(S, arg);
+    if (why) ui.toast(why);
+    else { tap('MEDIUM'); sfx('box'); scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${UPGRADES[arg].icon} ${UPGRADES[arg].name} karavana eklendi`); stampCheck(); }
+    ui.decorPanel(S);
+  }
+  else if (a === 'toggle') { settings[arg] = !settings[arg]; applySettings(); ui.settingsPanel(settings, S); }
   else if (a === 'reset') { clearGame(); location.reload(); }
   else if (a === 'spot') {
     if (!arg) return ui.spotPanel(S);
@@ -104,6 +111,7 @@ const act = (a, arg) => {
     else {
       tap(); sfx('box'); scene.setStock(S); saveGame(S);
       const rare = S.lastBox.rare;
+      if (S.lastBox.kostas) { sfx('letter'); ui.confetti(); ui.kostasFoundPanel(S.lastBox.kostas); return; }
       if (rare.length) { sfx('heart'); ui.toast(`✨ Kolide bir ilk baskı çıktı: ${BOOK[rare[0]].title}! Koleksiyoncuya sakla.`); }
       else ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap raflara dizildi`);
     }
@@ -111,7 +119,8 @@ const act = (a, arg) => {
   } else if (a === 'decor-on') {
     const why = equipDecor(S, arg);
     if (why) ui.toast(why);
-    else { tap(); scene.setDecor(S.decor.on); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR[arg].name} yerine kondu`); stampCheck(); }
+    else { tap(); scene.setDecor(S.decor.on);
+scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR[arg].name} yerine kondu`); stampCheck(); }
     ui.decorPanel(S);
   } else if (a === 'shelf') {
     const why = upgradeShelf(S);
@@ -198,6 +207,9 @@ if (PREVIEW) {
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
+  if (q.has('gelistir')) { S.upgrades = ['cay', 'plak']; scene.setUpgrades(S.upgrades); }
+  if (panel === 'harita') ui.mapPanel(S);
+  if (panel === 'kostas') { S.pages = PAGES.map(p => p.id); S.unlocked.push('bozcaada'); S.kostasFound = ['yasliadam', 'odysseia', 'korfez']; ui.kostasPanel(S); }
   if (q.has('aksam')) setTimeout(() => scene.setDaylight(+q.get('aksam') || 0.95), 100);
   if (panel === 'olay') ui.hapPanel(HAP[q.get('olay') || 'eskici'], i => chooseHappening(S, q.get('olay') || 'eskici', i));
   if (panel === 'posta') {

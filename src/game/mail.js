@@ -62,7 +62,7 @@ export function offerQuest(S) {
   remember(S, 'quest', V.id);
   if (!S.questsSeen.includes(V.id)) S.questsSeen.push(V.id);
   const q = { vid: V.id, kind: V.kind, n: V.n || 1, from: S.day, deadline: S.day + V.days - 1, coins: V.coins, rare: !!V.rare };
-  if (V.town) q.town = rndPick(S, TOWN_KEYS);
+  if (V.town) q.town = rndPick(S, S.unlocked);
   if (V.kind === 'book') {
     const pool = V.pool.tag ? BOOKS.filter(b => b.tags.includes(V.pool.tag)) : booksOf(V.pool.genre);
     q.book = pickFresh(S, 'book', pool, b => b.id).id;

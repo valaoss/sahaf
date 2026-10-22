@@ -28,6 +28,18 @@ export const SPOTS = {
     plaj: { name: 'Plaj', scene: 'sahil', traffic: 1.1, ask: 1, demand: { cocuk: 1.4, polisiye: 1.2 }, tags: ['macera', 'komik'],
       desc: 'Şezlonglar ve dondurmacılar. Hafif, eğlenceli kitaplar satar.' },
   },
+  bozcaada: {
+    liman: { name: 'Kale limanı', scene: 'sahil', traffic: 1, ask: 1.1, demand: { siir: 1.3, tarih: 1.2 }, tags: ['deniz', 'savas'],
+      desc: 'Kalenin gölgesinde balıkçı tekneleri. Tarih ve deniz hikâyeleri sorulur.' },
+    bag: { name: 'Bağ evleri', scene: 'tepe', traffic: 0.85, ask: 1.5, demand: { siir: 1.4, roman: 1.3 }, tags: ['doga', 'ask'],
+      desc: 'Asmaların arasında sakin bir köşe. Şiir okuyan, sohbet eden çok.' },
+  },
+  sirince: {
+    carsi: { name: 'Köy çarşısı', scene: 'carsi', traffic: 1.2, ask: 0.9, demand: { cocuk: 1.3, fantastik: 1.3 }, tags: ['buyu', 'cocukluk'],
+      desc: 'Reçel tezgâhları ve el yapımı oyuncaklar. Masal kitapları satılır.' },
+    tepe: { name: 'Kilise yokuşu', scene: 'tepe', traffic: 0.8, ask: 1.6, demand: { tarih: 1.5, siir: 1.2 }, tags: ['felsefe', 'gizem'],
+      desc: 'Taş merdivenlerin sonunda eski bir kilise. Az kişi, derin sohbetler.' },
+  },
 };
 
 export const firstSpot = town => Object.keys(SPOTS[town])[0];

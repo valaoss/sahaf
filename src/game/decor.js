@@ -1,5 +1,5 @@
 // Süsler, raf yükseltmesi ve boya: satın alma, takma ve toplam etkiler.
-import { DECOR, SHELF_LEVELS, PAINTS } from '../data/decor.js';
+import { DECOR, SHELF_LEVELS, PAINTS, UPGRADES } from '../data/decor.js';
 
 // Takılı süslerin toplam etkisi
 export function effects(S) {
@@ -11,6 +11,7 @@ export function effects(S) {
     out.tip += e.tip || 0;
     out.patience *= e.patience || 1;
   }
+  if (S.upgrades?.includes('cay')) out.patience *= 1.3;
   return out;
 }
 
@@ -30,6 +31,20 @@ export function equipDecor(S, key) {
     S.decor.owned.push(key);
   }
   S.decor.on[d.slot] = key;
+  return null;
+}
+
+// Karavan geliştirmeleri: çay köşesi, plak çalar
+export function buyUpgrade(S, key) {
+  const u = UPGRADES[key];
+  if (!u) return 'Böyle bir geliştirme yok.';
+  const why = morningOnly(S);
+  if (why) return why;
+  if (S.upgrades.includes(key)) return 'Bu zaten karavanında.';
+  if (S.coins < u.price) return 'Paran yetmiyor.';
+  S.coins -= u.price;
+  S.totals.spent += u.price;
+  S.upgrades.push(key);
   return null;
 }
 

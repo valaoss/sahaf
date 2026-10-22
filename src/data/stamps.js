@@ -23,6 +23,8 @@ export const STAMPS = [
   { id: 'postaci',   name: 'Postacının dostu',  icon: '📮', color: '#f9dccf', need: { letters: 10 },   desc: 'On mektup biriktir.' },
   { id: 'ilan',      name: 'İlan panosu',       icon: '📌', color: '#e6efd9', need: { quests: 3 },     desc: 'Üç ilanı zamanında teslim et.' },
   { id: 'anlar',     name: 'Ne günlerdi',       icon: '🎞️', color: '#e9e2f4', need: { haps: 15 },      desc: '15 farklı gün içi olay yaşa.' },
+  { id: 'butunege',  name: 'Bütün Ege',         icon: '🧭', color: '#d9ecf2', need: { unlocked: 6 },   desc: 'Altı kasabanın hepsinin yolunu öğren.' },
+  { id: 'kostas12',  name: "Kostas'ın rafı",   icon: '🔖', color: '#efe6d6', need: { kostas: 12 },    desc: "2. bölüm: Kostas'ın 12 kitabını bul." },
   { id: 'kasa',      name: 'Dolu kasa',         icon: '💰', color: '#fdeec4', need: { coins: 1000 },   desc: 'Kasada ₺1000 biriktir.' },
   { id: 'yil',       name: 'Bir yıl',           icon: '🍂', color: '#f7e1c6', need: { days: 28 },      desc: 'Dört mevsimi tamamla (28 gün).' },
   { id: 'kutuphane', name: 'Kayıp kütüphane',   icon: '🏛️', color: '#e6dccb', need: { story: 1 },      desc: 'Kostas Efendi\'nin defterini tamamla.' },

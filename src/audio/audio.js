@@ -1,10 +1,10 @@
 // Ses motoru: Web Audio ile sentezlenen müzik, efektler ve yağmur. Hiç ses dosyası yok.
 // Tarayıcılar ilk dokunuştan önce ses çalmaya izin vermez: unlock() ilk etkileşimde çağrılır.
-import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR } from './compose.js';
+import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, THEMES } from './compose.js';
 import { persist, SAVE_KEYS } from '../core/native.js';
 
 const SET_KEY = SAVE_KEYS[1];
-export const settings = Object.assign({ music: true, sfx: true }, (() => {
+export const settings = Object.assign({ music: true, sfx: true, theme: 'akustik' }, (() => {
   try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; }
 })());
 export function saveSettings() {
@@ -125,10 +125,10 @@ const INST = { pluck, bass, pad, bell };
 // Müzik zamanlayıcı: yarım saniye ileriyi planlar
 function schedule() {
   if (!ctx || ctx.state !== 'running') return;
-  const beat = 60 / (TEMPO[season] + (mood.lively ? 6 : 0) - (mood.night ? 4 : 0));
+  const beat = 60 / (TEMPO[season] + (THEMES[settings.theme]?.tempo || 0) + (mood.lively ? 6 : 0) - (mood.night ? 4 : 0));
   while (nextBarTime < ctx.currentTime + 0.5) {
     if (settings.music) {
-      for (const n of composeBar(bar, season, mood)) INST[n.inst](musicBus, midiToHz(n.midi), nextBarTime + n.t * beat, n.dur * beat, n.vel);
+      for (const n of composeBar(bar, season, { ...mood, theme: settings.theme })) INST[n.inst](musicBus, midiToHz(n.midi), nextBarTime + n.t * beat, n.dur * beat, n.vel);
     }
     nextBarTime += BEATS_PER_BAR * beat;
     bar++;

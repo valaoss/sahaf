@@ -73,7 +73,13 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Canlı arka plan (render/ambient.js): martılar, ufukta geçen tekneler, ilkbahar/yaz kelebekleri
 - Oyun hissi: satışta para kasaya uçar, pul/hediye/sayfa/ilan teslimde konfeti, defter sayfası çevrilir
 - Müzik: her kasabanın 4 notalık motifi, festival/özel günde daha canlı, akşamüstü yumuşak; mektup ve olay jingleları
-- Sıradaki: Faz C (yeni kasabalar, müdavimler, 2. bölüm, karavan büyümesi)
+### Faz C — dünyanın büyümesi ✅
+- Bozcaada (4. sayfada) ve Şirince (7. sayfada) açılır; haritada önce "?" olarak görünürler; her birinde 2 mekân, 2 müdavim, kendi motifi
+- 12 müdavim; müdavimler arası 4 bir kerelik olay (iki taraf da 3+ kalpteyken)
+- 2. bölüm: final sonrası Kostas'ın 12 kitabı doğru kasabada doğru türden kolide çıkar, her biri bir not; hepsi ₺300
+- Karavan: çay köşesi (sabır ×1.3, çay satışı), plak çalar (Akustik / Caz / Ninni temaları)
+- Plandan sapma: müdavim kalpleri 5'te kaldı (6–10 aralığı yerine müdavimler arası olaylar yazıldı); ikinci sergi masası yapılmadı
+- Sıradaki: Faz E (rehber, öneri süzgeci, istatistik, yazı boyutu)
 
 ## Faz 2 başlangıcı ✅
 - Sabah gazetesi (Ege Postası): günün havası, bugünün ve yarının etkinliği, kasabadan haber; her sabah açılır,

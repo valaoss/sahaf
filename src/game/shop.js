@@ -13,6 +13,7 @@ import { shelfCount, shelfCap, takeBook, seasonOf } from './state.js';
 import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
 import { buildAsk } from './asks.js';
+import { kostasDrop } from './story.js';
 import { remember, pickFresh, weightedFresh } from './memory.js';
 export { askText } from './asks.js';
 
@@ -43,13 +44,14 @@ export function buyBox(S, g) {
     if (rnd(S) < BAL.rareChance * dayMods(S.day, S.town).rare) { S.rare[id] = (S.rare[id] || 0) + 1; rare.push(id); }
     got.push(id);
   }
-  S.lastBox = { genre: g, books: got, rare };
+  S.lastBox = { genre: g, books: got, rare, kostas: kostasDrop(S, g) };
   return null;
 }
 
 export function canTravel(S, key) {
   if (!TOWNS[key]) return 'Böyle bir kasaba yok.';
   if (S.phase !== 'morning') return 'Yola yalnızca sabah çıkılır.';
+  if (!S.unlocked.includes(key)) return 'Bu kasabanın yolunu henüz bilmiyorsun.';
   if (key === S.town) return 'Zaten buradasın.';
   if (S.travelled) return 'Bugün zaten yol yaptın.';
   if (S.coins < BAL.travelCost) return 'Yakıt parası yok.';
@@ -226,6 +228,7 @@ export function resolveCustomer(S, c) {
     for (const g of GENRE_KEYS) if (plainOfGenre(S, g) > 0) avail[g] = d[g];
     if (Object.keys(avail).length && rnd(S) < BAL.altChance) sell(S, pickBookOf(S, weighted(S, avail)), res);
   }
+  if (S.upgrades.includes('cay') && rnd(S) < BAL.teaChance) { res.paid += BAL.teaPrice; res.tea = true; T.tea = (T.tea || 0) + 1; }
   return settle(S, res);
 }
 

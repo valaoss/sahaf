@@ -9,6 +9,21 @@ import { shelfCap, genreCounts } from '../game/state.js';
 import { DECOR_ART } from './decor-art.js';
 import { spotArt, GROUND, SHOW_HOUSES } from './spot-art.js';
 
+// Çay köşesi: tabure, demlik, iki ince belli bardak, buhar
+const TEA_ART = `<ellipse cx="0" cy="4" rx="34" ry="7" fill="#c9a676" opacity=".6"/>
+  <rect x="-24" y="-30" width="48" height="8" rx="3" fill="#a8704a"/><rect x="-20" y="-22" width="6" height="26" rx="2" fill="#7a4e33"/><rect x="14" y="-22" width="6" height="26" rx="2" fill="#7a4e33"/>
+  <path d="M-18 -30 C-22 -46 -12 -52 -6 -52 C0 -52 6 -46 2 -30Z" fill="#e57f73"/><path d="M-14 -52 C-14 -60 -2 -60 -2 -52Z" fill="#f2c45a"/>
+  <path d="M2 -42 C10 -44 12 -48 14 -52" fill="none" stroke="#e57f73" stroke-width="3" stroke-linecap="round"/>
+  <path d="M8 -30 L18 -30 L19 -44 L7 -44Z" fill="#d6563a" opacity=".85"/><path d="M-30 -30 L-22 -30 L-21 -42 L-31 -42Z" fill="#d6563a" opacity=".85"/>
+  <path class="steam" d="M13 -48 C9 -54 17 -58 13 -66" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>`;
+
+// Plak çalar: dönen plak ve boru
+const GRAMO_ART = `<rect x="-26" y="-14" width="52" height="16" rx="3" fill="#8a5a3c"/>
+  <g transform="translate(-4 -16)"><g class="spin slow"><ellipse rx="22" ry="5" fill="#2e2422"/><ellipse rx="6" ry="1.6" fill="#e57f73"/></g></g>
+  <path d="M14 -18 L22 -40" stroke="#c9a676" stroke-width="4" stroke-linecap="round"/>
+  <path d="M22 -40 C26 -64 52 -70 58 -58 C48 -56 34 -48 26 -36Z" fill="#f2c45a" stroke="#d1a73c" stroke-width="2"/>
+  <text x="44" y="-74" font-size="16" class="twinkle">♪</text>`;
+
 // Mevsim görünümleri: a/b ağaç yaprakları, bits uçuşan parçacık renkleri, tint serin/ılık ton
 const SEASON_LOOK = {
   'İlkbahar': { a: '#9cb67f', b: '#b5cb94', bits: ['#f6a5c0', '#fbd0dc', '#fff'] },
@@ -128,6 +143,7 @@ const MARKUP = `
       <circle cx="18" cy="31" r="6" fill="#f2c45a"/><circle cx="152" cy="31" r="6" fill="#f2c45a"/>
     </g>
     <g id="slotRoof" transform="translate(392 32)"></g>
+    <g id="slotGramo" transform="translate(92 30)"></g>
     <path d="M30 104 C120 150 330 150 420 104" fill="none" stroke="#5a3d30" stroke-width="3"/>
     <g id="lights"></g>
     <g transform="translate(110 350)"><circle r="44" fill="#5b4636"/><circle r="22" fill="#f6e2c4"/><circle r="8" fill="#5b4636"/></g>
@@ -159,6 +175,7 @@ const MARKUP = `
 
   <g id="slotGround" transform="translate(1510 780)"></g>
   <g id="ambientFront"></g>
+  <g id="slotTea" transform="translate(64 660) scale(1.3)"></g>
 
   <g id="people"></g>
   <g id="fx"></g>
@@ -351,6 +368,11 @@ export function buildScene(host) {
       $('slotRoof').innerHTML = DECOR_ART[on.roof] || '';
       $('slotTable').innerHTML = DECOR_ART[on.table] || '';
       $('slotGround').innerHTML = DECOR_ART[on.ground] || '';
+    },
+    // karavan geliştirmeleri: çay köşesi (kaldırımda), plak çalar (çatıda)
+    setUpgrades(list) {
+      $('slotTea').innerHTML = list.includes('cay') ? TEA_ART : '';
+      $('slotGramo').innerHTML = list.includes('plak') ? GRAMO_ART : '';
     },
     setPaint(key) {
       const p = PAINTS[key];

@@ -36,8 +36,8 @@ const STYLES = {
   'hiç koli almaz': () => {},
   'hep roman': stockLazy,
   'akıllı, tek kasaba': stockSmart,
-  'akıllı, her gün gezer': (S, day) => { travel(S, TOWN_KEYS[(day + 1) % TOWN_KEYS.length]); stockSmart(S); },
-  'akıllı, 3 günde bir gezer': (S, day) => { if (day % 3 === 2) travel(S, TOWN_KEYS[(day / 3 + 1) % TOWN_KEYS.length | 0]); stockSmart(S); },
+  'akıllı, her gün gezer': (S, day) => { travel(S, S.unlocked[(day + 1) % S.unlocked.length]); stockSmart(S); },
+  'akıllı, 3 günde bir gezer': (S, day) => { if (day % 3 === 2) travel(S, S.unlocked[(day / 3 + 1) % S.unlocked.length | 0]); stockSmart(S); },
   'akıllı + yatırım': (S) => { invest(S); stockSmart(S); },
   'yatırım + festival peşinde': (S) => { const e = eventOf(S.day); if (e) travel(S, EVENTS[e].town); invest(S); stockSmart(S); },
 };

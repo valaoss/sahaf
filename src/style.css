@@ -244,3 +244,7 @@ svg.scene .glow { opacity: var(--glow, .05); }
 @keyframes confetti { to { transform: translate(var(--drift), 115vh) rotate(var(--spin)); } }
 .pagebody { animation: pageturn .45s ease-out; transform-origin: left center; }
 @keyframes pageturn { from { transform: perspective(600px) rotateY(-14deg); opacity: .4; } to { transform: none; opacity: 1; } }
+
+.town.locked { opacity: .75; }
+.letterbox.locked { background: #f7f2ea; border-color: #ddd0bd; color: #8a7468; }
+.ptab.ch2 { margin-top: .4em; background: #f3e6ff; }

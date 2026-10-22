@@ -22,6 +22,7 @@ export function eligible(S, h) {
   if (w.minDay && S.day < w.minDay) return false;
   if (w.event && !dayMods(S.day, S.town).event) return false;
   if (w.shelf && shelfCount(S) < w.shelf) return false;
+  if (w.friends && !w.friends.every(id => (S.friends[id] || 0) >= 3)) return false;
   return true;
 }
 
@@ -113,6 +114,7 @@ export function chooseHappening(S, id, idx) {
   if (fx.gain) { const g = gainBooks(S, fx.gain); if (g.length) out.tags.push(`📚 +${g.length}`); }
   if (fx.gainTag) { const g = gainBooks(S, 1, fx.gainTag); if (g.length) out.tags.push(`📚 ${BOOK[g[0]].title}`); }
   if (fx.rare) { const r = gainRare(S); if (r) { out.rare = r; out.tags.push(`✨ ${BOOK[r].title}`); } }
+  if (fx.friends) for (const fid of fx.friends) { const fr = addHeart(S, fid); if (fr) { out.friend = out.friend?.gift || out.friend?.coins ? out.friend : fr; out.tags.push(`💛 ${REGULARS[fid].name}`); } }
   if (fx.heart) { const f = heartForSomeone(S); if (f) { out.friend = f; out.tags.push(`💛 ${REGULARS[f.id].name}`); } }
   if (fx.buff) { S.buffs.push({ day: S.day + 1, traffic: fx.buff }); out.tags.push('📣 yarın kalabalık'); }
   if (!S.hapDone.includes(id)) S.hapDone.push(id);

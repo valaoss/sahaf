@@ -6,7 +6,7 @@ import { REGULARS, REGULAR_KEYS, VISIT_CHANCE } from '../data/regulars.js';
 import { makeCustomer, makeRegular, resolveCustomer, recommend, bestBook, spotOf } from './shop.js';
 import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
-import { checkStory } from './story.js';
+import { checkStory, checkUnlocks } from './story.js';
 import { checkStamps } from './stamps.js';
 import { morningLetter, offerQuest, settleQuest } from './mail.js';
 import { scheduleHappenings, dueHappening, chooseHappening, buffFor, HAP } from './happenings.js';
@@ -67,6 +67,7 @@ export function closeShop(S) {
   }
   T.quest = settleQuest(S, T);
   T.page = checkStory(S, T);
+  T.unlocked = checkUnlocks(S);
   T.stamps = checkStamps(S);
   S.lastDay = T;
   S.prevTown = S.town;

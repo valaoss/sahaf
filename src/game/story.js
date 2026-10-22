@@ -1,5 +1,9 @@
 // Ana hikâye ilerlemesi: sayfalar sırayla açılır. Gün kapanınca (ve oyun başında) kontrol edilir.
 import { PAGES, FINALE_REWARD } from '../data/story.js';
+import { TOWNS, TOWN_KEYS } from '../data/towns.js';
+import { BOOK } from '../data/books.js';
+import { KOSTAS, KOSTAS_REWARD, KOSTAS_CHANCE } from '../data/kostas.js';
+import { rnd, rndPick } from '../core/rng.js';
 
 const CHECK = {
   start: () => true,
@@ -13,6 +17,30 @@ const CHECK = {
 };
 
 export const nextPage = S => PAGES[S.pages.length] || null;
+export const storyDone = S => S.pages.length >= PAGES.length;
+
+// Hikâye ilerledikçe yeni kasabalar açılır; yeni açılanları döndürür
+export function checkUnlocks(S) {
+  const opened = [];
+  for (const k of TOWN_KEYS) {
+    const u = TOWNS[k].unlock;
+    if (u && !S.unlocked.includes(k) && S.pages.length >= u.pages) { S.unlocked.push(k); opened.push(k); }
+  }
+  return opened;
+}
+
+// 2. bölüm: kütüphane bulunduysa, doğru kasabada doğru türden kolide Kostas'ın kitabı çıkabilir
+export function kostasDrop(S, genre) {
+  if (!storyDone(S)) return null;
+  const cand = KOSTAS.filter(k => !S.kostasFound.includes(k.book) && k.town === S.town && BOOK[k.book].genre === genre);
+  if (!cand.length || rnd(S) >= KOSTAS_CHANCE) return null;
+  const k = rndPick(S, cand);
+  S.kostasFound.push(k.book);
+  S.shelf[k.book] = (S.shelf[k.book] || 0) + 1;
+  const done = S.kostasFound.length === KOSTAS.length;
+  if (done) S.coins += KOSTAS_REWARD;
+  return { book: k.book, note: k.note, done };
+}
 
 // Sıradaki sayfanın koşulu tuttuysa açar ve döndürür (günde en fazla bir sayfa)
 export function checkStory(S, T = null) {

@@ -4,6 +4,7 @@ import { GENRE_KEYS } from '../data/genres.js';
 import { BOOK, booksOf } from '../data/books.js';
 import { DEFAULT_DECOR, SHELF_LEVELS } from '../data/decor.js';
 import { SPOTS, firstSpot } from '../data/spots.js';
+import { START_TOWNS } from '../data/towns.js';
 import { seedRng, rndInt } from '../core/rng.js';
 
 export const SAVE_V = 2;
@@ -57,6 +58,9 @@ export function newGame(seed = Date.now()) {
     weathersSeen: [],          // dükkân açılan günlerin havaları
     stamps: [],                // pul albümü (data/stamps.js)
     finaleShown: false,        // hikâye kapanış ekranı gösterildi mi
+    unlocked: [...START_TOWNS], // gidilebilen kasabalar (diğerleri hikâyeyle açılır)
+    kostasFound: [],           // 2. bölüm: bulunan Kostas kitapları (data/kostas.js)
+    upgrades: [],              // karavan geliştirmeleri: cay, plak
     regArrivals: [],           // açık gün: gelecek müdavimler [{ t, id }]
     travelled: false,          // bu sabah yola çıkıldı mı
     clock: BAL.dayStart,

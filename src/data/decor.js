@@ -33,6 +33,12 @@ export const DECOR = {
 export const DECOR_KEYS = Object.keys(DECOR);
 export const DEFAULT_DECOR = { roof: 'kaktus', table: 'bos', ground: 'saksi' };
 
+// Karavan geliştirmeleri
+export const UPGRADES = {
+  cay:  { name: 'Çay köşesi', icon: '🫖', price: 120, desc: 'Bekleyenler daha sabırlı (×1.3); müşteriler arada bir çay alır (₺3).' },
+  plak: { name: 'Plak çalar', icon: '📻', price: 90, desc: 'Müzik temaları açılır: Akustik, Caz, Ninni (⚙️ Ayarlar).' },
+};
+
 // Raf kapasitesi yükseltmeleri (seviye 0 başlangıç)
 export const SHELF_LEVELS = [
   { cap: 30, price: 0 },
