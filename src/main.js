@@ -26,7 +26,8 @@ import { STAMPS } from './data/stamps.js';
 import { PAGES } from './data/story.js';
 import { tap } from './core/native.js';
 import { buildScene } from './render/scene.js';
-import { createCrowd } from './render/people.js';
+import { createCrowd, personSVG, figureMeta } from './render/people.js';
+import { ARCHETYPES } from './data/archetypes.js';
 import { createAmbient } from './render/ambient.js';
 import { createUI } from './ui/ui.js';
 
@@ -214,6 +215,19 @@ if (PREVIEW) {
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
+  // ?insanlar: farklı tiplerden on kişilik dizi (yürüyen, okuyan, sevinen)
+  if (q.has('insanlar')) {
+    const kinds = ['ogrenci', 'emekli', 'balikci', 'turist', 'anne', 'cocuk', 'sevgili', 'yazar', 'teyze', 'sorfcu'];
+    const seed = +q.get('insanlar') || 1;
+    kinds.forEach((k, i) => {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const st = ['walking', 'reading', '', 'cheer'][i % 4];
+      g.setAttribute('class', 'age-' + figureMeta(i * 7919 + seed, ARCHETYPES[k].style).age + (st ? ' ' + st : ''));
+      g.setAttribute('transform', `translate(${110 + i * 152} 0)`);
+      g.innerHTML = personSVG(i * 7919 + seed, ARCHETYPES[k].style);
+      scene.people.appendChild(g);
+    });
+  }
   if (panel === 'istatistik') {
     Object.assign(S.soldBooks, { kurk: 9, hobbit: 7, garip: 6, defne: 5, nutuk: 4, yasliadam: 3 });
     Object.assign(S.totals, { days: 12, sold: 34, revenue: 412, perfect: 18, bestDay: 61, bestDayNo: 9, rareSold: 2 });

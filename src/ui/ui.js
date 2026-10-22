@@ -6,6 +6,7 @@ import { TOWNS, TOWN_KEYS } from '../data/towns.js';
 import { BOOK, booksOf, TAGS } from '../data/books.js';
 import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
 import { THEMES } from '../audio/compose.js';
+import { mapSVG, proj } from '../render/map3d.js';
 import { KOSTAS } from '../data/kostas.js';
 import { shelfCount, shelfCap, genreCount, seasonOf, dayOfSeason } from '../game/state.js';
 import { boxCost, canBuyBox, canTravel, topDemand } from '../game/shop.js';
@@ -22,7 +23,9 @@ import { statsOf } from '../game/stats.js';
 import { HAP } from '../game/happenings.js';
 import { STAMPS, STAMP_REWARD } from '../data/stamps.js';
 import { stampProgress } from '../game/stamps.js';
-import { personSVG, nameOf } from '../render/people.js';
+import { personSVG, figureMeta, nameOf } from '../render/people.js';
+// portre: figürün başını ve omuzlarını kadraja al
+const portraitBox = c => { const m = figureMeta(c.look, c.style); const top = 806 + m.headTop - 8; return `-52 ${top.toFixed(0)} 104 ${(110 * m.scale + 10).toFixed(0)}`; };
 import { ARCHETYPES } from '../data/archetypes.js';
 
 const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -239,7 +242,7 @@ export function createUI(root, act) {
       : `${nameOf(c.look, ARCHETYPES[c.arch]?.names)}${c.arch ? ` <span class="arch">· ${ARCHETYPES[c.arch].name}</span>` : ''}`;
     const p = openPanel(`
       <div class="rec-head">
-        <div class="portrait"><svg viewBox="-62 540 124 150">${personSVG(c.look, c.style)}</svg></div>
+        <div class="portrait"><svg viewBox="${portraitBox(c)}">${personSVG(c.look, c.style)}</svg></div>
         <div><div class="name">${who}</div>
           ${chat ? `<p class="hello">“${chat}”</p>` : ''}
           <p class="say">“${hints ? markAsk(c.ask.text) : c.ask.text}”</p>${c.ask.rare ? '<p class="hint">✨ İlk baskı arıyor: ilk baskı verirsen kat kat öder.</p>' : ''}</div>
@@ -262,75 +265,36 @@ export function createUI(root, act) {
   }
 
   function mapPanel(S) {
-    const pins = TOWN_KEYS.map(k => {
-      const t = TOWNS[k], here = k === S.town;
-      // henüz yolu bilinmeyen kasaba: soru işaretli, soluk bir iğne
-      if (!S.unlocked.includes(k)) {
-        return `<g class="town locked" data-town="${k}" transform="translate(${t.map.x} ${t.map.y})">
-          <g class="pin"><path d="M0 0 C-18 -24 -26 -36 -26 -50 A26 26 0 1 1 26 -50 C26 -36 18 -24 0 0Z" fill="#c7b6a4" stroke="#fff6e8" stroke-width="5"/>
-          <text y="-38" text-anchor="middle" font-size="30" font-weight="700" fill="#fff6e8">?</text></g>
-          <text y="40" text-anchor="middle" font-size="30" font-weight="600" fill="#a08d7e">???</text>
-          ${EVENTS[eventOf(S.day)]?.town === k ? '<text y="-92" text-anchor="middle" font-size="26" font-weight="700" fill="#a08d7e">🎉 ?</text>' : ''}
-        </g>`;
-      }
-      const icons = topDemand(k).map(g => GENRES[g].icon).join(' ');
-      return `<g class="town ${here ? 'here' : ''}" data-town="${k}" transform="translate(${t.map.x} ${t.map.y})">
-        <g class="pin"><path d="M0 0 C-18 -24 -26 -36 -26 -50 A26 26 0 1 1 26 -50 C26 -36 18 -24 0 0Z" fill="${here ? '#5ea592' : '#f08a7e'}" stroke="#fff6e8" stroke-width="5"/>
-        <circle cy="-50" r="10" fill="#fff6e8"/></g>
-        <text y="40" text-anchor="middle" font-size="32" font-weight="600" fill="#4a3a33">${t.name}</text>
-        <text y="78" text-anchor="middle" font-size="26">${icons}</text>
-        ${EVENTS[eventOf(S.day)]?.town === k ? `<text y="-92" text-anchor="middle" font-size="30" font-weight="700" fill="#e5546a">🎉 ${EVENTS[eventOf(S.day)].name}</text>` : ''}
-      </g>`;
-    }).join('');
-    const here = TOWNS[S.town].map;
+    const ev = eventOf(S.day);
     const p = openPanel(`
       <h2>🗺️ Nereye gidelim?</h2>
       <p class="hint">Yol ₺${BAL.travelCost} · günde bir kez, sabahları. Yeni gittiğin kasabada karavanı merak eden ${BAL.newTownTraffic} kişi daha uğrar.</p>
-      <svg class="map" viewBox="0 0 1600 900">
-        <rect width="1600" height="900" rx="40" fill="#a9dcd8"/>
-        <g stroke="#c6ebe7" stroke-width="4" stroke-linecap="round" fill="none">
-          <path d="M120 200 q20 -10 40 0 q20 10 40 0"/><path d="M260 620 q20 -10 40 0 q20 10 40 0"/><path d="M180 460 q20 -10 40 0 q20 10 40 0"/>
-        </g>
-        <path d="M560 0 L1600 0 L1600 900 L700 900 C640 840 700 780 640 740 C560 690 520 640 580 590 C640 540 560 500 600 450 C640 400 720 420 700 360 C680 300 560 300 580 240 C600 180 700 190 680 120 C670 70 590 60 560 0Z" fill="#f3e2bf" stroke="#e6cd9f" stroke-width="10"/>
-        <path d="M330 300 C380 260 460 280 450 330 C440 380 360 390 330 360 C310 340 310 316 330 300Z" fill="#f3e2bf" stroke="#e6cd9f" stroke-width="8"/>
-        <path d="M200 120 C230 80 300 86 316 126 C330 164 280 196 236 186 C196 176 182 150 200 120Z" fill="#f3e2bf" stroke="#e6cd9f" stroke-width="8"/>
-        <path d="M720 160 C560 120 420 110 300 130" fill="none" stroke="#7fb8c4" stroke-width="6" stroke-dasharray="2 16" stroke-linecap="round"/>
-        <path d="M800 520 C960 500 1100 480 1250 470" fill="none" stroke="#d8b886" stroke-width="10" stroke-dasharray="4 20" stroke-linecap="round"/>
-        <g fill="#c4dc9b"><ellipse cx="1150" cy="250" rx="140" ry="60"/><ellipse cx="1300" cy="600" rx="160" ry="70"/><ellipse cx="1200" cy="800" rx="120" ry="50"/></g>
-        <g fill="#9cb67f"><circle cx="1110" cy="230" r="18"/><circle cx="1150" cy="216" r="22"/><circle cx="1190" cy="234" r="16"/><circle cx="1280" cy="580" r="20"/><circle cx="1320" cy="570" r="24"/></g>
-        <path d="M760 170 C880 260 820 360 790 520 C770 640 860 720 900 790" fill="none" stroke="#d8b886" stroke-width="10" stroke-dasharray="4 20" stroke-linecap="round"/>
-        <path d="M770 280 C640 300 520 310 400 320" fill="none" stroke="#7fb8c4" stroke-width="6" stroke-dasharray="2 16" stroke-linecap="round"/>
-        <g transform="translate(1460 760)"><circle r="60" fill="#fff6e8" stroke="#e2c29c" stroke-width="5"/><path d="M0 -44 L12 0 L0 44 L-12 0Z" fill="#f08a7e"/><path d="M0 0 L12 0 L0 44 L-12 0Z" fill="#c7b6a4"/><text y="-64" text-anchor="middle" font-size="22" font-weight="700" fill="#4a3a33">K</text></g>
-        ${pins}
-        <g id="van" transform="translate(${here.x} ${here.y - 110})"><g transform="translate(-32 -30)">
-          <rect x="0" y="8" width="64" height="40" rx="12" fill="${PAINTS[S.paint].body}" stroke="${PAINTS[S.paint].edge}" stroke-width="4"/>
-          <rect x="10" y="16" width="30" height="16" rx="4" fill="#6b4a3a"/><path d="M8 16 L42 16 L40 22 L10 22Z" fill="#f08a7e"/>
-          <circle cx="16" cy="50" r="8" fill="#5b4636"/><circle cx="48" cy="50" r="8" fill="#5b4636"/>
-        </g></g>
-      </svg>
+      <svg class="map map3d" viewBox="0 0 1600 900">${mapSVG(S, { eventTown: ev ? EVENTS[ev].town : null, paint: PAINTS[S.paint] })}</svg>
       <p class="hint" id="blurb">${TOWNS[S.town].blurb}</p>
       <div class="row end"><button class="btn" data-close>Kapat</button></div>`, 'wide');
     p.querySelector('[data-close]').onclick = closePanel;
     p.querySelectorAll('[data-town]').forEach(g => {
-      const blurb = k => S.unlocked.includes(k) ? TOWNS[k].blurb : 'Haritada silik bir iz… Defterde ilerledikçe buranın yolunu öğreneceksin.';
+      const blurb = k => S.unlocked.includes(k) ? TOWNS[k].blurb : 'Haritada sisli bir köşe… Defterde ilerledikçe buranın yolunu öğreneceksin.';
       g.onmouseenter = () => { p.querySelector('#blurb').textContent = blurb(g.dataset.town); };
       g.onclick = () => {
         const k = g.dataset.town, why = canTravel(S, k);
         if (why) { toast(why); p.querySelector('#blurb').textContent = blurb(k); return; }
-        driveVan(p.querySelector('#van'), TOWNS[S.town].map, TOWNS[k].map, () => act('travel', k));
+        driveVan(p.querySelector('#van'), proj(TOWNS[S.town].map.x, TOWNS[S.town].map.y), proj(TOWNS[k].map.x, TOWNS[k].map.y), () => act('travel', k));
       };
     });
   }
 
+  // Karavan haritada bir kasabadan ötekine sekerek gider (ekran koordinatlarında)
   function driveVan(van, a, b, done) {
-    const start = performance.now(), dur = 1300;
+    const start = performance.now(), dur = 1400;
     (function step(now) {
       const k = Math.min((now - start) / dur, 1), e = k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
-      const x = a.x + (b.x - a.x) * e, y = a.y + (b.y - a.y) * e - 110 - Math.sin(k * Math.PI) * 30;
+      const x = a.x + (b.x - a.x) * e - 70, y = a.y + (b.y - a.y) * e + 10 - Math.abs(Math.sin(k * Math.PI * 6)) * 8;
       van.setAttribute('transform', `translate(${x} ${y})`);
       if (k < 1) requestAnimationFrame(step); else setTimeout(done, 200);
     })(start);
   }
+
 
   function summaryPanel(S, T) {
     const profitNote = T.soldCount ? `Bugün <b>${T.soldCount}</b> kitap sattın.` : 'Bugün hiç kitap satılmadı.';

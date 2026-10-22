@@ -60,6 +60,10 @@ const MARKUP = `
       <path d="M10 30 l3 -8 l3 8 M44 14 l3 -8 l3 8 M58 38 l2 -6 l2 6" fill="none" stroke="#b9c983" stroke-width="2.5" stroke-linecap="round"/>
       <circle cx="30" cy="8" r="2.5" fill="#fff6e8"/><circle cx="64" cy="22" r="2" fill="#f6a5c0"/>
     </pattern>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6ea" stop-opacity="0"/><stop offset="1" stop-color="#fff6ea" stop-opacity=".35"/></linearGradient>
+    <linearGradient id="groundDepth" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8ec" stop-opacity=".35"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#5a3d30" stop-opacity=".14"/></linearGradient>
+    <linearGradient id="cartVol" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".25" stop-color="#fff" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+    <radialGradient id="vignette" cx=".5" cy=".45" r=".75"><stop offset=".65" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#3d2b24" stop-opacity=".16"/></radialGradient>
   </defs>
 
   <rect width="1600" height="900" fill="url(#sky)"/>
@@ -97,12 +101,14 @@ const MARKUP = `
 
   <g id="houses"></g>
   <g id="spotBack"></g>
+  <rect x="0" y="330" width="1600" height="232" fill="url(#haze)" pointer-events="none"/>
   <g id="festival"></g>
   <g id="ambientBack"></g>
 
   <!-- zemin -->
   <rect id="ground" x="0" y="560" width="1600" height="340" fill="url(#cobble)"/>
   <rect id="curb" x="0" y="556" width="1600" height="10" fill="#e3c597"/>
+  <rect x="0" y="560" width="1600" height="340" fill="url(#groundDepth)" pointer-events="none"/>
 
   <!-- zeytin ağacı -->
   <ellipse cx="160" cy="642" rx="80" ry="12" fill="#d9bb8b" opacity=".7"/>
@@ -130,11 +136,13 @@ const MARKUP = `
   <g transform="translate(610 420)">
     <path d="M430 300 L500 316 L500 326 L428 316Z" fill="#6b5446"/><circle cx="502" cy="321" r="9" fill="#6b5446"/>
     <path d="M10 330 L10 120 C10 40 70 0 150 0 L300 0 C380 0 440 40 440 120 L440 330 C440 342 432 350 420 350 L30 350 C18 350 10 342 10 330Z" id="cartBody" fill="#9fd8c4" stroke="#5ea592" stroke-width="7"/>
+    <path d="M10 330 L10 120 C10 40 70 0 150 0 L300 0 C380 0 440 40 440 120 L440 330 C440 342 432 350 420 350 L30 350 C18 350 10 342 10 330Z" fill="url(#cartVol)" pointer-events="none"/>
     <path id="cartBand" d="M24 300 L426 300 L426 330 C426 336 422 340 416 340 L34 340 C28 340 24 336 24 330Z" fill="#87c7b2"/>
     <path d="M40 88 C70 34 110 18 160 18 L290 18 C340 18 380 34 410 88" id="cartShine" fill="none" stroke="#c3ebdd" stroke-width="8" stroke-linecap="round"/>
     <rect x="50" y="118" width="350" height="170" rx="18" fill="#6b4a3a"/>
     <rect x="50" y="118" width="350" height="22" rx="10" fill="#5a3d30"/>
     <g id="shelves"></g>
+    <rect x="50" y="130" width="350" height="26" fill="#000" opacity=".16" pointer-events="none"/>
     <g id="awning"></g>
     <g transform="translate(140 -58)">
       <path d="M30 58 L22 78 M140 58 L148 78" stroke="#7a4e33" stroke-width="6" stroke-linecap="round"/>
@@ -179,6 +187,7 @@ const MARKUP = `
 
   <g id="people"></g>
   <g id="fx"></g>
+  <rect width="1600" height="900" fill="url(#vignette)" pointer-events="none"/>
   <g id="seasonFx"></g>
   <g id="weather"></g>
   <rect id="dusk" width="1600" height="900" fill="#3b2a5a" opacity="0" pointer-events="none"/>

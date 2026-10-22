@@ -36,8 +36,6 @@ html, body { margin: 0; height: 100%; background: #2b2320; color: var(--ink); fo
 @keyframes zzz { 0% { opacity: 0; transform: translate(0, 0) scale(.6); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(18px, -50px) scale(1.1); } }
 .breathe { animation: breathe 3.5s ease-in-out infinite; transform-origin: 50% 100%; }
 @keyframes breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.04); } }
-.walking .legs { animation: step .35s ease-in-out infinite alternate; transform-origin: 50% 100%; }
-.walking .body-bob { animation: hop .35s ease-in-out infinite alternate; }
 @keyframes step { from { transform: skewX(8deg); } to { transform: skewX(-8deg); } }
 @keyframes hop { from { transform: translateY(0); } to { transform: translateY(-5px); } }
 .bubble { opacity: 0; transform: scale(.4); transform-origin: 50% 100%; transition: opacity .3s, transform .35s cubic-bezier(.3, 1.6, .5, 1); }
@@ -262,3 +260,51 @@ mark[data-tag].is-on { background: #ffd56b; }
 .sbar { display: grid; grid-template-columns: 7.5em 1fr 2em; align-items: center; gap: .5em; margin: .25em 0; font-size: .95em; }
 .sbar i { height: .8em; border-radius: 999px; background: linear-gradient(90deg, var(--c) var(--w), #f1e6d4 var(--w)); }
 .toplist { margin: .3em 0; padding-left: 0; list-style: none; line-height: 1.7; }
+
+/* insanlar: eklemler kendi noktasından döner (kalça, omuz, boyun) */
+.p-legL, .p-legR, .p-armL, .p-armR, .p-head { transform-origin: 0 0; }
+.p-book { opacity: 0; transition: opacity .3s; }
+.walking .p-legL { animation: legswing .52s ease-in-out infinite alternate; }
+.walking .p-legR { animation: legswing .52s ease-in-out infinite alternate-reverse; }
+.walking .p-armL { animation: armswing .52s ease-in-out infinite alternate-reverse; }
+.walking .p-armR { animation: armswing .52s ease-in-out infinite alternate; }
+.walking .p-upper { animation: walkbob .26s ease-in-out infinite alternate; }
+@keyframes legswing { from { transform: rotate(-17deg); } to { transform: rotate(17deg); } }
+@keyframes armswing { from { transform: rotate(-15deg); } to { transform: rotate(15deg); } }
+@keyframes walkbob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+.age-child.walking .p-legL, .age-child.walking .p-legR, .age-child.walking .p-armL, .age-child.walking .p-armR { animation-duration: .4s; }
+.age-child.walking .p-upper { animation-duration: .2s; }
+.age-elder.walking .p-legL, .age-elder.walking .p-legR { animation-duration: .8s; animation-name: legswing-soft; }
+.age-elder.walking .p-armL, .age-elder.walking .p-armR { animation-duration: .8s; animation-name: armswing-soft; }
+.age-elder.walking .p-upper { animation-duration: .4s; }
+@keyframes legswing-soft { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+@keyframes armswing-soft { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+/* dururken: nefes, göz kırpma, ara sıra başını çevirme */
+.p-upper { animation: breathe-soft 3.6s ease-in-out infinite; }
+@keyframes breathe-soft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+.p-eyes { transform-box: fill-box; transform-origin: center; animation: blink 4.6s infinite; }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.p-head { animation: lookaround 7s ease-in-out infinite; }
+@keyframes lookaround { 0%, 60%, 100% { transform: rotate(0); } 70%, 80% { transform: rotate(-5deg); } }
+.p-pony { transform-box: fill-box; transform-origin: 0 0; animation: sway 1.6s ease-in-out infinite; }
+/* raflara bakarken: kitap elde, baş hafif eğik */
+.reading .p-armR { transform: rotate(22deg); transition: transform .4s; }
+.reading .p-book { opacity: 1; }
+.reading .p-head { animation: readnod 3s ease-in-out infinite; }
+@keyframes readnod { 0%, 100% { transform: rotate(3deg); } 50% { transform: rotate(6deg); } }
+/* tepkiler */
+.cheer .p-upper { animation: cheer .5s ease-out 2; }
+@keyframes cheer { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
+.cheer .p-armL { transform: rotate(-150deg); transition: transform .25s; }
+.sad .p-head { animation: none; transform: rotate(8deg) translateY(3px); transition: transform .4s; }
+
+/* 2.5D harita */
+.map3d .town { cursor: pointer; }
+.map3d .town .pin { transition: transform .2s; transform-box: fill-box; }
+.map3d .town:hover .pin { transform: translateY(-6px); }
+.wave { animation: wave 3s ease-in-out infinite; }
+@keyframes wave { 0%, 100% { opacity: .25; transform: translateX(0); } 50% { opacity: .9; transform: translateX(6px); } }
+.map-boat { animation: boat linear infinite alternate; }
+@keyframes boat { from { transform: translateX(0); } to { transform: translateX(var(--dx)); } }
+.map-cloud { animation: mapcloud linear infinite; }
+@keyframes mapcloud { from { transform: translateX(-200px); } to { transform: translateX(1800px); } }

@@ -1,0 +1,179 @@
+// İnsan figürü: gerçekçi orantılar (yaklaşık 3.5 baş boy), yaş/boy/yapı çeşitliliği, eklemli kol ve bacaklar.
+// Çizim ayakların yere bastığı noktaya göre (0,0) yapılır, sonra sahnede y=806'ya taşınır.
+// Animasyon sınıfları (style.css): p-legL/R ve p-armL/R kalça ve omuzdan döner, p-upper yürürken yaylanır,
+// p-head bakınır, p-eyes kırpar, p-book okurken görünür.
+import { seeded } from '../core/rng.js';
+
+const SKIN = ['#f6d2b4', '#eec09c', '#e2b08a', '#d9a07a', '#c48a62', '#a8714c'];
+const HAIR = ['#2e2422', '#3d2b24', '#6a4434', '#8a5a3c', '#a0643c', '#c4572e', '#e2b56a', '#d9c49a'];
+const GREY = ['#dcdcdc', '#c8c8c8', '#ececec', '#9a9a9a', '#b5b0a8'];
+const TOPS = ['#f6c552', '#e57f73', '#8bc49a', '#6fb1d6', '#b98ad6', '#f09a5e', '#fff1d6', '#e9e2d4', '#5b8bd0', '#c96f5a', '#7f9c5a'];
+const BOTTOMS = ['#4d5d82', '#5a4a42', '#6e7f5a', '#7d5f8a', '#3e4a5e', '#8a7468', '#c9a676'];
+const SHOES = ['#5a3d30', '#3d2b24', '#2e2422', '#8a5a3c', '#e9e2d4'];
+const HATS = ['#e57f73', '#5b8bd0', '#f2c45a', '#8bc49a', '#3d2b24', '#fff4e0'];
+const BAGS = ['#c96f5a', '#f2c45a', '#8bc49a', '#e9d3ad', '#5b8bd0'];
+
+const shade = (hex, k) => {
+  const n = parseInt(hex.slice(1), 16), c = s => Math.max(0, Math.min(255, Math.round(((n >> s) & 255) * k)));
+  return `rgb(${c(16)},${c(8)},${c(0)})`;
+};
+
+// Kişinin kalıcı özellikleri: görünüş tohumu + sabit stil (müdavimler, müşteri tipi)
+export function figureTraits(look, o = {}) {
+  const r = seeded(look), pick = a => a[Math.floor(r() * a.length)];
+  const rolledAge = r();
+  const isGrey = o.hair && GREY.includes(o.hair);
+  const age = o.tall && o.tall < 0.9 ? 'child' : isGrey ? 'elder' : o.age || (rolledAge < 0.12 ? 'elder' : 'adult');
+  const t = {
+    age,
+    skin: pick(SKIN),
+    hair: age === 'elder' ? pick(GREY) : pick(HAIR),
+    hairStyle: pick(['short', 'side', 'bob', 'long', 'pony', 'bun', 'curly', 'short']),
+    top: pick(TOPS), shirt: pick(['#fffaf0', '#fff1d6', '#dfeaf2', '#f3e2bf']), bottom: pick(BOTTOMS), shoe: pick(SHOES),
+    outfit: pick(['pants', 'pants', 'skirt', 'dress', 'jacket', 'shorts']),
+    sleeves: r() < 0.45 ? 'short' : 'long',
+    build: 0.88 + r() * 0.34,
+    height: 0.94 + r() * 0.12,
+    hat: r() < 0.62 ? 0 : 1 + Math.floor(r() * 3), hatC: pick(HATS),
+    brows: Math.floor(r() * 3), mouth: Math.floor(r() * 3),
+    glasses: r() < 0.16, beard: false,
+    bag: r() < 0.3 ? pick(['tote', 'backpack']) : null, bagC: pick(BAGS),
+    freckles: r() < 0.15,
+  };
+  // stil anahtarları: coat (üst), hair, skin, long (uzun saç), hat (0 yok, 1 bere, 2 hasır), hatC, glasses, beard, tall
+  if (o.coat) t.top = o.coat;
+  if (o.hair) t.hair = o.hair;
+  if (o.skin) t.skin = o.skin;
+  if (o.long === true && !['long', 'pony', 'bun', 'bob'].includes(t.hairStyle)) t.hairStyle = 'long';
+  if (o.long === false && ['long', 'pony', 'bun', 'bob'].includes(t.hairStyle)) t.hairStyle = r() < 0.5 ? 'short' : 'side';
+  if (o.hat !== undefined) t.hat = o.hat === 1 ? 1 : o.hat === 2 ? 2 : 0;
+  if (o.hatC) t.hatC = o.hatC;
+  if (o.glasses) t.glasses = true;
+  if (o.beard) { t.beard = true; if (['long', 'pony', 'bun', 'bob'].includes(t.hairStyle)) t.hairStyle = 'short'; if (t.outfit === 'skirt' || t.outfit === 'dress') t.outfit = 'jacket'; }
+  if (age === 'elder') { t.hairStyle = t.beard || r() < 0.4 ? pick(['bald', 'short']) : pick(['bun', 'bob', 'short']); t.cane = r() < 0.6; t.bag = null; }
+  if (age === 'child') { t.bag = r() < 0.5 ? 'backpack' : null; t.glasses = false; t.beard = false; if (t.outfit === 'jacket') t.outfit = 'pants'; }
+  return t;
+}
+
+// Ölçek ve başın yüksekliği (portre kırpması, konuşma balonu ve yürüme hızı için)
+export function figureMeta(look, o = {}) {
+  const t = figureTraits(look, o);
+  const s = t.age === 'child' ? 0.7 : t.age === 'elder' ? 0.95 * t.height : t.height;
+  return { scale: s, headTop: -232 * s, headY: -188 * s - (t.age === 'child' ? 12 : 0), speed: t.age === 'child' ? 1.25 : t.age === 'elder' ? 0.7 : 1, age: t.age };
+}
+
+function hairBack(t) {
+  const h = t.hair;
+  if (t.hairStyle === 'long') return `<path d="M-25 -34 C-30 -2 -28 22 -20 30 L20 30 C28 22 30 -2 25 -34Z" fill="${h}"/>`;
+  if (t.hairStyle === 'bob') return `<path d="M-26 -34 C-30 -14 -28 -4 -22 -2 L22 -2 C28 -4 30 -14 26 -34Z" fill="${h}"/>`;
+  if (t.hairStyle === 'pony') return `<path class="p-pony" d="M20 -40 C34 -36 36 -10 30 8 C26 -6 24 -20 18 -30Z" fill="${h}"/>`;
+  return '';
+}
+
+function hairFront(t) {
+  const h = t.hair;
+  switch (t.hairStyle) {
+    case 'bald': return `<path d="M-23 -26 C-25 -36 -21 -42 -17 -42 L-15 -30Z M23 -26 C25 -36 21 -42 17 -42 L15 -30Z" fill="${h}"/>`;
+    case 'side': return `<path d="M-23 -28 C-26 -56 22 -62 24 -30 C18 -42 4 -48 -8 -44 C-14 -40 -18 -36 -23 -28Z" fill="${h}"/>`;
+    case 'curly': return `<g fill="${h}">${[[-18, -42], [-6, -50], [7, -50], [18, -42], [-23, -30], [23, -30], [0, -46]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="10"/>`).join('')}</g>`;
+    case 'bun': return `<path d="M-23 -30 C-24 -56 24 -56 23 -30 C14 -44 -14 -44 -23 -30Z" fill="${h}"/><circle cx="0" cy="-58" r="10" fill="${h}"/>`;
+    case 'long': case 'bob': case 'pony':
+      return `<path d="M-24 -28 C-27 -58 27 -58 24 -28 C18 -40 8 -38 2 -44 C-6 -36 -16 -40 -24 -28Z" fill="${h}"/>`;
+    default: return `<path d="M-23 -30 C-25 -56 25 -58 23 -30 C15 -42 -12 -44 -23 -30Z" fill="${h}"/>`;
+  }
+}
+
+function hatSVG(t) {
+  if (t.hat === 1) return `<path d="M-26 -42 C-24 -64 24 -66 28 -44 C12 -50 -12 -50 -26 -42Z" fill="${t.hatC}"/><circle cx="3" cy="-62" r="4" fill="${shade(t.hatC, 0.8)}"/>`;
+  if (t.hat === 2) return `<ellipse cx="0" cy="-44" rx="40" ry="8" fill="${t.hatC}"/><path d="M-20 -44 C-19 -66 19 -66 20 -44Z" fill="${t.hatC}"/><rect x="-20" y="-50" width="40" height="5" fill="${shade(t.hatC, 0.75)}"/>`;
+  if (t.hat === 3) return `<path d="M-24 -42 C-23 -62 23 -62 24 -42Z" fill="${t.hatC}"/><path d="M-26 -42 L26 -42 L30 -38 L-10 -38Z" fill="${shade(t.hatC, 0.8)}"/>`;
+  return '';
+}
+
+function face(t) {
+  const sk = t.skin, dark = '#3d2b24', brow = shade(t.hair === '#ececec' || GREY.includes(t.hair) ? '#9a9a9a' : t.hair, 0.8);
+  const brows = [
+    `<path d="M-13 -38 L-4 -38 M4 -38 L13 -38"/>`,
+    `<path d="M-13 -37 Q-8 -40 -4 -38 M4 -38 Q8 -40 13 -37"/>`,
+    `<path d="M-13 -36 L-4 -39 M4 -39 L13 -36"/>`,
+  ][t.brows];
+  const mouth = [
+    `<path d="M-6 -15 Q0 -10 6 -15" fill="none"/>`,
+    `<path d="M-5 -14 Q0 -11 5 -14" fill="none"/>`,
+    `<path d="M-7 -15 Q0 -8 7 -15 Q0 -12 -7 -15Z" fill="#b4574a"/>`,
+  ][t.mouth];
+  return `
+    <ellipse cx="-22" cy="-27" rx="4" ry="6" fill="${shade(sk, 0.95)}"/><ellipse cx="22" cy="-27" rx="4" ry="6" fill="${shade(sk, 0.95)}"/>
+    <path d="M-22 -30 C-22 -52 22 -52 22 -30 C22 -14 14 -2 0 -1 C-14 -2 -22 -14 -22 -30Z" fill="${sk}"/>
+    <path d="M10 -6 C16 -10 20 -18 22 -28 L22 -24 C20 -12 14 -4 4 -1Z" fill="#000" opacity=".06"/>
+    <g class="p-eyes"><ellipse cx="-8" cy="-29" rx="2.5" ry="3.2" fill="${dark}"/><ellipse cx="8" cy="-29" rx="2.5" ry="3.2" fill="${dark}"/>
+      <circle cx="-7.2" cy="-30.2" r=".9" fill="#fff"/><circle cx="8.8" cy="-30.2" r=".9" fill="#fff"/></g>
+    <g fill="none" stroke="${brow}" stroke-width="2" stroke-linecap="round">${brows}</g>
+    <path d="M0 -26 Q2.5 -20 -1 -19" fill="none" stroke="${shade(sk, 0.78)}" stroke-width="1.8" stroke-linecap="round"/>
+    <g stroke="#8a4a3c" stroke-width="2" stroke-linecap="round">${mouth}</g>
+    <ellipse cx="-13" cy="-19" rx="4.5" ry="2.8" fill="#f08a7e" opacity=".3"/><ellipse cx="13" cy="-19" rx="4.5" ry="2.8" fill="#f08a7e" opacity=".3"/>
+    ${t.freckles ? `<g fill="${shade(sk, 0.7)}"><circle cx="-12" cy="-23" r=".9"/><circle cx="-15" cy="-21" r=".9"/><circle cx="12" cy="-23" r=".9"/><circle cx="15" cy="-21" r=".9"/></g>` : ''}
+    ${t.age === 'elder' ? `<path d="M-15 -44 Q-8 -46 -2 -44 M2 -44 Q8 -46 15 -44" fill="none" stroke="${shade(sk, 0.82)}" stroke-width="1.2"/>` : ''}
+    ${t.beard ? `<path d="M-21 -26 C-22 -6 -12 6 0 7 C12 6 22 -6 21 -26 C16 -16 10 -12 0 -12 C-10 -12 -16 -16 -21 -26Z" fill="${t.hair}"/><path d="M-8 -17 Q0 -21 8 -17 Q0 -15 -8 -17Z" fill="${t.hair}"/>` : ''}
+    ${t.glasses ? `<g fill="#fff" fill-opacity=".18" stroke="#4a3a33" stroke-width="1.8"><circle cx="-8" cy="-29" r="6.5"/><circle cx="8" cy="-29" r="6.5"/></g><path d="M-1.5 -29 L1.5 -29" stroke="#4a3a33" stroke-width="1.8"/>` : ''}`;
+}
+
+export function personSVG(look, o = {}) {
+  const t = figureTraits(look, o), m = figureMeta(look, o);
+  const w = t.build, sw = 21 * w, hw = 17 * w;                       // omuz ve kalça yarı genişliği
+  const top = t.top, topD = shade(top, 0.82), bot = t.bottom;
+  const skirt = t.outfit === 'skirt' || t.outfit === 'dress', dress = t.outfit === 'dress', shorts = t.outfit === 'shorts';
+  const legC = skirt ? t.skin : bot;
+  const sleeveLong = t.sleeves === 'long' || t.outfit === 'jacket';
+  const childHead = t.age === 'child' ? 'scale(1.22)' : '';
+
+  const leg = side => `<g transform="translate(${side * 8 * w} -82)"><g class="p-leg${side < 0 ? 'L' : 'R'}">
+      <path d="M-7 0 L7 0 L6 74 L-6 74Z" fill="${legC}"/>
+      ${shorts ? `<path d="M-8 0 L8 0 L8 30 L-8 30Z" fill="${bot}"/><path d="M-6 30 L6 30 L6 74 L-6 74Z" fill="${t.skin}"/>` : ''}
+      ${!skirt && !shorts ? `<path d="M1 4 L6 4 L5 72 L1 72Z" fill="#000" opacity=".08"/>` : ''}
+      <ellipse cx="${side * 2}" cy="77" rx="10" ry="5.5" fill="${t.shoe}"/>
+    </g></g>`;
+
+  const arm = side => `<g transform="translate(${side * (sw - 3)} -146)"><g class="p-arm${side < 0 ? 'L' : 'R'}">
+      <path d="M0 0 L${side * 4} 36" stroke="${sleeveLong || dress ? top : top}" stroke-width="12" stroke-linecap="round"/>
+      <path d="M${side * 4} 36 L${side * 6} 64" stroke="${sleeveLong ? top : t.skin}" stroke-width="${sleeveLong ? 11 : 9}" stroke-linecap="round"/>
+      <circle cx="${side * 6}" cy="68" r="5.5" fill="${t.skin}"/>
+      ${side > 0 ? `<g class="p-book"><rect x="-4" y="58" width="18" height="24" rx="2" fill="#5b8bd0" transform="rotate(-12 5 70)"/><rect x="-1" y="61" width="12" height="3" rx="1" fill="#fff" opacity=".6" transform="rotate(-12 5 70)"/></g>` : ''}
+      ${side > 0 && t.cane ? `<path d="M${side * 6} 66 L${side * 10} 146" stroke="#7a4e33" stroke-width="4" stroke-linecap="round"/>` : ''}
+    </g></g>`;
+
+  // gövde: gömlek + (ceket ya da üst) + (etek ya da elbise)
+  const torso = `
+    <path d="M-${sw} -150 Q-${sw + 3} -118 -${hw} -80 L${hw} -80 Q${sw + 3} -118 ${sw} -150 Q0 -158 -${sw} -150Z" fill="${t.outfit === 'jacket' ? t.shirt : top}"/>
+    ${t.outfit === 'jacket' ? `<path d="M-${sw} -150 Q-${sw + 3} -118 -${hw} -80 L-3 -80 L-4 -136 L-8 -153Z" fill="${top}"/><path d="M${sw} -150 Q${sw + 3} -118 ${hw} -80 L3 -80 L4 -136 L8 -153Z" fill="${top}"/>
+      <circle cx="-6" cy="-112" r="1.8" fill="${topD}"/><circle cx="-6" cy="-96" r="1.8" fill="${topD}"/>` : `<path d="M-7 -153 L0 -142 L7 -153" fill="none" stroke="${topD}" stroke-width="2.5"/>`}
+    <path d="M${sw * 0.35} -152 Q${sw + 3} -118 ${hw} -80 L${hw * 0.4} -80Z" fill="#000" opacity=".07"/>
+    ${skirt ? `<path d="M-${hw + 1} -${dress ? 92 : 84} L-${hw + 11} -32 Q0 -26 ${hw + 11} -32 L${hw + 1} -${dress ? 92 : 84}Z" fill="${dress ? top : bot}"/>
+      <path d="M-${hw + 11} -32 Q0 -26 ${hw + 11} -32 L${hw + 10} -36 Q0 -30 -${hw + 10} -36Z" fill="#000" opacity=".1"/>` : `<rect x="-${hw}" y="-86" width="${hw * 2}" height="6" fill="${shade(bot, 0.85)}"/>`}
+    ${t.outfit === 'jacket' || !skirt ? '' : ''}`;
+
+  const bag = t.bag === 'tote'
+    ? `<path d="M-${sw - 6} -150 L${hw + 4} -92" stroke="${shade(t.bagC, 0.8)}" stroke-width="3"/><rect x="${hw - 2}" y="-96" width="20" height="24" rx="3" fill="${t.bagC}"/>`
+    : t.bag === 'backpack' ? `<path d="M-${sw - 7} -150 L-${sw - 8} -104 M${sw - 7} -150 L${sw - 8} -104" stroke="${shade(t.bagC, 0.75)}" stroke-width="4"/>` : '';
+
+  const hunch = t.age === 'elder' ? 'rotate(4 0 -82)' : '';
+  return `
+    <ellipse cx="0" cy="806" rx="${30 * w * m.scale + 6}" ry="7" fill="#7a5a3c" opacity=".22"/>
+    <g transform="translate(0 806) scale(${m.scale.toFixed(3)})">
+      ${leg(-1)}${leg(1)}
+      <g class="p-upper"><g transform="${hunch}">
+        ${t.bag === 'backpack' ? `<rect x="-${sw - 2}" y="-148" width="${(sw - 2) * 2}" height="52" rx="10" fill="${shade(t.bagC, 0.85)}"/>` : ''}
+        ${arm(-1)}
+        ${torso}
+        ${bag}
+        <rect x="-5" y="-162" width="10" height="14" fill="${shade(t.skin, 0.9)}"/>
+        <g transform="translate(0 -160)"><g class="p-head"><g transform="${childHead}">
+          ${hairBack(t)}
+          ${face(t)}
+          ${hairFront(t)}
+          ${hatSVG(t)}
+        </g></g></g>
+        ${arm(1)}
+      </g></g>
+    </g>`;
+}
