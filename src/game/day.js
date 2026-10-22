@@ -2,12 +2,16 @@
 import { BAL } from '../data/balance.js';
 import { TOWNS } from '../data/towns.js';
 import { rnd, rndInt } from '../core/rng.js';
-import { makeCustomer, resolveCustomer } from './shop.js';
+import { makeCustomer, resolveCustomer, recommend, bestBook } from './shop.js';
+import { effects } from './decor.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
   const len = BAL.dayEnd - BAL.dayStart;
-  const n = Math.max(4, TOWNS[S.town].traffic + rndInt(S, BAL.trafficJitter * 2 + 1) - BAL.trafficJitter);
+  // yeni gelinen kasabada karavanı merak edenler de uğrar
+  const newTown = S.town !== S.prevTown;
+  const base = TOWNS[S.town].traffic + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
+  const n = Math.max(4, base + rndInt(S, BAL.trafficJitter * 2 + 1) - BAL.trafficJitter);
   const times = [];
   for (let i = 0; i < n; i++) {
     // yarısı gün boyuna yayılır, yarısı öğleden sonraya yığılır (iki zarın ortalaması)
@@ -18,7 +22,7 @@ export function openShop(S) {
   S.phase = 'open';
   S.clock = BAL.dayStart;
   S.arrivals = times;
-  S.today = { town: S.town, visitors: 0, sold: {}, missed: {}, revenue: 0 };
+  S.today = { town: S.town, newTown, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 } };
   return null;
 }
 
@@ -41,6 +45,7 @@ export function closeShop(S) {
   S.totals.sold += T.soldCount;
   S.totals.revenue += T.revenue;
   S.lastDay = T;
+  S.prevTown = S.town;
   S.today = null;
   S.phase = 'evening';
   return T;
@@ -57,7 +62,10 @@ export function nextMorning(S) {
 // Başsız tam gün: test ve denge simülasyonu için
 export function simulateDay(S) {
   openShop(S);
-  for (const c of advanceClock(S, BAL.dayEnd - BAL.dayStart)) resolveCustomer(S, c);
+  // öneri isteyene raftaki en uygun kitap verilir (dikkatli oyuncu)
+  for (const c of advanceClock(S, BAL.dayEnd - BAL.dayStart)) {
+    if (c.ask) recommend(S, c, bestBook(S, c.ask)); else resolveCustomer(S, c);
+  }
   const T = closeShop(S);
   nextMorning(S);
   return T;

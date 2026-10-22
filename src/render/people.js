@@ -1,4 +1,5 @@
 // Müşteriler: kapıdan girip karavanın önünde durur, raflara bakar, alır ya da üzülüp gider.
+// Öneri isteyen müşteri "❓" ile bekler; dokunulunca öneri paneli açılır.
 // Görünüm müşterinin `look` tohumundan gelir; aynı kişi hep aynı giyinir.
 import { el } from '../core/svg.js';
 import { seeded } from '../core/rng.js';
@@ -15,7 +16,10 @@ const SPOTS = [{ x: 1250, side: 1 }, { x: 1370, side: 1 }, { x: 470, side: -1 },
 const WALK = 300;      // birim/sn
 const BROWSE = 1.9;    // sn
 
-function personSVG(look) {
+const NAMES = ['Deniz', 'Elif', 'Mert', 'Zeynep', 'Can', 'Ayşe', 'Emre', 'Selin', 'Kerem', 'Defne', 'Ali', 'Nehir', 'Barış', 'Ece', 'Umut', 'Lale', 'Oya', 'Kaan'];
+export const nameOf = look => NAMES[look % NAMES.length];
+
+export function personSVG(look) {
   const r = seeded(look), pick = a => a[Math.floor(r() * a.length)];
   const coat = pick(COATS), hair = pick(HAIR), skin = pick(SKIN), pants = pick(PANTS), hat = Math.floor(r() * 3), hatC = pick(HATS);
   const long = r() > .5, tall = 0.92 + r() * .16;
@@ -53,7 +57,8 @@ const BUBBLE = `
   <path d="M-34 470 L34 470 C48 470 56 478 56 492 L56 516 C56 530 48 538 34 538 L12 538 L0 554 L-10 538 L-34 538 C-48 538 -56 530 -56 516 L-56 492 C-56 478 -48 470 -34 470Z" fill="#fffaf0" stroke="#e9cfae" stroke-width="4"/>
   <text x="0" y="518" text-anchor="middle" font-size="36"></text>`;
 
-export function createCrowd(layer, fx) {
+// handlers: browse(c) → sonuç (normal müşteri), ask(c) (öneri isteyene dokunuldu), timeout(c) → sonuç (sabrı tükendi)
+export function createCrowd(layer, fx, handlers) {
   const people = [], pending = [];
 
   function spawn(c) {
@@ -63,10 +68,18 @@ export function createCrowd(layer, fx) {
     const g = el('g', {}, layer);
     const flip = el('g', {}, g);
     flip.innerHTML = personSVG(c.look);
+    // dokunma alanı (yalnızca öneri isteyende işe yarar)
+    el('rect', { x: -60, y: 470, width: 120, height: 340, fill: 'transparent' }, g);
     const bubble = el('g', { class: 'bubble' }, g);
     bubble.innerHTML = BUBBLE;
     const p = { c, spot, g, flip, bubble, x: spot.side > 0 ? 1720 : -120, state: 'in', t: 0, res: null };
     g.classList.add('walking');
+    g.addEventListener('click', () => {
+      if (p.state !== 'wait') return;
+      p.state = 'asked';
+      p.g.classList.remove('asking');
+      handlers.ask(c);
+    });
     people.push(p);
     place(p, -spot.side);
     return true;
@@ -88,37 +101,57 @@ export function createCrowd(layer, fx) {
     setTimeout(() => t.remove(), 1500);
   }
 
+  function hearts(x) {
+    for (let i = 0; i < 4; i++) {
+      const h = el('text', { x: x - 30 + i * 20, y: 520, 'font-size': 28, class: 'float', style: `animation-delay:${i * .12}s` }, fx);
+      h.textContent = '💛';
+      setTimeout(() => h.remove(), 2000);
+    }
+  }
+
+  // sonucu göster; kısa bir süre sonra yürüyüp gider
+  function react(p, r) {
+    p.res = r;
+    if (r.grade) say(p, r.grade === 'perfect' ? '🤩' : r.grade === 'good' ? '🙂' : '😕');
+    else say(p, r.happy ? '💛' : r.bought.length ? '🙂' : '😕');
+    if (r.paid) floatText(p.x, `+₺${r.paid}`, '#c7802b');
+    else if (!r.grade) floatText(p.x, GENRES[p.c.wants].icon + '✕', '#a07d6c');
+    if (r.grade === 'perfect') hearts(p.x);
+    p.state = 'browse';
+    p.t = BROWSE * .55;
+  }
+
   return {
     add(c) { pending.push(c); },
     get busy() { return people.length + pending.length; },
-    // onBrowse(müşteri) → { bought, paid, happy }: alışveriş kararı oyun mantığında verilir
-    update(dt, mult, onBrowse) {
+    answer(c, r) { const p = people.find(q => q.c === c); if (p) react(p, r); },
+    // patience: öneri isteyenin bekleme süresi (sn, normal hızda)
+    update(dt, mult, patience) {
       while (pending.length && spawn(pending[0])) pending.shift();
       const step = WALK * mult * dt;
       for (const p of people) {
         if (p.state === 'in') {
           const d = p.spot.x - p.x;
           if (Math.abs(d) <= step) {
-            p.x = p.spot.x; p.state = 'browse'; p.t = 0;
+            p.x = p.spot.x; p.t = 0;
             p.g.classList.remove('walking');
-            say(p, GENRES[p.c.wants].icon);
+            if (p.c.ask) { p.state = 'wait'; p.g.classList.add('asking'); say(p, '❓'); }
+            else { p.state = 'browse'; say(p, GENRES[p.c.wants].icon); }
           } else p.x += Math.sign(d) * step;
           place(p, Math.sign(d));
+        } else if (p.state === 'wait') {
+          p.t += dt * mult;
+          if (p.t > patience * .65) say(p, '⏳');
+          if (p.t > patience) { p.g.classList.remove('asking'); react(p, handlers.timeout(p.c)); }
         } else if (p.state === 'browse') {
           p.t += dt * mult;
-          if (!p.res && p.t > BROWSE * .55) {
-            p.res = onBrowse(p.c);
-            const r = p.res;
-            say(p, r.happy ? '💛' : r.bought.length ? '🙂' : '😕');
-            if (r.paid) floatText(p.x, `+₺${r.paid}`, '#c7802b');
-            else floatText(p.x, GENRES[p.c.wants].icon + '✕', '#a07d6c');
-          }
+          if (!p.res && p.t > BROWSE * .55) react(p, handlers.browse(p.c));
           if (p.t > BROWSE) {
             p.state = 'out';
             p.bubble.classList.remove('show');
             p.g.classList.add('walking');
           }
-        } else {
+        } else if (p.state === 'out') {
           p.x += p.spot.side * step;
           place(p, p.spot.side);
           if (p.x > 1760 || p.x < -160) { p.g.remove(); p.dead = true; }

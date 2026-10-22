@@ -3,7 +3,10 @@ import { el } from '../core/svg.js';
 import { seeded } from '../core/rng.js';
 import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../data/towns.js';
-import { BAL } from '../data/balance.js';
+import { booksOf } from '../data/books.js';
+import { PAINTS } from '../data/decor.js';
+import { shelfCap, genreCounts } from '../game/state.js';
+import { DECOR_ART } from './decor-art.js';
 
 const cloud = (delay, slow, cy, s) => `
   <g class="drift${slow ? ' slow' : ''}" style="animation-delay:${delay}s">
@@ -82,6 +85,7 @@ const MARKUP = `
     <path d="M6 72 L194 72 L188 104 C170 112 150 100 130 108 C110 116 90 102 70 110 C50 118 30 104 12 108Z" fill="#fff4e0"/>
     <path d="M6 72 L194 72 L192 82 L8 82Z" fill="#f08a7e" opacity=".8"/>
     <g id="tableBooks"></g>
+    <g id="slotTable" transform="translate(170 54)"></g>
   </g>
 
   <ellipse cx="830" cy="790" rx="300" ry="26" fill="#c9a676" opacity=".55"/>
@@ -89,9 +93,9 @@ const MARKUP = `
   <!-- kitap karavanı -->
   <g transform="translate(610 420)">
     <path d="M430 300 L500 316 L500 326 L428 316Z" fill="#6b5446"/><circle cx="502" cy="321" r="9" fill="#6b5446"/>
-    <path d="M10 330 L10 120 C10 40 70 0 150 0 L300 0 C380 0 440 40 440 120 L440 330 C440 342 432 350 420 350 L30 350 C18 350 10 342 10 330Z" fill="#9fd8c4" stroke="#5ea592" stroke-width="7"/>
-    <path d="M24 300 L426 300 L426 330 C426 336 422 340 416 340 L34 340 C28 340 24 336 24 330Z" fill="#87c7b2"/>
-    <path d="M40 88 C70 34 110 18 160 18 L290 18 C340 18 380 34 410 88" fill="none" stroke="#c3ebdd" stroke-width="8" stroke-linecap="round"/>
+    <path d="M10 330 L10 120 C10 40 70 0 150 0 L300 0 C380 0 440 40 440 120 L440 330 C440 342 432 350 420 350 L30 350 C18 350 10 342 10 330Z" id="cartBody" fill="#9fd8c4" stroke="#5ea592" stroke-width="7"/>
+    <path id="cartBand" d="M24 300 L426 300 L426 330 C426 336 422 340 416 340 L34 340 C28 340 24 336 24 330Z" fill="#87c7b2"/>
+    <path d="M40 88 C70 34 110 18 160 18 L290 18 C340 18 380 34 410 88" id="cartShine" fill="none" stroke="#c3ebdd" stroke-width="8" stroke-linecap="round"/>
     <rect x="50" y="118" width="350" height="170" rx="18" fill="#6b4a3a"/>
     <rect x="50" y="118" width="350" height="22" rx="10" fill="#5a3d30"/>
     <g id="shelves"></g>
@@ -102,17 +106,13 @@ const MARKUP = `
       <text x="85" y="42" text-anchor="middle" font-size="34" font-weight="700" fill="#f08a7e">Sahaf</text>
       <circle cx="18" cy="31" r="6" fill="#f2c45a"/><circle cx="152" cy="31" r="6" fill="#f2c45a"/>
     </g>
-    <g transform="translate(372 -30)"><g class="sway">
-      <path d="M0 30 L40 30 L34 62 L6 62Z" fill="#e0805f"/><rect x="-3" y="26" width="46" height="9" rx="4" fill="#ea9677"/>
-      <g fill="#7fb36d"><ellipse cx="10" cy="14" rx="9" ry="20" transform="rotate(-25 10 14)"/><ellipse cx="22" cy="6" rx="9" ry="24"/><ellipse cx="34" cy="14" rx="9" ry="20" transform="rotate(25 34 14)"/></g>
-      <circle cx="22" cy="-10" r="7" fill="#f6a5c0"/>
-    </g></g>
+    <g id="slotRoof" transform="translate(392 32)"></g>
     <path d="M30 104 C120 150 330 150 420 104" fill="none" stroke="#5a3d30" stroke-width="3"/>
     <g id="lights"></g>
     <g transform="translate(110 350)"><circle r="44" fill="#5b4636"/><circle r="22" fill="#f6e2c4"/><circle r="8" fill="#5b4636"/></g>
     <g transform="translate(340 350)"><circle r="44" fill="#5b4636"/><circle r="22" fill="#f6e2c4"/><circle r="8" fill="#5b4636"/></g>
-    <path d="M56 320 C60 284 160 284 164 320" fill="none" stroke="#5ea592" stroke-width="10" stroke-linecap="round"/>
-    <path d="M286 320 C290 284 390 284 394 320" fill="none" stroke="#5ea592" stroke-width="10" stroke-linecap="round"/>
+    <path class="cartEdge" d="M56 320 C60 284 160 284 164 320" fill="none" stroke="#5ea592" stroke-width="10" stroke-linecap="round"/>
+    <path class="cartEdge" d="M286 320 C290 284 390 284 394 320" fill="none" stroke="#5ea592" stroke-width="10" stroke-linecap="round"/>
   </g>
 
   <!-- kedi -->
@@ -136,13 +136,7 @@ const MARKUP = `
     <text x="22" y="-30" class="zzz d3" font-size="13" font-weight="700" fill="#8a7468">z</text>
   </g>
 
-  <!-- saksı -->
-  <g transform="translate(1480 690)"><g class="sway">
-    <path d="M0 40 L60 40 L52 90 L8 90Z" fill="#e0805f"/><rect x="-4" y="34" width="68" height="12" rx="6" fill="#ea9677"/>
-    <g fill="#7fb36d"><ellipse cx="14" cy="16" rx="10" ry="26" transform="rotate(-20 14 16)"/><ellipse cx="30" cy="6" rx="10" ry="30"/><ellipse cx="46" cy="16" rx="10" ry="26" transform="rotate(20 46 16)"/></g>
-    <g fill="#fff2a8"><circle cx="12" cy="-6" r="9"/><circle cx="30" cy="-22" r="10"/><circle cx="50" cy="-4" r="9"/></g>
-    <g fill="#f2a64a"><circle cx="12" cy="-6" r="4"/><circle cx="30" cy="-22" r="4"/><circle cx="50" cy="-4" r="4"/></g>
-  </g></g>
+  <g id="slotGround" transform="translate(1510 780)"></g>
 
   <g id="people"></g>
   <g id="fx"></g>
@@ -184,24 +178,28 @@ function shade(hex, k) {
   return `rgb(${c(16)},${c(8)},${c(0)})`;
 }
 
+// Kitaba özgü sabit ton: aynı kitap her zaman aynı renkte görünür
+const hash = str => [...str].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
+
 // Raflar: her kitap bir sırt. Stok azaldıkça raflar gözle görülür boşalır.
-const SHELF_Y = [178, 232, 284], PER_SHELF = BAL.shelfCap / SHELF_Y.length;
-function drawShelves(g, stock) {
+const SHELF_Y = [178, 232, 284];
+function drawShelves(g, shelf, cap) {
   g.innerHTML = '';
   const books = [];
-  for (const k of GENRE_KEYS) for (let i = 0; i < stock[k]; i++) books.push(k);
+  for (const k of GENRE_KEYS) for (const b of booksOf(k)) for (let i = 0; i < (shelf[b.id] || 0); i++) books.push(b);
+  const per = Math.ceil(cap / SHELF_Y.length), unit = Math.min(28, 296 / per);
   const r = seeded(4242);
   SHELF_Y.forEach((sy, row) => {
     let bx = 64;
-    for (let i = 0; i < PER_SHELF; i++) {
-      const bw = 20 + r() * 8, bh = 36 + r() * 12, k = books[row * PER_SHELF + i];
-      if (k) {
-        const base = GENRES[k].color, col = shade(base, .88 + r() * .24);
+    for (let i = 0; i < per; i++) {
+      const bw = unit * (.78 + r() * .14), bh = 36 + r() * 12, b = books[row * per + i];
+      if (b) {
+        const h = hash(b.id), col = shade(GENRES[b.genre].color, .86 + (h % 28) / 100);
         el('rect', { x: bx, y: sy - bh, width: bw, height: bh, rx: 3, fill: col }, g);
-        el('rect', { x: bx + 3, y: sy - bh + 7, width: bw - 6, height: 3.5, rx: 1.5, fill: '#fff', opacity: .6 }, g);
-        if (r() > .5) el('rect', { x: bx + 3, y: sy - 12, width: bw - 6, height: 3, rx: 1.5, fill: '#000', opacity: .15 }, g);
+        el('rect', { x: bx + 2.5, y: sy - bh + 7, width: bw - 5, height: 3.5, rx: 1.5, fill: '#fff', opacity: .6 }, g);
+        if (h % 2) el('rect', { x: bx + 2.5, y: sy - 12, width: bw - 5, height: 3, rx: 1.5, fill: '#000', opacity: .15 }, g);
       }
-      bx += bw + 2;
+      bx += unit;
     }
     el('rect', { x: 54, y: sy, width: 342, height: 8, rx: 3, fill: '#a8704a' }, g);
   });
@@ -210,12 +208,12 @@ function drawShelves(g, stock) {
   el('circle', { cx: 377, cy: 154, r: 11, fill: '#7fb36d' }, g);
 }
 
-function drawTableBooks(g, stock) {
+function drawTableBooks(g, counts) {
   // sergi masasında en kalabalık iki tür
   g.innerHTML = '';
-  const top = GENRE_KEYS.filter(k => stock[k] > 0).sort((a, b) => stock[b] - stock[a]).slice(0, 2);
+  const top = GENRE_KEYS.filter(k => counts[k] > 0).sort((a, b) => counts[b] - counts[a]).slice(0, 2);
   top.forEach((k, i) => {
-    const x = 24 + i * 90, n = Math.min(4, Math.ceil(stock[k] / 2));
+    const x = 8 + i * 72, n = Math.min(4, Math.ceil(counts[k] / 2));
     for (let j = 0; j < n; j++) {
       el('rect', { x: x + (j % 2) * 4, y: 40 - j * 13, width: 54 - (j % 2) * 6, height: 13, rx: 3, fill: shade(GENRES[k].color, .9 + j * .06) }, g);
     }
@@ -260,9 +258,22 @@ export function buildScene(host) {
       $('seaBot').setAttribute('stop-color', t.sea[1]);
       drawHouses($('houses'), 7 + TOWN_KEYS.indexOf(key) * 101);
     },
-    setStock(stock) {
-      drawShelves($('shelves'), stock);
-      drawTableBooks($('tableBooks'), stock);
+    setStock(S) {
+      drawShelves($('shelves'), S.shelf, shelfCap(S));
+      drawTableBooks($('tableBooks'), genreCounts(S));
+    },
+    setDecor(on) {
+      $('slotRoof').innerHTML = DECOR_ART[on.roof] || '';
+      $('slotTable').innerHTML = DECOR_ART[on.table] || '';
+      $('slotGround').innerHTML = DECOR_ART[on.ground] || '';
+    },
+    setPaint(key) {
+      const p = PAINTS[key];
+      $('cartBody').setAttribute('fill', p.body);
+      $('cartBody').setAttribute('stroke', p.edge);
+      $('cartBand').setAttribute('fill', p.band);
+      $('cartShine').setAttribute('stroke', p.shine);
+      host.querySelectorAll('.cartEdge').forEach(e => e.setAttribute('stroke', p.edge));
     },
     // akşam alacası: 0 gündüz, 1 kapanış
     setDusk(k) { $('dusk').setAttribute('opacity', (k * .28).toFixed(3)); },

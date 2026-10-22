@@ -6,8 +6,10 @@ import './style.css';
 import { BAL } from './data/balance.js';
 import { TOWNS } from './data/towns.js';
 import { GENRES } from './data/genres.js';
-import { newGame } from './game/state.js';
-import { buyBox, travel, resolveCustomer, rescue } from './game/shop.js';
+import { DECOR, PAINTS } from './data/decor.js';
+import { newGame, shelfCount, shelfCap } from './game/state.js';
+import { buyBox, travel, resolveCustomer, recommend, rescue } from './game/shop.js';
+import { effects, equipDecor, upgradeShelf, choosePaint } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
 import { loadGame, saveGame } from './core/save.js';
 import { tap } from './core/native.js';
@@ -20,17 +22,52 @@ const FAST = 3;
 
 const S = loadGame() || newGame();
 const scene = buildScene(document.getElementById('scene'));
-const crowd = createCrowd(scene.people, scene.fx);
 let speed = 1;
+
+const crowd = createCrowd(scene.people, scene.fx, {
+  browse(c) {
+    const r = resolveCustomer(S, c);
+    if (r.bought.length) { scene.setStock(S); tap(); }
+    return r;
+  },
+  // öneri isteyene dokunuldu: panel açılır, saat durur
+  ask(c) {
+    ui.recPanel(S, c, id => {
+      const r = recommend(S, c, id);
+      if (r.bought.length) { scene.setStock(S); tap(r.grade === 'perfect' ? 'MEDIUM' : 'LIGHT'); }
+      crowd.answer(c, r);
+      if (r.grade === 'perfect') ui.toast(`Tam isabet! Bahşiş ₺${r.tip}`);
+      else if (r.grade === 'good') ui.toast('Fena değil, ama tam aradığı bu değildi.');
+      else ui.toast(id ? 'Bu kitap ona hiç uymadı…' : 'Bir dahaki sefere belki.');
+    });
+  },
+  timeout: c => recommend(S, c, null),
+});
 
 const ui = createUI(document.getElementById('ui'), (a, arg) => {
   if (a === 'stock') ui.stockPanel(S);
+  else if (a === 'decor') ui.decorPanel(S);
   else if (a === 'map') ui.mapPanel(S);
   else if (a === 'buy') {
     const why = buyBox(S, arg);
     if (why) ui.toast(why);
-    else { tap(); scene.setStock(S.stock); saveGame(S); ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap raflara dizildi`); }
+    else { tap(); scene.setStock(S); saveGame(S); ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap raflara dizildi`); }
     ui.stockPanel(S);
+  } else if (a === 'decor-on') {
+    const why = equipDecor(S, arg);
+    if (why) ui.toast(why);
+    else { tap(); scene.setDecor(S.decor.on); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR[arg].name} yerine kondu`); }
+    ui.decorPanel(S);
+  } else if (a === 'shelf') {
+    const why = upgradeShelf(S);
+    if (why) ui.toast(why);
+    else { tap('MEDIUM'); scene.setStock(S); saveGame(S); ui.toast(`Raflar büyüdü: ${shelfCap(S)} kitap`); }
+    ui.decorPanel(S);
+  } else if (a === 'paint') {
+    const why = choosePaint(S, arg);
+    if (why) ui.toast(why);
+    else { tap(); scene.setPaint(S.paint); saveGame(S); }
+    ui.decorPanel(S);
   } else if (a === 'travel') {
     const why = travel(S, arg);
     if (why) return ui.toast(why);
@@ -40,7 +77,8 @@ const ui = createUI(document.getElementById('ui'), (a, arg) => {
     const why = openShop(S);
     if (why) return ui.toast(why);
     tap('MEDIUM');
-    if (!S.stock || Object.values(S.stock).every(n => !n)) ui.toast('Raflar boş! Müşteriler eli boş dönecek.');
+    if (!shelfCount(S)) ui.toast('Raflar boş! Müşteriler eli boş dönecek.');
+    else if (S.day === 1) ui.toast('❓ balonlu müşteriye dokun: senden kitap önerisi istiyor.');
   } else if (a === 'speed') speed = speed > 1 ? 1 : FAST;
   else if (a === 'next') {
     nextMorning(S);
@@ -63,7 +101,9 @@ function changeTown(done) {
 }
 
 scene.setTown(S.town);
-scene.setStock(S.stock);
+scene.setStock(S);
+scene.setDecor(S.decor.on);
+scene.setPaint(PAINTS[S.paint] ? S.paint : 'nane');
 // açılış: krem perde yazı tipi ve sahne hazır olunca kalkar
 document.fonts.ready.then(() => setTimeout(() => document.getElementById('fade').classList.remove('boot'), 50));
 if (S.phase === 'evening' && S.lastDay) { scene.setDusk(1); ui.summaryPanel(S, S.lastDay); }
@@ -76,13 +116,10 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
-  if (S.phase === 'open') {
+  // panel açıkken (öneri seçerken) zaman durur
+  if (S.phase === 'open' && !ui.isOpen()) {
     for (const c of advanceClock(S, dt * MIN_PER_SEC * speed)) crowd.add(c);
-    crowd.update(dt, speed, c => {
-      const r = resolveCustomer(S, c);
-      if (r.bought.length) { scene.setStock(S.stock); tap(); }
-      return r;
-    });
+    crowd.update(dt, speed, BAL.patience * effects(S).patience);
     scene.setDusk(Math.max(0, (S.clock - (BAL.dayEnd - 120)) / 120));
     if (closingTime(S) && crowd.busy === 0) {
       const T = closeShop(S);

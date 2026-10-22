@@ -1,14 +1,19 @@
-// Arayüz: üst bilgi, alt düğmeler ve paneller (toptancı, harita, gün sonu).
+// Arayüz: üst bilgi, alt düğmeler ve paneller (toptancı, süsle, harita, öneri, gün sonu).
 // Durumu değiştirmez; eylemleri main.js'e `act` üzerinden iletir.
 import { BAL } from '../data/balance.js';
 import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../data/towns.js';
-import { shelfCount, seasonOf, dayOfSeason } from '../game/state.js';
+import { BOOK, booksOf, TAGS } from '../data/books.js';
+import { DECOR, SLOTS, PAINTS } from '../data/decor.js';
+import { shelfCount, shelfCap, genreCount, seasonOf, dayOfSeason } from '../game/state.js';
 import { boxCost, canBuyBox, canTravel, topDemand } from '../game/shop.js';
+import { nextShelf } from '../game/decor.js';
+import { personSVG, nameOf } from '../render/people.js';
 
 const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 const chips = (obj, cls = '') => Object.keys(obj).sort((a, b) => obj[b] - obj[a])
   .map(g => `<span class="chip ${cls}" style="--c:${GENRES[g].color}">${GENRES[g].icon} ${GENRES[g].name} <b>×${obj[g]}</b></span>`).join('');
+const tagChips = tags => tags.map(t => `<span class="tag">${TAGS[t].icon} ${TAGS[t].name}</span>`).join('');
 
 export function createUI(root, act) {
   root.innerHTML = `
@@ -35,11 +40,12 @@ export function createUI(root, act) {
     toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
   }
 
-  function openPanel(html, wide) {
-    $('panel').innerHTML = html;
-    $('panel').classList.toggle('wide', !!wide);
+  function openPanel(html, cls = '') {
+    const p = $('panel');
+    p.innerHTML = html;
+    p.className = 'panel ' + cls;
     $('veil').classList.add('open');
-    return $('panel');
+    return p;
   }
   const closePanel = () => $('veil').classList.remove('open');
   const isOpen = () => $('veil').classList.contains('open');
@@ -49,13 +55,14 @@ export function createUI(root, act) {
     $('time').textContent = hhmm(Math.round(S.clock));
     $('bar').style.width = ((S.clock - BAL.dayStart) / (BAL.dayEnd - BAL.dayStart) * 100).toFixed(1) + '%';
     $('coins').textContent = S.coins;
-    $('shelf').textContent = `${shelfCount(S)}/${BAL.shelfCap}`;
+    $('shelf').textContent = `${shelfCount(S)}/${shelfCap(S)}`;
     const b = $('bottom');
     const want = S.phase + speed;
     if (b.dataset.k === want) return;
     b.dataset.k = want;
     if (S.phase === 'morning') {
       b.innerHTML = `<button class="btn" data-a="stock">📦 Toptancı</button>
+        <button class="btn" data-a="decor">🪴 Süsle</button>
         <button class="btn" data-a="map">🗺️ Harita</button>
         <button class="btn hl" data-a="open">🔔 Dükkânı aç</button>`;
     } else if (S.phase === 'open') {
@@ -65,7 +72,7 @@ export function createUI(root, act) {
   $('bottom').addEventListener('click', e => { const a = e.target.closest('[data-a]'); if (a) act(a.dataset.a); });
 
   function stockPanel(S) {
-        const hot = topDemand(S.town).map(g => `${GENRES[g].icon} ${GENRES[g].name}`).join(', ');
+    const hot = topDemand(S.town).map(g => `${GENRES[g].icon} ${GENRES[g].name}`).join(', ');
     const missed = S.lastDay && S.lastDay.town === S.town && Object.keys(S.lastDay.missed).length
       ? `<p class="hint">Dün burada aranıp bulunamayan: ${chips(S.lastDay.missed, 'sm')}</p>` : '';
     const cards = GENRE_KEYS.map(g => {
@@ -73,18 +80,81 @@ export function createUI(root, act) {
       return `<div class="gcard" style="--c:${G.color}">
         <div class="gicon">${G.icon}</div>
         <div class="gname">${G.name}</div>
-        <div class="gmeta">Rafta <b>${S.stock[g]}</b> · Satış ₺${G.price}</div>
+        <div class="gmeta">Rafta <b>${genreCount(S, g)}</b> · Satış ₺${G.price}</div>
         <button class="btn sm ${why ? 'off' : ''}" data-buy="${g}" title="${why || ''}">+ Koli (${BAL.boxSize}) · ₺${boxCost(g)}</button>
       </div>`;
     }).join('');
     const p = openPanel(`
       <h2>📦 Toptancı</h2>
       <p class="hint">Bu kasabada çok aranan: <b>${hot}</b></p>${missed}
-      <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 Raflar <b>${shelfCount(S)}/${BAL.shelfCap}</b></span></div>
+      <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 Raflar <b>${shelfCount(S)}/${shelfCap(S)}</b></span></div>
       <div class="ggrid">${cards}</div>
-      <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, true);
+      <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => act('buy', b.dataset.buy));
     p.querySelector('[data-close]').onclick = closePanel;
+  }
+
+  function decorPanel(S) {
+    const slots = Object.keys(SLOTS).map(slot => {
+      const items = Object.keys(DECOR).filter(k => DECOR[k].slot === slot).map(k => {
+        const d = DECOR[k], on = S.decor.on[slot] === k, owned = S.decor.owned.includes(k);
+        const btn = on ? '<span class="on">✓ Takılı</span>'
+          : `<button class="btn sm ${!owned && S.coins < d.price ? 'off' : ''}" data-decor="${k}">${owned ? 'Tak' : `₺${d.price} · Al`}</button>`;
+        return `<div class="dcard ${on ? 'is-on' : ''}"><div class="dicon">${d.icon}</div>
+          <div><div class="gname">${d.name}</div><div class="gmeta">${d.desc}</div></div>${btn}</div>`;
+      }).join('');
+      return `<h3>${SLOTS[slot].name}</h3><div class="dgrid">${items}</div>`;
+    }).join('');
+    const ns = nextShelf(S);
+    const shelfCard = ns
+      ? `<div class="dcard"><div class="dicon">📚</div><div><div class="gname">Raf genişletme</div>
+          <div class="gmeta">${shelfCap(S)} → ${ns.cap} kitap</div></div>
+          <button class="btn sm ${S.coins < ns.price ? 'off' : ''}" data-shelf>₺${ns.price} · Yap</button></div>`
+      : `<div class="dcard is-on"><div class="dicon">📚</div><div><div class="gname">Raflar</div><div class="gmeta">En büyük hâlinde (${shelfCap(S)} kitap)</div></div><span class="on">✓</span></div>`;
+    const paints = Object.keys(PAINTS).map(k => {
+      const p = PAINTS[k], on = S.paint === k, owned = S.paints.includes(k);
+      return `<button class="swatch ${on ? 'is-on' : ''}" data-paint="${k}" style="--b:${p.body};--e:${p.edge}">
+        <i></i><span>${p.name}</span><small>${on ? '✓' : owned ? 'Seç' : '₺' + p.price}</small></button>`;
+    }).join('');
+    const p = openPanel(`
+      <h2>🪴 Süsle ve geliştir</h2>
+      <p class="hint">Süsler müşterileri etkiler; her yuvaya bir tane takılır. Aldığın süs sende kalır. 🪙 <b>${S.coins}</b></p>
+      ${slots}
+      <h3>Atölye</h3><div class="dgrid">${shelfCard}</div>
+      <h3>Karavan boyası</h3><div class="swatches">${paints}</div>
+      <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
+    p.querySelectorAll('[data-decor]').forEach(b => b.onclick = () => act('decor-on', b.dataset.decor));
+    p.querySelectorAll('[data-paint]').forEach(b => b.onclick = () => act('paint', b.dataset.paint));
+    p.querySelector('[data-shelf]')?.addEventListener('click', () => act('shelf'));
+    p.querySelector('[data-close]').onclick = closePanel;
+    return p;
+  }
+
+  // Öneri: müşterinin isteği + raftaki farklı kitaplar (türe göre süzülebilir)
+  function recPanel(S, c, onPick) {
+    const ids = Object.keys(S.shelf);
+    const genres = GENRE_KEYS.filter(g => ids.some(id => BOOK[id].genre === g));
+    const tabs = `<button class="tab is-on" data-f="">Hepsi</button>` +
+      genres.map(g => `<button class="tab" data-f="${g}">${GENRES[g].icon}</button>`).join('');
+    const cards = GENRE_KEYS.flatMap(g => booksOf(g)).filter(b => S.shelf[b.id]).map(b => `
+      <button class="bcard" data-book="${b.id}" data-g="${b.genre}" style="--c:${GENRES[b.genre].color}">
+        <span class="btitle">${b.title}</span><span class="bauthor">${b.author}</span>
+        <span class="btags">${tagChips(b.tags)}</span>${S.shelf[b.id] > 1 ? `<span class="bcount">×${S.shelf[b.id]}</span>` : ''}
+      </button>`).join('');
+    const p = openPanel(`
+      <div class="rec-head">
+        <div class="portrait"><svg viewBox="-62 540 124 150">${personSVG(c.look)}</svg></div>
+        <div><div class="name">${nameOf(c.look)}</div><p class="say">“${c.ask.text}”</p></div>
+      </div>
+      <div class="tabs">${tabs}</div>
+      <div class="bgrid">${cards || '<p class="hint">Rafta hiç kitap yok…</p>'}</div>
+      <div class="row end"><button class="btn" data-none>🤷 Elimde yok</button></div>`, 'wide rec');
+    p.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+      p.querySelectorAll('.tab').forEach(x => x.classList.toggle('is-on', x === t));
+      p.querySelectorAll('.bcard').forEach(b => { b.style.display = !t.dataset.f || b.dataset.g === t.dataset.f ? '' : 'none'; });
+    });
+    p.querySelectorAll('[data-book]').forEach(b => b.onclick = () => { closePanel(); onPick(b.dataset.book); });
+    p.querySelector('[data-none]').onclick = () => { closePanel(); onPick(null); };
   }
 
   function mapPanel(S) {
@@ -101,7 +171,7 @@ export function createUI(root, act) {
     const here = TOWNS[S.town].map;
     const p = openPanel(`
       <h2>🗺️ Nereye gidelim?</h2>
-      <p class="hint">Yol ₺${BAL.travelCost} · günde bir kez, sabahları. Simgeler o kasabada en çok aranan türler.</p>
+      <p class="hint">Yol ₺${BAL.travelCost} · günde bir kez, sabahları. Yeni gittiğin kasabada karavanı merak eden ${BAL.newTownTraffic} kişi daha uğrar.</p>
       <svg class="map" viewBox="0 0 1600 900">
         <rect width="1600" height="900" rx="40" fill="#a9dcd8"/>
         <g stroke="#c6ebe7" stroke-width="4" stroke-linecap="round" fill="none">
@@ -116,13 +186,13 @@ export function createUI(root, act) {
         <g transform="translate(1460 760)"><circle r="60" fill="#fff6e8" stroke="#e2c29c" stroke-width="5"/><path d="M0 -44 L12 0 L0 44 L-12 0Z" fill="#f08a7e"/><path d="M0 0 L12 0 L0 44 L-12 0Z" fill="#c7b6a4"/><text y="-64" text-anchor="middle" font-size="22" font-weight="700" fill="#4a3a33">K</text></g>
         ${pins}
         <g id="van" transform="translate(${here.x} ${here.y - 110})"><g transform="translate(-32 -30)">
-          <rect x="0" y="8" width="64" height="40" rx="12" fill="#9fd8c4" stroke="#5ea592" stroke-width="4"/>
+          <rect x="0" y="8" width="64" height="40" rx="12" fill="${PAINTS[S.paint].body}" stroke="${PAINTS[S.paint].edge}" stroke-width="4"/>
           <rect x="10" y="16" width="30" height="16" rx="4" fill="#6b4a3a"/><path d="M8 16 L42 16 L40 22 L10 22Z" fill="#f08a7e"/>
           <circle cx="16" cy="50" r="8" fill="#5b4636"/><circle cx="48" cy="50" r="8" fill="#5b4636"/>
         </g></g>
       </svg>
       <p class="hint" id="blurb">${TOWNS[S.town].blurb}</p>
-      <div class="row end"><button class="btn" data-close>Kapat</button></div>`, true);
+      <div class="row end"><button class="btn" data-close>Kapat</button></div>`, 'wide');
     p.querySelector('[data-close]').onclick = closePanel;
     p.querySelectorAll('[data-town]').forEach(g => {
       g.onmouseenter = () => { p.querySelector('#blurb').textContent = TOWNS[g.dataset.town].blurb; };
@@ -146,9 +216,13 @@ export function createUI(root, act) {
 
   function summaryPanel(S, T) {
     const profitNote = T.soldCount ? `Bugün <b>${T.soldCount}</b> kitap sattın.` : 'Bugün hiç kitap satılmadı.';
+    const R = T.recs, asked = R.perfect + R.good + R.miss;
+    const recLine = asked
+      ? `<p class="recline">Öneriler: 🤩 <b>${R.perfect}</b> tam isabet · 🙂 <b>${R.good}</b> idare eder · 😕 <b>${R.miss}</b> olmadı${T.tips ? ` · bahşiş <b class="gold">₺${T.tips}</b>` : ''}</p>` : '';
     let tip = '';
     const missedTop = Object.keys(T.missed).sort((a, b) => T.missed[b] - T.missed[a])[0];
-    if (missedTop) tip = `${GENRES[missedTop].icon} ${GENRES[missedTop].name} arayan ${T.missed[missedTop]} kişi eli boş döndü. Yarın bir koli almayı düşün.`;
+    if (R.miss > R.perfect && asked > 1) tip = 'Öneri isteyenlerin cümlesine dikkat: kitap kartlarındaki etiketler ipucu verir.';
+    else if (missedTop) tip = `${GENRES[missedTop].icon} ${GENRES[missedTop].name} arayan ${T.missed[missedTop]} kişi eli boş döndü. Yarın bir koli almayı düşün.`;
     else if (shelfCount(S) < 8) tip = 'Raflar neredeyse boş. Sabah toptancıya uğra.';
     else tip = 'Herkes aradığını buldu. Böyle devam!';
     const p = openPanel(`
@@ -159,13 +233,14 @@ export function createUI(root, act) {
         <div><span>Kasa</span><b class="gold">+₺${T.revenue}</b></div>
         <div><span>Toplam</span><b>🪙 ${S.coins}</b></div>
       </div>
-      <p>${profitNote}</p>
+      <p>${profitNote}${T.newTown ? ` Yeni kasabada karavanı merak edenler de uğradı.` : ''}</p>
       ${T.soldCount ? `<div class="chips">${chips(T.sold)}</div>` : ''}
+      ${recLine}
       ${Object.keys(T.missed).length ? `<p class="hint">Aranıp bulunamayan:</p><div class="chips">${chips(T.missed, 'miss')}</div>` : ''}
       <p class="tip">💡 ${tip}</p>
       <div class="row end"><button class="btn hl" data-next>☀️ Ertesi sabah</button></div>`);
     p.querySelector('[data-next]').onclick = () => { closePanel(); act('next'); };
   }
 
-  return { hud, toast, stockPanel, mapPanel, summaryPanel, closePanel, isOpen };
+  return { hud, toast, stockPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }
