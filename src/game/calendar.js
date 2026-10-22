@@ -1,0 +1,43 @@
+// Günün havası ve etkinliği: gün numarasından sabit üretilir (kayıttan ve RNG'den bağımsız).
+import { seeded } from '../core/rng.js';
+import { WEATHER, EVENTS, EVENT_CHANCE, GOSSIP } from '../data/calendar.js';
+
+// ardışık günler birbirine benzemesin: gün numarasını karıştırıp tohum yap
+function dayRng(day, salt) {
+  let n = (day * 31 + salt) | 0;
+  n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+  n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+  return seeded(((n ^ (n >>> 16)) >>> 0) % 2147483646 + 1);
+}
+
+function pickWeighted(r, table) {
+  const keys = Object.keys(table);
+  let x = r() * keys.reduce((n, k) => n + table[k].weight, 0);
+  for (const k of keys) { x -= table[k].weight; if (x < 0) return k; }
+  return keys[0];
+}
+
+// ilk gün hep güneşli: yeni oyuncu sakin bir başlangıç yapsın
+export const weatherOf = day => day === 1 ? 'gunesli' : pickWeighted(dayRng(day, 13), WEATHER);
+
+export function eventOf(day) {
+  const r = dayRng(day, 5);
+  if (r() >= EVENT_CHANCE) return null;
+  const keys = Object.keys(EVENTS);
+  return keys[Math.floor(r() * keys.length)];
+}
+
+export const gossipOf = day => GOSSIP[Math.floor(dayRng(day, 3)() * GOSSIP.length)];
+
+// Bugün bu kasabada geçerli çarpanlar
+export function dayMods(day, town) {
+  const w = WEATHER[weatherOf(day)], ek = eventOf(day), e = ek && EVENTS[ek].town === town ? EVENTS[ek] : null;
+  const demand = { ...(w.demand || {}) };
+  for (const g in e?.demand || {}) demand[g] = (demand[g] || 1) * e.demand[g];
+  return {
+    traffic: w.traffic * (e ? e.traffic : 1),
+    ask: w.ask * (e ? e.ask : 1),
+    demand,
+    event: e ? ek : null,
+  };
+}

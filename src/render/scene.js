@@ -74,6 +74,7 @@ const MARKUP = `
 
   <g id="houses"></g>
   <g id="spotBack"></g>
+  <g id="festival"></g>
 
   <!-- zemin -->
   <rect id="ground" x="0" y="560" width="1600" height="340" fill="url(#cobble)"/>
@@ -151,6 +152,7 @@ const MARKUP = `
 
   <g id="people"></g>
   <g id="fx"></g>
+  <g id="weather"></g>
   <rect id="dusk" width="1600" height="900" fill="#3b2a5a" opacity="0" pointer-events="none"/>
 </svg>`;
 
@@ -275,6 +277,33 @@ export function buildScene(host) {
       $('ground').setAttribute('fill', GROUND[scene]);
       $('curb').setAttribute('fill', scene === 'sahil' ? '#ecd3a4' : scene === 'tepe' ? '#c9d38f' : '#e3c597');
       $('houses').style.display = SHOW_HOUSES[scene] ? '' : 'none';
+    },
+    // hava: yağmur çizgileri, bulut gölgesi, rüzgârda hızlanan bulutlar
+    setWeather(key) {
+      const svg = host.querySelector('svg');
+      svg.classList.toggle('windy', key === 'ruzgarli');
+      let html = '';
+      if (key === 'yagmurlu' || key === 'bulutlu') html += `<rect width="1600" height="900" fill="#5a6b80" opacity="${key === 'yagmurlu' ? .22 : .1}"/>`;
+      if (key === 'yagmurlu') {
+        const r = seeded(99);
+        let lines = '';
+        for (let i = 0; i < 90; i++) {
+          const x = r() * 1700, y = r() * 1800 - 900;
+          lines += `<line x1="${x.toFixed(0)}" y1="${y.toFixed(0)}" x2="${(x - 10).toFixed(0)}" y2="${(y + 34).toFixed(0)}"/>`;
+        }
+        html += `<g class="rain" stroke="#e8f1fb" stroke-width="3" stroke-linecap="round" opacity=".75">${lines}</g>`;
+      }
+      $('weather').innerHTML = html;
+    },
+    // festival günü: karavanın yanında balonlar
+    setFestival(on) {
+      const cols = ['#f08a7e', '#f2c45a', '#5b8bd0', '#8bc49a', '#b98ad6'];
+      $('festival').innerHTML = !on ? '' : cols.map((c, i) => {
+        const x = 520 + (i % 3) * 34 - 30, y = 300 + (i % 2) * 40 + Math.floor(i / 3) * 30;
+        return `<g class="bob" style="animation-delay:-${i * .6}s"><path d="M${x} ${y + 34} Q${x + 10} ${y + 120} 500 610" fill="none" stroke="#8a7468" stroke-width="2"/>
+          <ellipse cx="${x}" cy="${y}" rx="24" ry="30" fill="${c}"/><ellipse cx="${x - 8}" cy="${y - 10}" rx="6" ry="9" fill="#fff" opacity=".45"/>
+          <path d="M${x - 5} ${y + 30} L${x + 5} ${y + 30} L${x} ${y + 37}Z" fill="${c}"/></g>`;
+      }).join('');
     },
     setStock(S) {
       drawShelves($('shelves'), S.shelf, shelfCap(S));

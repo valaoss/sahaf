@@ -159,3 +159,19 @@ svg.map { width: 100%; height: auto; display: block; border-radius: 1em; margin:
 .hello { margin: .2em 0; color: #8a7468; font-style: italic; line-height: 1.35; }
 .letter { background: #fffaf0; border-radius: 1em; padding: .4em .2em; }
 .big { font-size: 2em; font-weight: 700; margin: .3em 0; }
+
+/* hava */
+.rain { animation: rain .55s linear infinite; }
+@keyframes rain { from { transform: translateY(0); } to { transform: translateY(900px); } }
+.windy .drift { animation-duration: 18s; }
+.windy .sway { animation-duration: 1.6s; }
+/* gazete */
+.paper { background: #fffaf0; }
+.paper .masthead { text-align: center; border-bottom: .15em solid var(--ink); padding-bottom: .3em; margin-bottom: .6em; }
+.paper .masthead h2 { margin: 0; font-size: 1.8em; letter-spacing: .04em; }
+.paper .masthead small { color: #8a7468; }
+.news { display: grid; grid-template-columns: 1.3fr 1fr; gap: .9em; }
+.news .col2 { border-left: .1em dashed var(--edge); padding-left: .9em; }
+.headline { font-size: 1.25em; font-weight: 700; margin: .1em 0 .3em; }
+.kicker { font-size: .8em; font-weight: 700; color: var(--coral); text-transform: uppercase; letter-spacing: .06em; }
+.where { pointer-events: auto; cursor: pointer; }

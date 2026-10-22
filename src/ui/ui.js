@@ -10,6 +10,8 @@ import { boxCost, canBuyBox, canTravel, topDemand } from '../game/shop.js';
 import { nextShelf } from '../game/decor.js';
 import { SPOTS } from '../data/spots.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX } from '../data/regulars.js';
+import { WEATHER, EVENTS } from '../data/calendar.js';
+import { weatherOf, eventOf, gossipOf } from '../game/calendar.js';
 import { personSVG, nameOf } from '../render/people.js';
 
 const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -24,7 +26,7 @@ export function createUI(root, act) {
   root.innerHTML = `
     <div class="top">
       <div class="col">
-        <span class="pill" id="where"></span>
+        <span class="pill where" id="where" title="Gazete"></span>
         <span class="pill clock"><span id="time"></span><span class="bar"><i id="bar"></i></span></span>
       </div>
       <div class="col right">
@@ -56,7 +58,7 @@ export function createUI(root, act) {
   const isOpen = () => $('veil').classList.contains('open');
 
   function hud(S, speed) {
-    $('where').textContent = `☀️ ${TOWNS[S.town].name} · ${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün`;
+    $('where').textContent = `${WEATHER[weatherOf(S.day)].icon} ${TOWNS[S.town].name} · ${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün · 📰`;
     $('time').textContent = hhmm(Math.round(S.clock));
     $('bar').style.width = ((S.clock - BAL.dayStart) / (BAL.dayEnd - BAL.dayStart) * 100).toFixed(1) + '%';
     $('coins').textContent = S.coins;
@@ -76,6 +78,7 @@ export function createUI(root, act) {
       b.innerHTML = `<button class="btn ${speed > 1 ? 'hl' : ''}" data-a="speed">${speed > 1 ? '⏩ Hızlı' : '▶️ Normal'}</button>`;
     } else b.innerHTML = '';
   }
+  $('where').addEventListener('click', () => act('paper'));
   $('bottom').addEventListener('click', e => { const a = e.target.closest('[data-a]'); if (a) act(a.dataset.a); });
 
   function stockPanel(S) {
@@ -192,13 +195,15 @@ export function createUI(root, act) {
         <span class="btags">${tagChips(b.tags)}</span>${S.shelf[b.id] > 1 ? `<span class="bcount">×${S.shelf[b.id]}</span>` : ''}
       </button>`).join('');
     const R = c.reg && REGULARS[c.reg];
-    const first = R && !S.met.includes(c.reg);
-    const who = R ? `${R.name} <span class="hearts">${hearts(S.friends[c.reg] || 0)}</span>` : nameOf(c.look);
+    // ilk karşılaşmada kendini tanıtır, sonra kalp sayısına göre hikâyesinden bir parça anlatır
+    const h = R ? S.friends[c.reg] || 0 : 0;
+    const chat = !R ? null : !S.met.includes(c.reg) ? R.hello : h ? R.story[h - 1] : null;
+    const who = R ? `${R.name} <span class="hearts">${hearts(h)}</span>` : nameOf(c.look);
     const p = openPanel(`
       <div class="rec-head">
         <div class="portrait"><svg viewBox="-62 540 124 150">${personSVG(c.look, c.style)}</svg></div>
         <div><div class="name">${who}</div>
-          ${first ? `<p class="hello">“${R.hello}”</p>` : ''}
+          ${chat ? `<p class="hello">“${chat}”</p>` : ''}
           <p class="say">“${c.ask.text}”</p></div>
       </div>
       <div class="tabs">${tabs}</div>
@@ -221,6 +226,7 @@ export function createUI(root, act) {
         <circle cy="-50" r="10" fill="#fff6e8"/></g>
         <text y="40" text-anchor="middle" font-size="32" font-weight="600" fill="#4a3a33">${t.name}</text>
         <text y="78" text-anchor="middle" font-size="26">${icons}</text>
+        ${EVENTS[eventOf(S.day)]?.town === k ? `<text y="-92" text-anchor="middle" font-size="30" font-weight="700" fill="#e5546a">🎉 ${EVENTS[eventOf(S.day)].name}</text>` : ''}
       </g>`;
     }).join('');
     const here = TOWNS[S.town].map;
@@ -282,6 +288,7 @@ export function createUI(root, act) {
     else tip = 'Herkes aradığını buldu. Böyle devam!';
     const p = openPanel(`
       <h2>🌙 ${S.day}. gün kapandı · ${TOWNS[T.town].name}</h2>
+      ${T.weather ? `<p class="hint">${WEATHER[T.weather].icon} ${WEATHER[T.weather].name}${T.event ? ` · 🎉 ${EVENTS[T.event].name}` : ''}</p>` : ''}
       <div class="stats">
         <div><span>Ziyaretçi</span><b>${T.visitors}</b></div>
         <div><span>Satılan</span><b>${T.soldCount}</b></div>
@@ -298,5 +305,30 @@ export function createUI(root, act) {
     p.querySelector('[data-next]').onclick = () => { closePanel(); act('next'); };
   }
 
-  return { hud, toast, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  // Sabah gazetesi: hava, bugünün ve yarının etkinliği, kasabadan bir haber
+  function paperPanel(S) {
+    const w = WEATHER[weatherOf(S.day)], wt = WEATHER[weatherOf(S.day + 1)];
+    const ev = eventOf(S.day), evT = eventOf(S.day + 1);
+    const today = ev
+      ? `<div class="kicker">Bugün · ${TOWNS[EVENTS[ev].town].name}</div><div class="headline">🎉 ${EVENTS[ev].name}</div><p>${EVENTS[ev].note}</p>
+         <p class="hint">${EVENTS[ev].town === S.town ? 'Tam da buradasın, kaçırma!' : 'Haritadan yola çıkabilirsin.'}</p>`
+      : '<div class="kicker">Bugün</div><div class="headline">Sakin bir gün</div><p>Kasabalarda özel bir etkinlik yok. Raflara özen göstermek için iyi bir gün.</p>';
+    const p = openPanel(`
+      <div class="paper">
+        <div class="masthead"><h2>📰 Ege Postası</h2><small>${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün · fiyatı bir gülümseme</small></div>
+        <div class="news">
+          <div>${today}</div>
+          <div class="col2">
+            <div class="kicker">Hava</div><div class="headline">${w.icon} ${w.name}</div><p>${w.note}</p>
+            <div class="kicker">Yarın</div><p>${wt.icon} ${wt.name}${evT ? ` · 🎉 ${EVENTS[evT].name} (${TOWNS[EVENTS[evT].town].name})` : ''}</p>
+            <div class="kicker">Kasabadan</div><p>${gossipOf(S.day)}</p>
+          </div>
+        </div>
+      </div>
+      <div class="row end">${ev && EVENTS[ev].town !== S.town && S.phase === 'morning' ? '<button class="btn" data-go>🗺️ Haritayı aç</button>' : ''}<button class="btn hl" data-close>Günaydın!</button></div>`, 'wide');
+    p.querySelector('[data-close]').onclick = closePanel;
+    p.querySelector('[data-go]')?.addEventListener('click', () => act('map'));
+  }
+
+  return { hud, toast, paperPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

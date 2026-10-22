@@ -7,6 +7,8 @@ import { newGame, genreCount } from '../src/game/state.js';
 import { buyBox, travel, rescue, demandOf } from '../src/game/shop.js';
 import { equipDecor, upgradeShelf } from '../src/game/decor.js';
 import { simulateDay } from '../src/game/day.js';
+import { eventOf } from '../src/game/calendar.js';
+import { EVENTS } from '../src/data/calendar.js';
 
 const DAYS = 30, RUNS = 40;
 
@@ -37,6 +39,7 @@ const STYLES = {
   'akıllı, her gün gezer': (S, day) => { travel(S, TOWN_KEYS[(day + 1) % TOWN_KEYS.length]); stockSmart(S); },
   'akıllı, 3 günde bir gezer': (S, day) => { if (day % 3 === 2) travel(S, TOWN_KEYS[(day / 3 + 1) % TOWN_KEYS.length | 0]); stockSmart(S); },
   'akıllı + yatırım': (S) => { invest(S); stockSmart(S); },
+  'yatırım + festival peşinde': (S) => { const e = eventOf(S.day); if (e) travel(S, EVENTS[e].town); invest(S); stockSmart(S); },
 };
 
 for (const [name, play] of Object.entries(STYLES)) {

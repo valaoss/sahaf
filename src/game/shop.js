@@ -10,6 +10,7 @@ import { DECOR } from '../data/decor.js';
 import { rnd, rndInt, rndPick, weighted } from '../core/rng.js';
 import { shelfCount, shelfCap, genreCount, takeBook } from './state.js';
 import { effects } from './decor.js';
+import { dayMods } from './calendar.js';
 
 export const boxCost = g => GENRES[g].cost * BAL.boxSize;
 
@@ -82,6 +83,8 @@ export function demandOf(S, townKey = S.town) {
   const d = { ...TOWNS[townKey].demand }, mul = effects(S).demand;
   const spot = townKey === S.town ? spotOf(S).demand : {};
   for (const g in spot) d[g] *= spot[g];
+  const today = dayMods(S.day, townKey).demand;
+  for (const g in today) d[g] *= today[g];
   for (const g in mul) d[g] *= mul[g];
   return d;
 }
@@ -101,7 +104,7 @@ export function askText(tags, pick) {
 
 export function makeCustomer(S) {
   const c = { id: S.nextId++, wants: weighted(S, demandOf(S)), look: Math.floor(rnd(S) * 1e9) };
-  if (rnd(S) < BAL.askChance * spotOf(S).ask) {
+  if (rnd(S) < BAL.askChance * spotOf(S).ask * dayMods(S.day, S.town).ask) {
     // gerçek bir kitaptan yola çıkılır: istek her zaman en az bir kitapla tam karşılanabilir.
     // Çoğu zaman bu kitap rafta olandır (çeşitli raf ödüllendirilir), bazen raf dışındandır;
     // raf dışındaysa yarı yarıya mekânın havasına uyan bir kitaptır (iskelede deniz, kalede savaş…).

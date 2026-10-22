@@ -26,9 +26,17 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Kitaplar 120'ye çıktı (türde 20)
 - Geliştirme: `?sahne=foca/kale&panel=spot|decor|gift|rec&kim=hasan&susler=...` önizleme parametreleri (yalnız dev)
 
+### Faz 2 başlangıcı ✅
+- Sabah gazetesi (Ege Postası): günün havası, bugünün ve yarının etkinliği, kasabadan haber; her sabah açılır,
+  üstteki konum hapına dokununca tekrar açılır
+- Hava (güneşli / bulutlu / yağmurlu / rüzgârlı): kalabalığı ve öneri isteğini değiştirir; yağmur ve rüzgâr sahnede görünür
+- Etkinlikler (Zeytinyağı Festivali, Ada Resim Sergisi, Fok Gözlem Günü, Ot Festivali): günlerin ~%35'inde bir kasabada;
+  kalabalık ×1.4–1.6, festival balonları. Atlanabilir: gitmezsen ceza yok, simülasyonda festivali kovalamak en kârlısı
+- Müdavim hikâyeleri: her kalpte yeni bir konuşma (8 × 5 satır)
+
 Sırada:
-- Müdavimlere küçük hikâye zincirleri (Faz 2'ye geçiş): her kalpte yeni bir konuşma
-- Sabah gazetesi ve etkinlik takvimi (atlanabilir)
+- Kasabaların sırrı / ana hikâye (St. Bookston benzeri yerel bir efsane)
+- Mevsim görünümleri (kış, yaz renkleri), pul koleksiyonu
 
 ## Faz 2 — dünya
 - İsimli karakterler ve dostluk, kasabaların hikâyesi, sabah gazetesi ve etkinlik takvimi (atlanabilir)

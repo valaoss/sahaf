@@ -8,6 +8,9 @@ import { DECOR, SHELF_LEVELS, PAINTS } from '../src/data/decor.js';
 import { newGame, restore, shelfCount, shelfCap, genreCount, seasonOf } from '../src/game/state.js';
 import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot } from '../src/game/shop.js';
 import { SPOTS } from '../src/data/spots.js';
+import { TOWN_KEYS } from '../src/data/towns.js';
+import { WEATHER, EVENTS, EVENT_CHANCE } from '../src/data/calendar.js';
+import { weatherOf, eventOf, dayMods } from '../src/game/calendar.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../src/data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint } from '../src/game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, simulateDay } from '../src/game/day.js';
@@ -305,6 +308,46 @@ test('hediye süs satın alınamaz, alınınca takılır', () => {
   assert.equal(equipDecor(S, 'fok'), null);
   assert.equal(S.coins, 999);
   assert.equal(effects(S).traffic, DECOR.fok.effect.traffic);
+});
+
+test('takvim: hava ve etkinlik günden sabit, dağılım makul, etkinlik yalnız kendi kasabasında', () => {
+  assert.equal(weatherOf(1), 'gunesli');
+  const count = {};
+  let events = 0, streak = 0, maxStreak = 0, prev = null;
+  for (let d = 2; d <= 2000; d++) {
+    const w = weatherOf(d);
+    assert.equal(w, weatherOf(d), 'sabit');
+    assert.ok(WEATHER[w]);
+    count[w] = (count[w] || 0) + 1;
+    streak = w === prev ? streak + 1 : 1; prev = w; maxStreak = Math.max(maxStreak, streak);
+    const e = eventOf(d);
+    if (e) { events++; assert.ok(EVENTS[e]); }
+  }
+  for (const k in WEATHER) assert.ok(Math.abs(count[k] / 1999 * 100 - WEATHER[k].weight) < 5, k + ' ' + count[k]);
+  assert.ok(Math.abs(events / 1999 - EVENT_CHANCE) < 0.05, 'etkinlik oranı');
+  assert.ok(maxStreak <= 16, 'aynı hava çok uzun sürmesin (%50 güneşte 2000 günde ~11 beklenir): ' + maxStreak);
+  const d = [...Array(200).keys()].map(i => i + 2).find(x => eventOf(x));
+  const town = EVENTS[eventOf(d)].town, other = TOWN_KEYS.find(t => t !== town);
+  assert.equal(dayMods(d, town).event, eventOf(d));
+  assert.equal(dayMods(d, other).event, null);
+  assert.ok(dayMods(d, town).traffic > dayMods(d, other).traffic);
+});
+
+test('takvim: festival günü o kasabada daha çok ziyaretçi', () => {
+  const days = [...Array(400).keys()].map(i => i + 2).filter(x => eventOf(x) && WEATHER[weatherOf(x)].traffic === 1).slice(0, 15);
+  let fest = 0, calm = 0;
+  for (const d of days) {
+    const town = EVENTS[eventOf(d)].town, other = TOWN_KEYS.find(t => t !== town && TOWNS[t].traffic === TOWNS[town].traffic) || TOWN_KEYS.find(t => t !== town);
+    const A = newGame(d); A.day = d; A.town = A.prevTown = town; A.spot = Object.keys(SPOTS[town])[0];
+    const B = newGame(d); B.day = d; B.town = B.prevTown = other; B.spot = Object.keys(SPOTS[other])[0];
+    fest += simulateDay(A).visitors / (TOWNS[town].traffic * SPOTS[town][A.spot].traffic);
+    calm += simulateDay(B).visitors / (TOWNS[other].traffic * SPOTS[other][B.spot].traffic);
+  }
+  assert.ok(fest > calm * 1.25, `${fest.toFixed(1)} > ${calm.toFixed(1)}`);
+});
+
+test('müdavim hikâyeleri: her kalp için bir satır', () => {
+  for (const id of REGULAR_KEYS) assert.equal(REGULARS[id].story.length, HEARTS_MAX, id);
 });
 
 console.log(`\n${passed} test geçti`);

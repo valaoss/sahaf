@@ -40,6 +40,67 @@ export const REGULARS = {
     thanks: 'Bunu tezgâhın üstüne koyacağım, herkes soracak.',
     gift: null, giftNote: 'Kafemdeki kitap köşesi senin sayende doldu. Al şu ₺40, benden.' },
 };
+// Hikâyeler: kalp sayısı arttıkça müdavim biraz daha açılır (story[n-1], n kalpteyken söylenir)
+const STORIES = {
+  hasan: [
+    'Rahmetli hanım da okurdu. Ben onun kitaplarını teknede bir bir bitiriyorum şimdi.',
+    'Oğlum İzmir\'de mühendis oldu. Denize çıkmaz, ama telefonda ona okuduklarımı anlatıyorum.',
+    'Bu sabah yunuslar teknenin yanında yüzdü. Kırk yılda üçüncü kez. İyiye işaret, dedim.',
+    'Torunum yazın gelecek. Ona ilk kitabını senden alacağım, şimdiden söyleyeyim.',
+    'Sen bu kasabaya iyi geldin evladım. İskele eskisi gibi sessiz değil artık.',
+  ],
+  melis: [
+    'Sınıfta bir okuma köşesi kurdum. Minderleri annelerden topladık!',
+    'Arka sıradaki Emir hiç okumazdı. Dün teneffüste kitabını bırakmadı.',
+    'Öğrencilere "en sevdiğin kitabı anlat" ödevi verdim. Yarısı senden aldıklarımızı anlattı.',
+    'Okul müdürü kütüphane için bütçe ayırdı. Listeyi seninle yapmak istiyorum.',
+    'Çocuklar sana "kitap amca" ya da "kitap abla" diyor. Hangisi olduğuna karar veremediler.',
+  ],
+  ruya: [
+    'Adaya üç yaz önce bir haftalığına gelmiştim. Hâlâ buradayım.',
+    'Bugün denizi boyamaya çalıştım, olmadı. Deniz her saat başka renk.',
+    'Bir galeri resimlerimi İstanbul\'da sergilemek istiyor. Biraz korkuyorum.',
+    'Sergiye bir resim de karavanından koyacağım, izin verirsen.',
+    'Sergi çok güzel geçti. En çok soru sorulan resim seninkiydi.',
+  ],
+  selim: [
+    'Otuz yıl şehir hastanesinde çalıştım. Ada bana ilk kez gerçekten tatil gibi geliyor.',
+    'Katili tahmin etme oyunumda bu ay yedide beş tuttum. Fena değil, değil mi?',
+    'Komşular hastalanınca hâlâ bana geliyor. Emeklilik dediğin böyle bir şey herhalde.',
+    'Kendi polisiye romanımı yazmaya başladım. Kurban bir sahaf olacak, alınma.',
+    'Romanın ilk bölümü bitti. Dedektif de sahaf çıktı, sen kurtardın kendini.',
+  ],
+  nuri: [
+    'Teknemin adı "Fokçu". Babamdan kaldı, ben de oğluma bırakacağım.',
+    'Turistler hep aynı şeyi sorar: "Foklar ısırır mı?" Isırmaz, ama kitap da okumaz.',
+    'Eski denizcilerin seyir defterlerini topluyorum. Birini sende bulursam haber ver.',
+    'Geçen fırtınada küçük bir tekneyi kurtardık. Gazete yazdı, gördün mü?',
+    'Tekneye bir kitap rafı yaptırdım. Turistler bekleşirken okusun diye.',
+  ],
+  ela: [
+    'Kedim Kömür senin kedine âşık oldu galiba. Hep karavana bakıyor.',
+    'Okulda masal yazma yarışması var! Ejderhalı bir masal yazıyorum.',
+    'Masalım sınıfta birinci oldu!!! Öğretmenim çok güzel dedi.',
+    'Büyüyünce sahaf olacağım. Ya da ejderha bakıcısı. Belki ikisi birden.',
+    'Bu resmi senin için çizdim: karavan, kedin ve ben. Ejderhayı da ekledim.',
+  ],
+  zeynep: [
+    'Kış aylarında Avustralya\'da sörf hocalığı yapıyorum. Yazları buradayım.',
+    'Bugün ilk kez bir öğrencim tahtada ayakta kaldı! Gün güzel geçti.',
+    'Okuduğun bir kitap seni uzak bir yere götürüyorsa, bir gün oraya gerçekten gidersin. Ben öyle yaptım.',
+    'Sörf okulumuzda bir kitap köşesi açtık. Tabii ki senden doldurdum.',
+    'Bu kışı burada geçirmeye karar verdim. Alaçatı artık evim gibi.',
+  ],
+  bora: [
+    'Kafeyi babamdan devraldım. Tek değişiklik: her masada bir kitap var artık.',
+    'Bir müşteri kitabı bitirmek için üç kahve daha içti. Ciro arttı, sağ ol!',
+    'Kafede ayda bir kitap kulübü yapıyoruz. Gelsene bir akşam.',
+    'Kitap kulübü o kadar kalabalık oldu ki sandalye yetmedi.',
+    'Menüye yeni bir kahve ekledim: "Sahaf usulü". Ne içinde olduğunu sorma.',
+  ],
+};
+for (const id in STORIES) REGULARS[id].story = STORIES[id];
+
 // Sabit görünüşler (render/people.js personSVG): kim olduklarına uysun
 const STYLES = {
   hasan:  { hair: '#dcdcdc', beard: true, hat: 1, hatC: '#5b8bd0', coat: '#6fb1d6', skin: '#d9a07a', long: false },

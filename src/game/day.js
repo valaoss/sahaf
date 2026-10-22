@@ -5,13 +5,16 @@ import { rnd, rndInt } from '../core/rng.js';
 import { REGULARS, REGULAR_KEYS, VISIT_CHANCE } from '../data/regulars.js';
 import { makeCustomer, makeRegular, resolveCustomer, recommend, bestBook, spotOf } from './shop.js';
 import { effects } from './decor.js';
+import { dayMods, weatherOf } from './calendar.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
   const len = BAL.dayEnd - BAL.dayStart;
   // yeni gelinen kasabada karavanı merak edenler de uğrar
   const newTown = S.town !== S.prevTown;
-  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic) + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
+  // hava ve etkinlik kalabalığı çarpar; süs ve yeni kasaba ilgisi üstüne eklenir
+  const mods = dayMods(S.day, S.town);
+  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic) + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
   const n = Math.max(4, base + rndInt(S, BAL.trafficJitter * 2 + 1) - BAL.trafficJitter);
   const times = [];
   for (let i = 0; i < n; i++) {
@@ -26,7 +29,7 @@ export function openShop(S) {
   // kasabanın müdavimleri bazı günler uğrar
   S.regArrivals = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town && rnd(S) < VISIT_CHANCE)
     .map(id => ({ id, t: Math.round(BAL.dayStart + 30 + rnd(S) * (len - 90)) })).sort((a, b) => a.t - b.t);
-  S.today = { town: S.town, spot: S.spot, newTown, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 } };
+  S.today = { town: S.town, spot: S.spot, newTown, weather: weatherOf(S.day), event: mods.event, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 } };
   return null;
 }
 

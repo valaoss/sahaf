@@ -14,6 +14,7 @@ import { effects, equipDecor, upgradeShelf, choosePaint } from './game/decor.js'
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
 import { loadGame, saveGame as persistGame } from './core/save.js';
 import { SPOTS } from './data/spots.js';
+import { weatherOf, dayMods } from './game/calendar.js';
 import { tap } from './core/native.js';
 import { buildScene } from './render/scene.js';
 import { createCrowd } from './render/people.js';
@@ -28,6 +29,8 @@ const PREVIEW = import.meta.env.DEV && new URLSearchParams(location.search).get(
 if (PREVIEW) {
   const [town, spot] = PREVIEW.split('/');
   if (SPOTS[town]?.[spot]) Object.assign(S, { town, spot, phase: 'morning' });
+  const day = +new URLSearchParams(location.search).get('gun');
+  if (day > 0) S.day = day;
 }
 const saveGame = PREVIEW ? () => {} : persistGame;
 const scene = buildScene(document.getElementById('scene'));
@@ -57,6 +60,7 @@ const crowd = createCrowd(scene.people, scene.fx, {
 
 const ui = createUI(document.getElementById('ui'), (a, arg) => {
   if (a === 'stock') ui.stockPanel(S);
+  else if (a === 'paper') ui.paperPanel(S);
   else if (a === 'spot') {
     if (!arg) return ui.spotPanel(S);
     const why = chooseSpot(S, arg);
@@ -104,9 +108,16 @@ const ui = createUI(document.getElementById('ui'), (a, arg) => {
     if (gift) ui.toast(`Belediyeden ₺${gift} destek: kasa boştu, bir koli alabilirsin.`);
     speed = 1;
     scene.setDusk(0);
+    refreshDay();
     saveGame(S);
+    ui.paperPanel(S);
   }
 });
+
+function refreshDay() {
+  scene.setWeather(weatherOf(S.day));
+  scene.setFestival(!!dayMods(S.day, S.town).event);
+}
 
 function changeTown(done) {
   const fade = document.getElementById('fade');
@@ -114,6 +125,7 @@ function changeTown(done) {
   setTimeout(() => {
     scene.setTown(S.town);
     scene.setSpot(spotOf(S).scene, S.town);
+    refreshDay();
     done && done();
     fade.classList.remove('on');
   }, 500);
@@ -121,6 +133,7 @@ function changeTown(done) {
 
 scene.setTown(S.town);
 scene.setSpot(spotOf(S).scene, S.town);
+refreshDay();
 scene.setStock(S);
 scene.setDecor(S.decor.on);
 scene.setPaint(PAINTS[S.paint] ? S.paint : 'nane');
@@ -133,6 +146,7 @@ if (PREVIEW) {
   scene.setDecor(S.decor.on);
   const panel = q.get('panel');
   if (panel === 'spot') ui.spotPanel(S);
+  if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'decor') ui.decorPanel(S);
   if (panel === 'rec') ui.recPanel(S, makeRegular(S, q.get('kim') || 'hasan'), () => {});
   if (panel === 'gift') ui.giftPanel({ id: 'hasan', hearts: 5, gift: 'zeytin' });
