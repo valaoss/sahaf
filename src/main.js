@@ -14,7 +14,7 @@ import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
 import { loadGame, saveGame as persistGame, clearGame } from './core/save.js';
-import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood } from './audio/audio.js';
+import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood, setAmbience } from './audio/audio.js';
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
 import { checkStory } from './game/story.js';
@@ -191,6 +191,7 @@ function refreshDay() {
   scene.setWeather(weatherOf(S.day));
   setSeason(seasonOf(S.day));
   setRain(weatherOf(S.day) === 'yagmurlu');
+  setAmbience({ scene: spotOf(S).scene, weather: weatherOf(S.day), night: false });
   crowd.setContext({ rain: weatherOf(S.day) === 'yagmurlu', dark: false });
   setMood({ town: S.town, lively: !!(m.event || m.special), night: false });
   scene.setFestival(!!(m.event || m.special));
@@ -202,6 +203,7 @@ function changeTown(done) {
   setTimeout(() => {
     scene.setTown(S.town);
     scene.setSpot(spotOf(S).scene, S.town);
+    setAmbience({ scene: spotOf(S).scene });
     refreshDay();
     done && done();
     fade.classList.remove('on');
@@ -312,6 +314,7 @@ function frame(now) {
     const dayT = (S.clock - BAL.dayStart) / (BAL.dayEnd - BAL.dayStart);
     scene.setDaylight(dayT);
     crowd.setContext({ dark: dayT > 0.74 });
+    setAmbience({ crowd: crowd.busy, night: dayT > 0.85 });
     setMood({ night: dayT > 0.82 });
     if (closingTime(S) && crowd.busy === 0) {
       const T = closeShop(S);

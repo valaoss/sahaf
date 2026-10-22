@@ -1,4 +1,4 @@
-// Ses motoru: Web Audio ile sentezlenen müzik, efektler ve yağmur. Hiç ses dosyası yok.
+// Ses motoru: Web Audio ile sentezlenen müzik, efektler, yağmur ve ortam sesleri (dalga, martı, rüzgâr, kalabalık). Hiç ses dosyası yok.
 // Tarayıcılar ilk dokunuştan önce ses çalmaya izin vermez: unlock() ilk etkileşimde çağrılır.
 import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, THEMES } from './compose.js';
 import { persist, SAVE_KEYS } from '../core/native.js';
@@ -52,6 +52,7 @@ export function unlock() {
   nextBarTime = ctx.currentTime + 0.2;
   timer = setInterval(schedule, 120);
   if (rainOn) startRain();
+  startBeds();
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) ctx.suspend(); else ctx.resume();
   });
@@ -127,6 +128,7 @@ function schedule() {
   if (!ctx || ctx.state !== 'running') return;
   const beat = 60 / (TEMPO[season] + (THEMES[settings.theme]?.tempo || 0) + (mood.lively ? 6 : 0) - (mood.night ? 4 : 0));
   while (nextBarTime < ctx.currentTime + 0.5) {
+    ambTick();
     if (settings.music) {
       for (const n of composeBar(bar, season, { ...mood, theme: settings.theme })) INST[n.inst](musicBus, midiToHz(n.midi), nextBarTime + n.t * beat, n.dur * beat, n.vel);
     }
@@ -189,6 +191,106 @@ export function setRain(on) {
   rainOn = on;
   if (!ctx) return;
   on ? startRain() : stopRain();
+}
+
+// --- ortam: sürekli katmanlar + ara sıra olaylar ---
+// scene: sahil | carsi | tepe · weather: gunesli | bulutlu | yagmurlu | ruzgarli · crowd: sahnedeki kişi sayısı · night: akşam
+const amb = { scene: 'sahil', weather: 'gunesli', crowd: 0, night: false };
+let beds = null, ambNext = 0;
+
+// döngüdeki gürültüyü süzgeçten geçirip bir kazanca bağlar; lfo verilirse kazanç yavaşça kabarıp iner
+function bed(type, freq, q, lfoHz = 0, lfoDepth = 0) {
+  const s = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain(), out = ctx.createGain();
+  s.buffer = noiseBuf; s.loop = true; s.playbackRate.value = 0.5 + Math.random() * 0.2;
+  fl.type = type; fl.frequency.value = freq; fl.Q.value = q;
+  g.gain.value = 0; out.gain.value = 0;
+  s.connect(fl).connect(g).connect(out).connect(ambBus);
+  if (lfoHz) {
+    const lfo = ctx.createOscillator(), d = ctx.createGain();
+    lfo.frequency.value = lfoHz; d.gain.value = lfoDepth;
+    lfo.connect(d).connect(g.gain); lfo.start();
+  }
+  s.start(0, Math.random() * 1.5);
+  return { fl, g, out };
+}
+
+function startBeds() {
+  if (beds || !ctx) return;
+  beds = {
+    waves: bed('lowpass', 520, 0.7, 0.085, 0.5),    // dalga: yavaş kabaran alçak uğultu
+    wind: bed('bandpass', 700, 0.8, 0.13, 0.5),     // rüzgâr: ıslığa yakın, dalgalanan
+    murmur: bed('bandpass', 420, 1.6, 0.6, 0.35),   // kalabalık mırıltısı: konuşma bandı
+  };
+  for (const b of Object.values(beds)) b.g.gain.value = 0.5;
+  applyAmbience();
+}
+
+function applyAmbience() {
+  if (!beds) return;
+  const t = ctx.currentTime, sea = amb.scene === 'sahil', windy = amb.weather === 'ruzgarli';
+  beds.waves.out.gain.setTargetAtTime(sea ? 0.32 : amb.scene === 'tepe' ? 0 : 0.06, t, 1.5);
+  beds.wind.out.gain.setTargetAtTime(windy ? 0.3 : amb.scene === 'tepe' ? 0.09 : 0.03, t, 1.5);
+  // kalabalık: kişi sayısıyla artar, çarşıda daha yüksek
+  const n = Math.min(amb.crowd, 6) / 6;
+  beds.murmur.out.gain.setTargetAtTime(n * (amb.scene === 'carsi' ? 0.22 : 0.13), t, 0.8);
+}
+
+// martı: testere dalgası + bant süzgeç, perdesi yükselip kırılarak düşer
+function gull(t) {
+  const calls = 1 + Math.floor(Math.random() * 3), base = 1500 + Math.random() * 500;
+  for (let i = 0; i < calls; i++) {
+    const s = t + i * (0.22 + Math.random() * 0.08), o = ctx.createOscillator(), fl = ctx.createBiquadFilter(), g = ctx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(base * 0.8, s);
+    o.frequency.linearRampToValueAtTime(base * 1.15, s + 0.05);
+    o.frequency.exponentialRampToValueAtTime(base * 0.62, s + 0.2);
+    fl.type = 'bandpass'; fl.frequency.value = base * 1.3; fl.Q.value = 2.5;
+    o.connect(fl).connect(g).connect(ambBus);
+    env(g, s, 0.02, 0.05, 0.2);
+    o.start(s); o.stop(s + 0.3);
+  }
+}
+
+// küçük kuş cıvıltısı (tepede ve çarşıda)
+function chirp(t) {
+  const n = 2 + Math.floor(Math.random() * 4), hz = 3000 + Math.random() * 1500;
+  for (let i = 0; i < n; i++) {
+    const s = t + i * 0.09, o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.setValueAtTime(hz, s); o.frequency.exponentialRampToValueAtTime(hz * 1.35, s + 0.05);
+    o.connect(g).connect(ambBus);
+    env(g, s, 0.005, 0.03, 0.06);
+    o.start(s); o.stop(s + 0.1);
+  }
+}
+
+// cırcır böceği (akşam): hızlı titreşen yüksek ton
+function cricket(t) {
+  for (let i = 0; i < 3; i++) {
+    const s = t + i * 0.11, o = ctx.createOscillator(), am = ctx.createOscillator(), ag = ctx.createGain(), g = ctx.createGain();
+    o.frequency.value = 4400 + Math.random() * 200; am.frequency.value = 55; ag.gain.value = 0.5;
+    am.connect(ag).connect(g.gain);
+    o.connect(g).connect(ambBus);
+    g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.012, s + 0.01); g.gain.linearRampToValueAtTime(0, s + 0.07);
+    o.start(s); am.start(s); o.stop(s + 0.08); am.stop(s + 0.08);
+  }
+}
+
+// zamanlayıcıdan çağrılır: ara sıra tek seferlik ortam sesleri
+function ambTick() {
+  if (!beds || !settings.sfx) return;
+  const t = ctx.currentTime;
+  if (t < ambNext) return;
+  ambNext = t + 2.5 + Math.random() * 5;
+  const rainy = amb.weather === 'yagmurlu';
+  if (amb.night) { if (Math.random() < 0.8) cricket(t); return; }
+  if (amb.scene === 'sahil' && !rainy && Math.random() < 0.55) gull(t);
+  else if (amb.scene !== 'sahil' && !rainy && Math.random() < 0.6) chirp(t);
+}
+
+export function setAmbience(o) {
+  let changed = false;
+  for (const k in o) if (amb[k] !== o[k]) { amb[k] = o[k]; changed = true; }
+  if (changed && ctx) applyAmbience();
 }
 
 export const audioReady = () => !!ctx;
