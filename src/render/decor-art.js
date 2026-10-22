@@ -36,6 +36,14 @@ export const DECOR_ART = {
     <path d="M-14 -6 C-18 -18 -6 -22 -4 -10Z" fill="#f6a5c0"/><path d="M2 -6 L10 -24 L16 -6Z" fill="#f2c45a"/>
     <circle cx="-8" cy="-28" r="6" fill="#fff6e8"/><path d="M6 -28 C10 -38 18 -34 14 -28Z" fill="#f09a5e"/>
     <path d="M28 0 C28 -16 44 -16 44 0Z" fill="#f6a5c0"/><path d="M30 -2 L36 -12 M36 -2 L36 -13 M42 -2 L36 -12" stroke="#e57f73" stroke-width="1.5"/>`,
+  kostas: `<line x1="0" y1="0" x2="0" y2="-70" stroke="#5a3d30" stroke-width="5" stroke-linecap="round"/>
+    <path d="M0 -70 Q22 -86 34 -70" fill="none" stroke="#5a3d30" stroke-width="4"/>
+    <circle cx="34" cy="-40" r="30" fill="#ffe08a" opacity=".35" class="twinkle"/>
+    <path d="M26 -66 L42 -66 L46 -58 L22 -58Z" fill="#8a5a3c"/>
+    <rect x="22" y="-58" width="24" height="30" rx="4" fill="#ffd56b" stroke="#8a5a3c" stroke-width="3"/>
+    <path class="flicker" d="M34 -34 C30 -40 34 -48 34 -50 C38 -44 39 -40 34 -34Z" fill="#f08a3c"/>
+    <path d="M22 -28 L46 -28 L42 -22 L26 -22Z" fill="#8a5a3c"/>
+    <text x="-6" y="-78" font-size="11" font-weight="700" fill="#8a5a3c" text-anchor="middle">K.</text>`,
   // --- sergi masası ---
   bos: '',
   ayicik: `<g transform="translate(0 -2)">

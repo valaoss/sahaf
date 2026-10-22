@@ -6,6 +6,7 @@ import { REGULARS, REGULAR_KEYS, VISIT_CHANCE } from '../data/regulars.js';
 import { makeCustomer, makeRegular, resolveCustomer, recommend, bestBook, spotOf } from './shop.js';
 import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
+import { checkStory } from './story.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
@@ -24,6 +25,7 @@ export function openShop(S) {
   }
   times.sort((a, b) => a - b);
   S.phase = 'open';
+  if (!S.visited.includes(S.town)) S.visited.push(S.town);
   S.clock = BAL.dayStart;
   S.arrivals = times;
   // kasabanın müdavimleri bazı günler uğrar
@@ -52,6 +54,8 @@ export function closeShop(S) {
   S.totals.days++;
   S.totals.sold += T.soldCount;
   S.totals.revenue += T.revenue;
+  if (T.event) S.totals.festivals++;
+  T.page = checkStory(S, T);
   S.lastDay = T;
   S.prevTown = S.town;
   S.today = null;

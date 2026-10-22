@@ -175,3 +175,18 @@ svg.map { width: 100%; height: auto; display: block; border-radius: 1em; margin:
 .headline { font-size: 1.25em; font-weight: 700; margin: .1em 0 .3em; }
 .kicker { font-size: .8em; font-weight: 700; color: var(--coral); text-transform: uppercase; letter-spacing: .06em; }
 .where { pointer-events: auto; cursor: pointer; }
+
+.petal { animation: petal 9s linear infinite; transform-box: view-box; }
+@keyframes petal { 0% { transform: translate(0, 0); } 50% { transform: translate(-120px, 480px); } 100% { transform: translate(-260px, 980px); } }
+.tumble { animation: spin 2.6s linear infinite; transform-box: fill-box; transform-origin: center; }
+
+/* defter */
+.book { display: grid; grid-template-columns: 12em 1fr; gap: 1em; }
+.ptabs { display: flex; flex-direction: column; gap: .3em; }
+.ptab { font: inherit; text-align: left; cursor: pointer; background: #fff; border: .12em solid var(--edge); border-radius: .6em; padding: .3em .6em; color: var(--ink); font-size: .9em; }
+.ptab.is-on { background: #ffe3a3; border-color: #efc56c; font-weight: 600; }
+.ptab.locked { cursor: default; opacity: .5; border-style: dashed; }
+.pagebody { background: #fbf3e1; border-radius: 1em; padding: .6em 1em; background-image: repeating-linear-gradient(transparent 0 1.9em, #efe2c6 1.9em 2em); }
+.pagebody h3 { margin: .2em 0 .4em; color: var(--ink); font-size: 1.15em; }
+.pagebody .say { font-size: 1.08em; line-height: 1.85; }
+.tip.page { background: #f3e6ff; }

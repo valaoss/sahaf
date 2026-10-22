@@ -1,10 +1,19 @@
 // Hava ve etkinlikler: her gün için sabit (gün numarasından türetilir), böylece gazete yarını da yazabilir.
 // traffic / ask: çarpan · demand: tür çarpanları. Etkinlik yalnızca kendi kasabasında geçerlidir.
+// Havanın gelme ihtimali mevsime bağlı (SEASON.weather).
 export const WEATHER = {
-  gunesli:  { name: 'Güneşli',  icon: '☀️', weight: 50, traffic: 1,    ask: 1,   note: 'Sokaklar kalabalık olur.' },
-  bulutlu:  { name: 'Bulutlu',  icon: '⛅', weight: 25, traffic: 0.95, ask: 1.1, note: 'Serin bir gün; insanlar biraz daha oyalanır.' },
-  yagmurlu: { name: 'Yağmurlu', icon: '🌧️', weight: 15, traffic: 0.7,  ask: 1.5, note: 'Az kişi çıkar ama gelenler sohbet etmek ister.' },
-  ruzgarli: { name: 'Rüzgârlı', icon: '🌬️', weight: 10, traffic: 0.9,  ask: 1,   note: 'Sahiller boşalır, şiir okuru artar.', demand: { siir: 1.3 } },
+  gunesli: { name: 'Güneşli', icon: '☀️', traffic: 1,    ask: 1,   note: 'Sokaklar kalabalık olur.' },
+  bulutlu: { name: 'Bulutlu', icon: '⛅', traffic: 0.95, ask: 1.1, note: 'Serin bir gün; insanlar biraz daha oyalanır.' },
+  yagmurlu: { name: 'Yağmurlu', icon: '🌧️', traffic: 0.7,  ask: 1.5, note: 'Az kişi çıkar ama gelenler sohbet etmek ister.' },
+  ruzgarli: { name: 'Rüzgârlı', icon: '🌬️', traffic: 0.9,  ask: 1,   note: 'Sahiller boşalır, şiir okuru artar.', demand: { siir: 1.3 } },
+};
+
+// Mevsimler: hava olasılıkları (ağırlık) ve kalabalık. Yazın tatilci çok, kışın az kişi ama sohbet çok.
+export const SEASON = {
+  'İlkbahar': { weather: { gunesli: 50, bulutlu: 25, yagmurlu: 15, ruzgarli: 10 }, traffic: 1,    ask: 1,    note: 'Begonviller açtı.' },
+  'Yaz':      { weather: { gunesli: 72, bulutlu: 10, yagmurlu: 4,  ruzgarli: 14 }, traffic: 1.15, ask: 0.9,  note: 'Tatilciler geldi, kasabalar kalabalık.' },
+  'Sonbahar': { weather: { gunesli: 40, bulutlu: 30, yagmurlu: 20, ruzgarli: 10 }, traffic: 0.95, ask: 1.1,  note: 'Yapraklar sararıyor, okuma mevsimi.' },
+  'Kış':      { weather: { gunesli: 25, bulutlu: 30, yagmurlu: 35, ruzgarli: 10 }, traffic: 0.8,  ask: 1.3,  note: 'Sokaklar sakin; gelenler uzun uzun sohbet ediyor.' },
 };
 
 export const EVENTS = {

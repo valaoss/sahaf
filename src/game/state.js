@@ -38,13 +38,15 @@ export function newGame(seed = Date.now()) {
     friends: {},               // müdavim → kalp (0..5)
     met: [],                   // tanışılan müdavimler
     gifts: [],                 // hediyesini vermiş müdavimler
+    pages: [],                 // ana hikâye: bulunan defter sayfaları (data/story.js)
+    visited: [],               // dükkân açılan kasabalar
     regArrivals: [],           // açık gün: gelecek müdavimler [{ t, id }]
     travelled: false,          // bu sabah yola çıkıldı mı
     clock: BAL.dayStart,
     arrivals: [],              // açık gün: henüz gelmemiş müşterilerin saatleri
     today: null,               // açık gün: o günün defteri
     lastDay: null,             // son kapanan günün özeti
-    totals: { days: 0, sold: 0, revenue: 0, spent: 0, perfect: 0 },
+    totals: { days: 0, sold: 0, revenue: 0, spent: 0, perfect: 0, festivals: 0 },
     nextId: 1,
     rng: 0,
   };

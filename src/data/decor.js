@@ -23,6 +23,7 @@ export const DECOR = {
   zeytin:     { slot: 'roof',   name: 'Zeytin dalı çelengi', icon: '🫒', price: 0, gift: 'hasan', effect: { traffic: 2, demand: { roman: 1.2 } }, desc: 'Hasan Usta\'nın hediyesi: +2 ziyaretçi, roman arayan artar.' },
   degirmen:   { slot: 'roof',   name: 'Minik yel değirmeni', icon: '🌬️', price: 0, gift: 'zeynep', effect: { traffic: 3, patience: 1.2 }, desc: 'Zeynep\'in hediyesi: +3 ziyaretçi, sabırlı müşteriler.' },
   kabuk:      { slot: 'table',  name: 'Deniz kabuğu kavanozu', icon: '🐚', price: 0, gift: 'ruya', effect: { tip: 2, demand: { siir: 1.3 } }, desc: 'Rüya\'nın hediyesi: bahşiş +₺2, şiir arayan artar.' },
+  kostas:     { slot: 'roof',   name: "Kostas'ın feneri", icon: '🏮', price: 0, gift: 'story', effect: { traffic: 3, tip: 2, patience: 1.3 }, desc: 'Kayıp kütüphanenin kapısındaki fener: +3 ziyaretçi, bahşiş +₺2, sabırlı müşteriler.' },
   fok:        { slot: 'ground', name: 'Fok heykelciği', icon: '🦭', price: 0, gift: 'nuri', effect: { traffic: 2, demand: { cocuk: 1.3 } }, desc: 'Kaptan Nuri\'nin hediyesi: +2 ziyaretçi, çocuklu aileler uğrar.' },
 
   saksi:      { slot: 'ground', name: 'Papatya saksısı',  icon: '🌼', price: 0,  effect: {}, desc: 'Kaldırımda neşeli bir saksı.' },

@@ -9,7 +9,9 @@ import { newGame, restore, shelfCount, shelfCap, genreCount, seasonOf } from '..
 import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot } from '../src/game/shop.js';
 import { SPOTS } from '../src/data/spots.js';
 import { TOWN_KEYS } from '../src/data/towns.js';
-import { WEATHER, EVENTS, EVENT_CHANCE } from '../src/data/calendar.js';
+import { WEATHER, EVENTS, EVENT_CHANCE, SEASON } from '../src/data/calendar.js';
+import { PAGES, FINALE_REWARD } from '../src/data/story.js';
+import { checkStory, nextPage, progressOf } from '../src/game/story.js';
 import { weatherOf, eventOf, dayMods } from '../src/game/calendar.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../src/data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint } from '../src/game/decor.js';
@@ -312,18 +314,24 @@ test('hediye süs satın alınamaz, alınınca takılır', () => {
 
 test('takvim: hava ve etkinlik günden sabit, dağılım makul, etkinlik yalnız kendi kasabasında', () => {
   assert.equal(weatherOf(1), 'gunesli');
-  const count = {};
+  const count = {}, expect = {};
   let events = 0, streak = 0, maxStreak = 0, prev = null;
   for (let d = 2; d <= 2000; d++) {
     const w = weatherOf(d);
     assert.equal(w, weatherOf(d), 'sabit');
     assert.ok(WEATHER[w]);
     count[w] = (count[w] || 0) + 1;
+    // beklenen: o günün mevsimindeki ağırlık
+    const sw = SEASON[seasonOf(d)].weather, tot = Object.values(sw).reduce((a, b) => a + b, 0);
+    for (const k in sw) expect[k] = (expect[k] || 0) + sw[k] / tot;
     streak = w === prev ? streak + 1 : 1; prev = w; maxStreak = Math.max(maxStreak, streak);
     const e = eventOf(d);
     if (e) { events++; assert.ok(EVENTS[e]); }
   }
-  for (const k in WEATHER) assert.ok(Math.abs(count[k] / 1999 * 100 - WEATHER[k].weight) < 5, k + ' ' + count[k]);
+  for (const k in WEATHER) assert.ok(Math.abs(count[k] - expect[k]) / 1999 < 0.04, `${k}: ${count[k]} ~ ${expect[k].toFixed(0)}`);
+  // kışın yağmur yazdan çok daha sık
+  const rainy = s => [...Array(1400).keys()].map(i => i + 2).filter(d => seasonOf(d) === s && weatherOf(d) === 'yagmurlu').length;
+  assert.ok(rainy('Kış') > rainy('Yaz') * 4, `kış ${rainy('Kış')} / yaz ${rainy('Yaz')}`);
   assert.ok(Math.abs(events / 1999 - EVENT_CHANCE) < 0.05, 'etkinlik oranı');
   assert.ok(maxStreak <= 16, 'aynı hava çok uzun sürmesin (%50 güneşte 2000 günde ~11 beklenir): ' + maxStreak);
   const d = [...Array(200).keys()].map(i => i + 2).find(x => eventOf(x));
@@ -344,6 +352,38 @@ test('takvim: festival günü o kasabada daha çok ziyaretçi', () => {
     calm += simulateDay(B).visitors / (TOWNS[other].traffic * SPOTS[other][B.spot].traffic);
   }
   assert.ok(fest > calm * 1.25, `${fest.toFixed(1)} > ${calm.toFixed(1)}`);
+});
+
+test('ana hikâye: sayfalar sırayla açılır, finalde ödül', () => {
+  const S = newGame(3);
+  assert.equal(checkStory(S), 'miras');
+  assert.equal(checkStory(S), null, 'dört kasaba gezilmeden ikinci sayfa yok');
+  assert.equal(nextPage(S).id, 'dostlar');
+  S.visited = ['ayvalik', 'cunda', 'foca'];
+  assert.deepEqual(progressOf(S), { now: 3, of: 4 });
+  S.visited.push('alacati');
+  S.totals.perfect = 50; S.totals.sold = 999; S.totals.festivals = 3; S.shelfLv = 2; S.friends.hasan = 4;
+  // koşullar çoktan tutsa da günde bir sayfa açılır
+  assert.equal(checkStory(S), 'dostlar');
+  assert.equal(checkStory(S), 'liste');
+  for (const id of ['fener', 'zarf', 'iz', 'gizligoz']) assert.equal(checkStory(S), id);
+  assert.equal(checkStory(S, { town: 'foca', spot: 'kale' }), null, 'final yalnız Cunda tepesinde');
+  const coins = S.coins;
+  assert.equal(checkStory(S, { town: 'cunda', spot: 'tepe' }), 'kutuphane');
+  assert.equal(S.coins, coins + FINALE_REWARD.coins);
+  assert.ok(S.decor.owned.includes(FINALE_REWARD.decor));
+  assert.equal(nextPage(S), null);
+  assert.equal(S.pages.length, PAGES.length);
+});
+
+test('ana hikâye: normal oyunda ilerler (gün kapanışında kontrol)', () => {
+  const S = newGame(12);
+  for (let d = 0; d < 12; d++) {
+    travel(S, TOWN_KEYS[(d + 1) % 4]);
+    simulateDay(S);
+  }
+  assert.ok(S.pages.length >= 2, 'miras ve dört kasaba: ' + S.pages.join(','));
+  assert.ok(S.visited.length === 4);
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {

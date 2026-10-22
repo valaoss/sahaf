@@ -9,6 +9,14 @@ import { shelfCap, genreCounts } from '../game/state.js';
 import { DECOR_ART } from './decor-art.js';
 import { spotArt, GROUND, SHOW_HOUSES } from './spot-art.js';
 
+// Mevsim görünümleri: a/b ağaç yaprakları, bits uçuşan parçacık renkleri, tint serin/ılık ton
+const SEASON_LOOK = {
+  'İlkbahar': { a: '#9cb67f', b: '#b5cb94', bits: ['#f6a5c0', '#fbd0dc', '#fff'] },
+  'Yaz':      { a: '#86b85f', b: '#a9d27e' },
+  'Sonbahar': { a: '#d39a52', b: '#e6b86c', bits: ['#e08a3c', '#c96f3a', '#e8b04a'] },
+  'Kış':      { a: '#8ea596', b: '#a9bcae', tint: '#6f8fc0' },
+};
+
 const cloud = (delay, slow, cy, s) => `
   <g class="drift${slow ? ' slow' : ''}" style="animation-delay:${delay}s">
     <g fill="#fff8ee" opacity=".92" transform="translate(0 ${cy}) scale(${s})">
@@ -84,8 +92,8 @@ const MARKUP = `
   <ellipse cx="160" cy="642" rx="80" ry="12" fill="#d9bb8b" opacity=".7"/>
   <g transform="translate(150 640)"><g class="sway">
     <path d="M-8 0 C-6 -50 -16 -80 -4 -120 L8 -120 C2 -80 12 -50 10 0Z" fill="#8a6a4f"/>
-    <g fill="#9cb67f"><circle cx="-40" cy="-140" r="46"/><circle cx="20" cy="-170" r="52"/><circle cx="58" cy="-128" r="40"/><circle cx="-6" cy="-112" r="40"/></g>
-    <g fill="#b5cb94"><circle cx="-30" cy="-158" r="22"/><circle cx="30" cy="-190" r="24"/></g>
+    <g id="treeA" fill="#9cb67f"><circle cx="-40" cy="-140" r="46"/><circle cx="20" cy="-170" r="52"/><circle cx="58" cy="-128" r="40"/><circle cx="-6" cy="-112" r="40"/></g>
+    <g id="treeB" fill="#b5cb94"><circle cx="-30" cy="-158" r="22"/><circle cx="30" cy="-190" r="24"/></g>
     <g fill="#5d6e45"><circle cx="-10" cy="-150" r="5"/><circle cx="38" cy="-140" r="5"/><circle cx="-44" cy="-120" r="5"/><circle cx="16" cy="-184" r="5"/></g>
   </g></g>
 
@@ -152,6 +160,7 @@ const MARKUP = `
 
   <g id="people"></g>
   <g id="fx"></g>
+  <g id="seasonFx"></g>
   <g id="weather"></g>
   <rect id="dusk" width="1600" height="900" fill="#3b2a5a" opacity="0" pointer-events="none"/>
 </svg>`;
@@ -304,6 +313,21 @@ export function buildScene(host) {
           <ellipse cx="${x}" cy="${y}" rx="24" ry="30" fill="${c}"/><ellipse cx="${x - 8}" cy="${y - 10}" rx="6" ry="9" fill="#fff" opacity=".45"/>
           <path d="M${x - 5} ${y + 30} L${x + 5} ${y + 30} L${x} ${y + 37}Z" fill="${c}"/></g>`;
       }).join('');
+    },
+    // mevsim: ağaç rengi, uçuşan yaprak/çiçek, kışın serin ton
+    setSeason(name) {
+      const P = SEASON_LOOK[name] || SEASON_LOOK['İlkbahar'];
+      $('treeA').setAttribute('fill', P.a);
+      $('treeB').setAttribute('fill', P.b);
+      let html = P.tint ? `<rect width="1600" height="900" fill="${P.tint}" opacity=".1"/>` : '';
+      if (P.bits) {
+        const r = seeded(7);
+        for (let i = 0; i < 16; i++) {
+          const x = 100 + r() * 1700, d = (r() * 9).toFixed(1), dur = (7 + r() * 5).toFixed(1), c = P.bits[i % P.bits.length];
+          html += `<g class="petal" style="animation-delay:-${d}s;animation-duration:${dur}s"><g transform="translate(${x.toFixed(0)} -40) scale(1.6)"><path class="tumble" style="animation-delay:-${d}s" d="M0 0 C8 -8 16 0 8 10 C0 14 -8 8 0 0Z" fill="${c}"/></g></g>`;
+        }
+      }
+      $('seasonFx').innerHTML = html;
     },
     setStock(S) {
       drawShelves($('shelves'), S.shelf, shelfCap(S));

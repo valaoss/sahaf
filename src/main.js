@@ -7,7 +7,7 @@ import { BAL } from './data/balance.js';
 import { TOWNS } from './data/towns.js';
 import { GENRES } from './data/genres.js';
 import { DECOR, PAINTS } from './data/decor.js';
-import { newGame, shelfCount, shelfCap } from './game/state.js';
+import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
 import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint } from './game/decor.js';
@@ -15,6 +15,7 @@ import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './g
 import { loadGame, saveGame as persistGame } from './core/save.js';
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
+import { checkStory } from './game/story.js';
 import { tap } from './core/native.js';
 import { buildScene } from './render/scene.js';
 import { createCrowd } from './render/people.js';
@@ -61,6 +62,7 @@ const crowd = createCrowd(scene.people, scene.fx, {
 const ui = createUI(document.getElementById('ui'), (a, arg) => {
   if (a === 'stock') ui.stockPanel(S);
   else if (a === 'paper') ui.paperPanel(S);
+  else if (a === 'book') ui.bookPanel(S);
   else if (a === 'spot') {
     if (!arg) return ui.spotPanel(S);
     const why = chooseSpot(S, arg);
@@ -115,6 +117,7 @@ const ui = createUI(document.getElementById('ui'), (a, arg) => {
 });
 
 function refreshDay() {
+  scene.setSeason(seasonOf(S.day));
   scene.setWeather(weatherOf(S.day));
   scene.setFestival(!!dayMods(S.day, S.town).event);
 }
@@ -147,12 +150,15 @@ if (PREVIEW) {
   const panel = q.get('panel');
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
+  if (panel === 'book') { S.pages = ['miras', 'dostlar', 'liste']; S.visited = ['ayvalik', 'cunda']; ui.bookPanel(S); }
   if (panel === 'decor') ui.decorPanel(S);
   if (panel === 'rec') ui.recPanel(S, makeRegular(S, q.get('kim') || 'hasan'), () => {});
   if (panel === 'gift') ui.giftPanel({ id: 'hasan', hearts: 5, gift: 'zeytin' });
 }
 document.fonts.ready.then(() => setTimeout(() => document.getElementById('fade').classList.remove('boot'), 50));
 if (S.phase === 'evening' && S.lastDay) { scene.setDusk(1); ui.summaryPanel(S, S.lastDay); }
+// hikâyenin ilk sayfası (teyzenin mektubu) oyunun başında açılır
+if (!PREVIEW && checkStory(S)) { saveGame(S); ui.bookPanel(S); }
 if (S.totals.days === 0 && S.phase === 'morning') {
   setTimeout(() => ui.toast('Sabah toptancıdan koli al, istersen haritadan kasaba seç, sonra dükkânı aç.'), 700);
 }

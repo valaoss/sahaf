@@ -12,6 +12,9 @@ import { SPOTS } from '../data/spots.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX } from '../data/regulars.js';
 import { WEATHER, EVENTS } from '../data/calendar.js';
 import { weatherOf, eventOf, gossipOf } from '../game/calendar.js';
+import { SEASON } from '../data/calendar.js';
+import { PAGES } from '../data/story.js';
+import { nextPage, progressOf } from '../game/story.js';
 import { personSVG, nameOf } from '../render/people.js';
 
 const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -73,6 +76,7 @@ export function createUI(root, act) {
         <button class="btn" data-a="stock">📦 Toptancı</button>
         <button class="btn" data-a="decor">🪴 Süsle</button>
         <button class="btn" data-a="map">🗺️ Harita</button>
+        <button class="btn" data-a="book">📜 Defter</button>
         <button class="btn hl" data-a="open">🔔 Dükkânı aç</button>`;
     } else if (S.phase === 'open') {
       b.innerHTML = `<button class="btn ${speed > 1 ? 'hl' : ''}" data-a="speed">${speed > 1 ? '⏩ Hızlı' : '▶️ Normal'}</button>`;
@@ -149,7 +153,7 @@ export function createUI(root, act) {
         const d = DECOR[k], on = S.decor.on[slot] === k, owned = S.decor.owned.includes(k);
         if (d.gift && !owned) {
           return `<div class="dcard locked"><div class="dicon">🎁</div>
-            <div><div class="gname">Gizli hediye</div><div class="gmeta">Bir müdavimle dost ol (${TOWNS[REGULARS[d.gift].town].name}).</div></div></div>`;
+            <div><div class="gname">Gizli hediye</div><div class="gmeta">${d.gift === 'story' ? 'Kayıp kütüphaneyi bul.' : `Bir müdavimle dost ol (${TOWNS[REGULARS[d.gift].town].name}).`}</div></div></div>`;
         }
         const btn = on ? '<span class="on">✓ Takılı</span>'
           : `<button class="btn sm ${!owned && S.coins < d.price ? 'off' : ''}" data-decor="${k}">${owned ? 'Tak' : `₺${d.price} · Al`}</button>`;
@@ -300,9 +304,11 @@ export function createUI(root, act) {
       ${T.soldCount ? `<div class="chips">${chips(T.sold)}</div>` : ''}
       ${recLine}
       ${Object.keys(T.missed).length ? `<p class="hint">Aranıp bulunamayan:</p><div class="chips">${chips(T.missed, 'miss')}</div>` : ''}
+      ${T.page ? `<p class="tip page">📜 Defterden yeni bir sayfa bulundu: <b>${PAGES.find(p => p.id === T.page).title}</b></p>` : ''}
       <p class="tip">💡 ${tip}</p>
-      <div class="row end"><button class="btn hl" data-next>☀️ Ertesi sabah</button></div>`);
+      <div class="row end">${T.page ? '<button class="btn" data-book>📜 Oku</button>' : ''}<button class="btn hl" data-next>☀️ Ertesi sabah</button></div>`);
     p.querySelector('[data-next]').onclick = () => { closePanel(); act('next'); };
+    p.querySelector('[data-book]')?.addEventListener('click', () => bookPanel(S, T.page, () => summaryPanel(S, T)));
   }
 
   // Sabah gazetesi: hava, bugünün ve yarının etkinliği, kasabadan bir haber
@@ -321,6 +327,7 @@ export function createUI(root, act) {
           <div class="col2">
             <div class="kicker">Hava</div><div class="headline">${w.icon} ${w.name}</div><p>${w.note}</p>
             <div class="kicker">Yarın</div><p>${wt.icon} ${wt.name}${evT ? ` · 🎉 ${EVENTS[evT].name} (${TOWNS[EVENTS[evT].town].name})` : ''}</p>
+            <div class="kicker">Mevsim</div><p>${seasonOf(S.day)}: ${SEASON[seasonOf(S.day)].note}</p>
             <div class="kicker">Kasabadan</div><p>${gossipOf(S.day)}</p>
           </div>
         </div>
@@ -330,5 +337,27 @@ export function createUI(root, act) {
     p.querySelector('[data-go]')?.addEventListener('click', () => act('map'));
   }
 
-  return { hud, toast, paperPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  // Kostas Efendi'nin defteri: bulunan sayfalar, seçili sayfanın metni, sıradaki ipucu
+  function bookPanel(S, open = null, back = null) {
+    const found = PAGES.filter(p => S.pages.includes(p.id));
+    const cur = PAGES.find(p => p.id === (open || S.pages[S.pages.length - 1])) || found[0];
+    const np = nextPage(S), pr = progressOf(S);
+    const list = PAGES.map((p, i) => S.pages.includes(p.id)
+      ? `<button class="ptab ${cur && p.id === cur.id ? 'is-on' : ''}" data-page="${p.id}">${i + 1}. ${p.title}</button>`
+      : `<span class="ptab locked">${i + 1}. ???</span>`).join('');
+    const p = openPanel(`
+      <h2>📜 Kostas Efendi'nin defteri</h2>
+      <div class="book">
+        <div class="ptabs">${list}</div>
+        <div class="pagebody">
+          ${cur ? `<h3>${cur.title}</h3><p class="say">${cur.text}</p>` : ''}
+          ${np ? `<p class="tip">🔎 Sıradaki sayfa: ${np.hint}${pr ? ` <b>(${pr.now}/${pr.of})</b>` : ''}</p>` : '<p class="tip">✨ Defter tamamlandı. Kütüphane artık senin karavanında yaşıyor.</p>'}
+        </div>
+      </div>
+      <div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
+    p.querySelectorAll('[data-page]').forEach(b => b.onclick = () => bookPanel(S, b.dataset.page, back));
+    p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
+  }
+
+  return { hud, toast, paperPanel, bookPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }
