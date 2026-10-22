@@ -84,100 +84,16 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Öneri ipuçları: müşterinin cümlesindeki anahtar kelimeler işaretlenir, dokununca kitaplar o etikete göre süzülür (⚙️ ile kapatılabilir)
 - Defterde 📊 İstatistik: türlere göre satış, en çok satanlar, en iyi gün, en sevilen kasaba
 - ⚙️ Yazı boyutu (Normal / Büyük / Çok büyük)
+### Canlılık turu ✅ (2.5D harita ve gerçekçi insanlar sonrası, sırayla 7 madde)
+1. Yürürken yan profil: insanlar yürürken yandan görünür, bacak ve kollar adım atar; durunca öne döner
+2. Boyalı görünüm: kâğıt dokusu, suluboya kenarları, uzak katmanlarda pus, vinyet (kodla; gerçek çizer işi değil)
+3. Karavanın içi: raflarda sırtında adı yazan kitaplar; dokununca vitrine (en fazla 3) girer, vitrindekiler daha çok sorulur ve satılır
+4. Müşteri karşılıkları: öneriden sonra portreli konuşma kartı; kitabın konusuna ve müşterinin üslubuna göre cümle, tekrar bekçili
+5. Hava ve gece: yağmurda şemsiyeler, akşam fenerler, rüzgârda tente ve etekler dalgalanır
+6. Ortam sesleri (tamamen sentez): dalga, martı, rüzgâr, kalabalık mırıltısı (kişi sayısıyla), tepede kuşlar, akşam cırcır böceği
+7. Telefon: dikey düzen (üstte gösterge, ortada sahne, altta 3×2 düğme, tam genişlikte paneller); haritada kıstırma/tekerlek/çift dokunuşla yakınlaştırma
 
 Sırada: telefonda deneme ve geri bildirim, İngilizce, iOS paketleme (Mac).
-
-## Faz 2 başlangıcı ✅
-- Sabah gazetesi (Ege Postası): günün havası, bugünün ve yarının etkinliği, kasabadan haber; her sabah açılır,
-  üstteki konum hapına dokununca tekrar açılır
-- Hava (güneşli / bulutlu / yağmurlu / rüzgârlı): kalabalığı ve öneri isteğini değiştirir; yağmur ve rüzgâr sahnede görünür
-- Etkinlikler (Zeytinyağı Festivali, Ada Resim Sergisi, Fok Gözlem Günü, Ot Festivali): günlerin ~%35'inde bir kasabada;
-  kalabalık ×1.4–1.6, festival balonları. Atlanabilir: gitmezsen ceza yok, simülasyonda festivali kovalamak en kârlısı
-- Müdavim hikâyeleri: her kalpte yeni bir konuşma (8 × 5 satır)
-
-### Faz 2 — ana hikâye ve mevsimler ✅
-- Ana hikâye "Kostas Efendi'nin kayıp kütüphanesi": 8 defter sayfası, sırayla açılır (dört kasaba, 10 tam isabet,
-  3 kalp, festival, 150 satış, en büyük raf, Cunda tepesinde final). İlk sayfa (teyzenin mektubu) oyun başında açılır.
-  Final ödülü: Kostas'ın feneri (çatı süsü) + ₺150. 📜 Defter panelinde sayfalar, sıradaki ipucu ve ilerleme (x/y)
-- Mevsimler (7 gün): yaz kalabalık, kış sakin ama sohbet bol; yağmur kışın 9 kat sık. Ağaç rengi, ilkbaharda
-  çiçek, sonbaharda yaprak düşer, kışın serin ton. Gazetede mevsim notu
-
-### Ses ve müzik ✅
-- Hiç ses dosyası yok: Web Audio ile üretiliyor (src/audio). Müzik: mevsime göre akor ve tempo değişen, gitar
-  tıngırtısı + bas + yumuşak pad + ara sıra çan melodisi (compose.js saf ve test edilebilir)
-- Efektler: düğme, kasa, kalp, üzgün, sayfa, koli, zil, yolculuk; yağmurlu günlerde yağmur sesi
-- ⚙️ Ayarlar: müzik ve efektler ayrı ayrı, "Baştan başla" (iki adımlı onay); ayarlar kayıtla birlikte saklanır
-
-### Pul albümü ve kapanış ✅
-- 18 pul (başarım): satış, isabet, gezi, dokuz mekân, festival türleri, yağmur, dostluk, hediyeler, süsler, raflar,
-  boyalar, kasa, bir yıl, hikâye; her biri ₺15. Defter panelinde "Pul albümü" sekmesi, kalanların ilerlemesiyle
-- Gün sonu özetinde ve sabah alışverişlerinden sonra yeni pul bildirimi
-- Hikâye bitince kapanış ekranı (istatistikler, en yakın dost), sonra oyun sürüyor
-
-Sırada:
-- Telefonda geri bildirime göre dokunma ve yazı boyutu ayarları
-- İngilizce dil desteği, iOS paketleme (Mac'te)
-
-## Faz 2 başlangıcı ✅
-- Sabah gazetesi (Ege Postası): günün havası, bugünün ve yarının etkinliği, kasabadan haber; her sabah açılır,
-  üstteki konum hapına dokununca tekrar açılır
-- Hava (güneşli / bulutlu / yağmurlu / rüzgârlı): kalabalığı ve öneri isteğini değiştirir; yağmur ve rüzgâr sahnede görünür
-- Etkinlikler (Zeytinyağı Festivali, Ada Resim Sergisi, Fok Gözlem Günü, Ot Festivali): günlerin ~%35'inde bir kasabada;
-  kalabalık ×1.4–1.6, festival balonları. Atlanabilir: gitmezsen ceza yok, simülasyonda festivali kovalamak en kârlısı
-- Müdavim hikâyeleri: her kalpte yeni bir konuşma (8 × 5 satır)
-
-### Faz 2 — ana hikâye ve mevsimler ✅
-- Ana hikâye "Kostas Efendi'nin kayıp kütüphanesi": 8 defter sayfası, sırayla açılır (dört kasaba, 10 tam isabet,
-  3 kalp, festival, 150 satış, en büyük raf, Cunda tepesinde final). İlk sayfa (teyzenin mektubu) oyun başında açılır.
-  Final ödülü: Kostas'ın feneri (çatı süsü) + ₺150. 📜 Defter panelinde sayfalar, sıradaki ipucu ve ilerleme (x/y)
-- Mevsimler (7 gün): yaz kalabalık, kış sakin ama sohbet bol; yağmur kışın 9 kat sık. Ağaç rengi, ilkbaharda
-  çiçek, sonbaharda yaprak düşer, kışın serin ton. Gazetede mevsim notu
-
-### Ses ve müzik ✅
-- Hiç ses dosyası yok: Web Audio ile üretiliyor (src/audio). Müzik: mevsime göre akor ve tempo değişen, gitar
-  tıngırtısı + bas + yumuşak pad + ara sıra çan melodisi (compose.js saf ve test edilebilir)
-- Efektler: düğme, kasa, kalp, üzgün, sayfa, koli, zil, yolculuk; yağmurlu günlerde yağmur sesi
-- ⚙️ Ayarlar: müzik ve efektler ayrı ayrı, "Baştan başla" (iki adımlı onay); ayarlar kayıtla birlikte saklanır
-
-Sırada:
-- Başarımlar / pul koleksiyonu, hikâye bitince kapanış ekranı
-- Telefonda geri bildirime göre dokunma ve yazı boyutu ayarları
-
-## Faz 2 başlangıcı ✅
-- Sabah gazetesi (Ege Postası): günün havası, bugünün ve yarının etkinliği, kasabadan haber; her sabah açılır,
-  üstteki konum hapına dokununca tekrar açılır
-- Hava (güneşli / bulutlu / yağmurlu / rüzgârlı): kalabalığı ve öneri isteğini değiştirir; yağmur ve rüzgâr sahnede görünür
-- Etkinlikler (Zeytinyağı Festivali, Ada Resim Sergisi, Fok Gözlem Günü, Ot Festivali): günlerin ~%35'inde bir kasabada;
-  kalabalık ×1.4–1.6, festival balonları. Atlanabilir: gitmezsen ceza yok, simülasyonda festivali kovalamak en kârlısı
-- Müdavim hikâyeleri: her kalpte yeni bir konuşma (8 × 5 satır)
-
-### Faz 2 — ana hikâye ve mevsimler ✅
-- Ana hikâye "Kostas Efendi'nin kayıp kütüphanesi": 8 defter sayfası, sırayla açılır (dört kasaba, 10 tam isabet,
-  3 kalp, festival, 150 satış, en büyük raf, Cunda tepesinde final). İlk sayfa (teyzenin mektubu) oyun başında açılır.
-  Final ödülü: Kostas'ın feneri (çatı süsü) + ₺150. 📜 Defter panelinde sayfalar, sıradaki ipucu ve ilerleme (x/y)
-- Mevsimler (7 gün): yaz kalabalık, kış sakin ama sohbet bol; yağmur kışın 9 kat sık. Ağaç rengi, ilkbaharda
-  çiçek, sonbaharda yaprak düşer, kışın serin ton. Gazetede mevsim notu
-
-Sırada:
-- Ses ve müzik (sakin akustik döngü, sayfa çevirme, kasa sesi)
-- Pul koleksiyonu / başarımlar, son ekran (defter tamamlanınca)
-- Telefonda geri bildirime göre dokunma ve yazı boyutu ayarları
-
-## Faz 2 başlangıcı ✅
-- Sabah gazetesi (Ege Postası): günün havası, bugünün ve yarının etkinliği, kasabadan haber; her sabah açılır,
-  üstteki konum hapına dokununca tekrar açılır
-- Hava (güneşli / bulutlu / yağmurlu / rüzgârlı): kalabalığı ve öneri isteğini değiştirir; yağmur ve rüzgâr sahnede görünür
-- Etkinlikler (Zeytinyağı Festivali, Ada Resim Sergisi, Fok Gözlem Günü, Ot Festivali): günlerin ~%35'inde bir kasabada;
-  kalabalık ×1.4–1.6, festival balonları. Atlanabilir: gitmezsen ceza yok, simülasyonda festivali kovalamak en kârlısı
-- Müdavim hikâyeleri: her kalpte yeni bir konuşma (8 × 5 satır)
-
-Sırada:
-- Kasabaların sırrı / ana hikâye (St. Bookston benzeri yerel bir efsane)
-- Mevsim görünümleri (kış, yaz renkleri), pul koleksiyonu
-
-## Faz 2 — dünya
-- İsimli karakterler ve dostluk, kasabaların hikâyesi, sabah gazetesi ve etkinlik takvimi (atlanabilir)
-- Mevsim görünümleri, pul koleksiyonu, keşif
 
 ## Faz 3 — içerik ve cila
 - Elle çizilmiş illüstrasyonlar (kod çizimlerinin yerine), müzik ve ses, Türkçe + İngilizce, 200+ kitap
