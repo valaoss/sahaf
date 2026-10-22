@@ -33,6 +33,15 @@ export function newGame(seed = Date.now()) {
     rare: {},                  // bu kopyalardan kaçı ilk baskı (koleksiyoncuya saklanır)
     recent: {},                // tekrar bekçisi (game/memory.js)
     recHistory: [],            // tam isabetli öneriler: mektuplar için
+    haps: [],                  // açık gün: bugünün olayları [{ t, id }] (game/happenings.js)
+    hapDone: [],               // yaşanmış olaylar
+    hapLast: {},               // olay → en son yaşandığı gün
+    buffs: [],                 // olaylardan kalan etkiler [{ day, traffic }]
+    letters: [],               // gelen mektuplar (game/mail.js)
+    quest: null,               // aktif ilan
+    questsSeen: [],
+    questsDone: 0,
+    post: null,                // bu sabahın postası { letter, quest }
     shelfLv: 0,
     decor: { owned: Object.values(DEFAULT_DECOR), on: { ...DEFAULT_DECOR } },
     paint: 'nane',
@@ -91,7 +100,7 @@ export function restore(saved) {
   if (!SPOTS[S.town]?.[S.spot]) S.spot = firstSpot(S.town);
   S.regArrivals = S.regArrivals || [];
   // gün ortasında kapanan oyun o sabaha döner (sabah kaydı stok ve parayı zaten tutuyor)
-  if (S.phase === 'open') { S.phase = 'morning'; S.arrivals = []; S.regArrivals = []; S.today = null; S.clock = BAL.dayStart; }
+  if (S.phase === 'open') { S.phase = 'morning'; S.arrivals = []; S.regArrivals = []; S.haps = []; S.today = null; S.clock = BAL.dayStart; }
   return S;
 }
 

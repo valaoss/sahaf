@@ -40,7 +40,7 @@ export function buyBox(S, g) {
     const least = Math.min(...pool.map(b => S.shelf[b.id] || 0));
     const id = rndPick(S, pool.filter(b => (S.shelf[b.id] || 0) === least)).id;
     S.shelf[id] = (S.shelf[id] || 0) + 1;
-    if (rnd(S) < BAL.rareChance) { S.rare[id] = (S.rare[id] || 0) + 1; rare.push(id); }
+    if (rnd(S) < BAL.rareChance * dayMods(S.day, S.town).rare) { S.rare[id] = (S.rare[id] || 0) + 1; rare.push(id); }
     got.push(id);
   }
   S.lastBox = { genre: g, books: got, rare };
@@ -119,7 +119,8 @@ export function makeCustomer(S) {
   const sp = spotOf(S), season = seasonOf(S.day);
   // önce kim olduğu: mekâna ve mevsime göre, yakın zamanda gelen tip daha az olası
   const aw = {};
-  for (const k of ARCH_KEYS) { const A = ARCHETYPES[k]; aw[k] = A.weight * (A.where[sp.scene] || 1) * (A.when[season] || 1); }
+  const today = dayMods(S.day, S.town);
+  for (const k of ARCH_KEYS) { const A = ARCHETYPES[k]; aw[k] = A.weight * (A.where[sp.scene] || 1) * (A.when[season] || 1) * (today.arch[k] || 1); }
   const arch = weightedFresh(S, 'arch', aw, 0.4);
   remember(S, 'arch', arch);
   const A = ARCHETYPES[arch];
@@ -170,6 +171,8 @@ export function makeRegular(S, id) {
 }
 
 // Kalp ekle; eşikleri geçince ödül bilgisini döndür
+export function addHeart(S, id) { const res = {}; befriend(S, id, res); return res.friend || null; }
+
 function befriend(S, id, res) {
   const before = S.friends[id] || 0;
   if (before >= HEARTS_MAX) return;
@@ -256,7 +259,7 @@ export function recommend(S, c, id) {
     if (res.grade !== 'miss') {
       sell(S, id, res, rareCopy);
       res.happy = true;
-      res.tip = (res.grade === 'perfect' ? BAL.tipPerfect : BAL.tipGood) + effects(S).tip;
+      res.tip = (res.grade === 'perfect' ? BAL.tipPerfect : BAL.tipGood) + effects(S).tip + dayMods(S.day, S.town).tip;
       if (c.reg && (S.friends[c.reg] || 0) >= HEARTS_TIP) res.tip += REGULAR_TIP;
       res.paid += res.tip;
       T.tips += res.tip;
@@ -264,7 +267,8 @@ export function recommend(S, c, id) {
         S.totals.perfect++;
         // mektuplar için: kime, ne zaman, nerede, hangi kitap
         S.recHistory.push({ day: S.day, town: S.town, spot: S.spot, book: id, arch: c.arch || null, reg: c.reg || null, look: c.look });
-        if (S.recHistory.length > 80) S.recHistory.shift();
+        // sınır aşılırsa önce mektubu gitmiş olanlar atılır; bekleyen öneriler korunur
+        if (S.recHistory.length > 80) { const i = S.recHistory.findIndex(r => r.sent); S.recHistory.splice(i >= 0 ? i : 0, 1); }
       }
     }
   }

@@ -59,6 +59,10 @@ export const ARCHETYPES = {
     style: { coat: '#6fb1d6', hat: 0 }, where: { sahil: 2, carsi: 0.4, tepe: 0.5 }, when: { 'Yaz': 2, 'Kış': 0.3 },
   },
 };
+export const DEFAULT_NAMES = ['Deniz', 'Elif', 'Mert', 'Zeynep', 'Can', 'Ayşe', 'Emre', 'Selin', 'Kerem', 'Defne', 'Ali', 'Nehir', 'Barış', 'Ece', 'Umut', 'Lale', 'Oya', 'Kaan'];
+// müşterinin adı: görünüş tohumundan, tipinin isim listesinden
+export const nameOf = (look, names = DEFAULT_NAMES) => names[look % names.length];
+
 // Görünüşe uyan isimler (verilmeyen tipler genel listeden alır)
 const NAMES = {
   balikci: ['Rıza Reis', 'Hüseyin Reis', 'Cemal Reis', 'Yaşar Reis', 'İsmail Reis'],

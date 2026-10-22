@@ -211,3 +211,11 @@ svg.map { width: 100%; height: auto; display: block; border-radius: 1em; margin:
 
 .arch { font-weight: 500; color: #8a7468; font-size: .85em; }
 .rarebadge { align-self: flex-start; font-size: .75em; font-weight: 700; color: #a8741a; background: #fff3c4; border-radius: 999px; padding: .1em .5em; }
+
+/* olay kartı, mektuplar */
+.hap { text-align: center; }
+.hap h2 { margin: .2em 0; }
+.row.center, .chips.center { justify-content: center; }
+.letterbox { background: #fff7f2; border: .12em dashed #efb9a8; border-radius: .9em; padding: .5em .9em; margin: .4em 0 .7em; }
+.letterbox p { margin: .2em 0; }
+.maillist { max-height: 22em; overflow: auto; }

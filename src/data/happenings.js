@@ -1,0 +1,191 @@
+// Gün içi olaylar: dükkân açıkken arada bir çıkan küçük anlar. Saat durur, kart açılır, oyuncu seçer.
+// when: koşullar (scene, season, weather, minDay, event: festival günü, shelf: rafta kitap olsun)
+// once: bir kez olur · cooldown: kaç gün sonra tekrar çıkabilir (varsayılan 6)
+// choices[].fx: coins, crowd (bugün +ziyaretçi), lose (rafta kitap kaybı), gain (rastgele kitap), gainTag, rare (ilk baskı),
+//   heart (kasabadaki tanıdık müdavime kalp), buff (yarın kalabalık çarpanı), chance + fail (şanslı sonuç)
+export const HAPPENINGS = [
+  { id: 'kedi_raf', icon: '🐈', title: 'Kedi rafı devirdi',
+    text: 'Karavanın kedisi bir kelebeği kovalarken alt rafa daldı. Kitaplar kaldırıma saçıldı.',
+    when: { shelf: 3 },
+    choices: [
+      { label: 'Hepsini topla', fx: {}, result: 'Kitapları sildin, yerine dizdin. Kedi olan biteni hiç umursamadı.' },
+      { label: 'Önce kediyi sev', fx: { lose: 1, crowd: 2 }, result: 'Bir kitabın kapağı çamur oldu, ama kediyi sevmeye gelen çocuklar dükkânın önünü doldurdu.' },
+    ] },
+  { id: 'marti', icon: '🐦', title: 'Martı hırsız!', when: { scene: 'sahil', shelf: 2 },
+    text: 'Bir martı masadaki kitabı gagasına kaptı ve iskeleye doğru uçtu.',
+    choices: [
+      { label: 'Peşinden koş', fx: { chance: 0.5, crowd: 3, fail: { lose: 1 } }, result: 'Kovalamaca bütün sahili güldürdü.', failResult: 'Martı kazandı. Kitap artık denizin dibinde, belki bir balık okur.' },
+      { label: 'Bırak gitsin', fx: { lose: 1 }, result: 'Martı kitabı bir çatıya bıraktı. Belki biri bulur.' },
+    ] },
+  { id: 'imza', icon: '✒️', title: 'Bir yazar uğradı', when: { minDay: 5 },
+    text: 'Gözlüklü, utangaç bir kadın rafındaki kendi kitabına bakıp gülümsüyor. Meğer kitabın yazarıymış!',
+    choices: [
+      { label: 'Yarın imza günü yapalım', fx: { buff: 1.4 }, result: 'Kabul etti! Haber şimdiden kasabaya yayıldı; yarın kalabalık olacak.' },
+      { label: 'Bir kitabını imzalasın', fx: { rare: 1 }, result: 'İmzalı bir kitap: koleksiyoncuların gözü bunu arar.' },
+    ] },
+  { id: 'ruzgar_sayfa', icon: '🍃', title: 'Sayfalar uçuşuyor', when: { weather: 'ruzgarli' },
+    text: 'Sert bir rüzgâr açık duran bir kitabın sayfalarını sokağa savurdu.',
+    choices: [
+      { label: 'Koşup topla', fx: { crowd: 2 }, result: 'Sokaktakiler de yardıma koştu. Hepsi toplandı; ikisi de kitap aldı.' },
+      { label: 'Uçuşmalarını izle', fx: { coins: -3 }, result: 'Sayfalar martılar gibi denize uçtu. Güzeldi ama kitap gitti.' },
+    ] },
+  { id: 'kayip_cocuk', icon: '🧒', title: 'Kaybolan çocuk',
+    text: 'Karavanın önünde küçük bir çocuk ağlıyor: annesini kalabalıkta kaybetmiş.',
+    choices: [
+      { label: 'Annesini bul', fx: { coins: 12, crowd: 1 }, result: 'Annesi koşarak geldi, sarıldı ve teşekkür olsun diye iki kitap aldı.' },
+      { label: 'Ona bir masal oku', fx: { crowd: 3 }, result: 'Masal bitmeden annesi çıkageldi, etrafta da dinleyenler birikmişti.' },
+    ] },
+  { id: 'eski_mektup', icon: '💌', title: 'Kitabın arasından mektup', when: { shelf: 1 },
+    text: 'Bir kitabı karıştırırken sararmış bir zarf düştü: "Sevgili Nesrin, bu kitabı okuyunca beni hatırla. 1974."',
+    choices: [
+      { label: 'Sahibini ara', fx: { heart: 1 }, result: 'Kasabadaki tanıdığın Nesrin Hanım\'ı tanıyormuş. Haberi götürdü, gözleri doldu.' },
+      { label: 'Kitapta kalsın', fx: { coins: 6 }, result: 'Mektubu kitabın arasına geri koydun. Bir sonraki okur da bulsun.' },
+    ] },
+  { id: 'muzisyen', icon: '🎻', title: 'Sokak müzisyeni',
+    text: 'Kemanlı bir genç karavanın yanında çalmak için izin istiyor.',
+    choices: [
+      { label: 'Buyur, çal', fx: { crowd: 4 }, result: 'Melodiyi duyan herkes durdu. Kitaplar da müziğe eşlik etti.' },
+      { label: 'Bugün olmaz', fx: {}, result: 'Teşekkür edip ilerideki çeşmenin başına gitti.' },
+    ] },
+  { id: 'yagmur_siginma', icon: '☔', title: 'Tenteye sığınanlar', when: { weather: 'yagmurlu' },
+    text: 'Yağmur bastırdı, birkaç kişi karavanın tentesinin altına sığındı.',
+    choices: [
+      { label: 'Çay ikram et', fx: { coins: -3, crowd: 4 }, result: 'Çay bitti, yağmur dindi; çoğu elinde bir kitapla ayrıldı.' },
+      { label: 'Raflara göz atsınlar', fx: { crowd: 2 }, result: 'Yağmur sürdükçe raflar karıştırıldı.' },
+    ] },
+  { id: 'bagis', icon: '🏫', title: 'Okuldan bir rica', when: { shelf: 6 },
+    text: 'Köy okulunun öğretmeni, sınıf kütüphanesi için birkaç kitap bağışlayıp bağışlayamayacağını soruyor.',
+    choices: [
+      { label: 'Üç kitap bağışla', fx: { lose: 3, buff: 1.25, heart: 1 }, result: 'Haber kasabada yayıldı. Yarın "iyi kalpli sahaf"ı görmeye gelenler olacak.' },
+      { label: 'Nazikçe geri çevir', fx: {}, result: 'Anlayışla karşıladı, belediyeye de soracakmış.' },
+    ] },
+  { id: 'eskici', icon: '🛒', title: 'Eskici geldi',
+    text: 'Bir eskici el arabasında bir kasa eski kitapla durdu: "Hepsi yirmi lira, pazarlık yok."',
+    choices: [
+      { label: 'Al (₺20)', fx: { coins: -20, gain: 4, chance: 0.35, rare: 1, fail: { coins: -20, gain: 4 } }, result: 'Kasanın dibinden bir ilk baskı çıktı!', failResult: 'Dört kitap raflara eklendi; biraz tozlular ama sağlamlar.' },
+      { label: 'Gerek yok', fx: {}, result: 'Eskici omuz silkip yoluna devam etti.' },
+    ] },
+  { id: 'film', icon: '🎬', title: 'Film ekibi', when: { minDay: 8 },
+    text: 'Bir dizi ekibi, "romantik sahaf sahnesi" için karavanını kiralamak istiyor.',
+    choices: [
+      { label: 'Kabul et (+₺30)', fx: { coins: 30, buff: 1.3 }, result: 'Çekim bitti; yarın karavanı görmeye meraklılar gelecek.' },
+      { label: 'Sakin kalsın', fx: {}, result: 'Başka bir köşe bulmaya gittiler.' },
+    ] },
+  { id: 'kopek', icon: '🐕', title: 'Misafir köpek',
+    text: 'Tüylü bir köpek karavanın gölgesine kıvrıldı, boynunda tasmasıyla.',
+    choices: [
+      { label: 'Su ver', fx: { crowd: 1 }, result: 'Köpek suyunu içti, kedinin yanına yattı. İkisi de pek memnun.' },
+      { label: 'Sahibini bul', fx: { coins: 8 }, result: 'Sahibi teşekkür edip bir polisiye aldı.' },
+    ] },
+  { id: 'sair', icon: '📜', title: 'Yaşlı şair', when: { minDay: 3 },
+    text: 'Bastonlu bir adam, gençliğinde yazdığı bir şiiri okumak için izin istiyor.',
+    choices: [
+      { label: 'Dinle', fx: { chance: 0.5, rare: 1, fail: { crowd: 2 } }, result: 'Şiir bitince çantasından imzalı bir ilk baskı çıkarıp hediye etti.', failResult: 'Şiiri bitince alkışlayanlar karavanın önünde kaldı.' },
+      { label: 'Kitabını sor', fx: { gainTag: 'felsefe' }, result: 'Kendi kitabını hediye etti; rafa koydun.' },
+    ] },
+  { id: 'dondurma', icon: '🍦', title: 'Dondurmacı komşu', when: { season: 'Yaz' },
+    text: 'Dondurmacı arabasını karavanın yanına çekmek istiyor: "Kitap okuyan dondurma da ister."',
+    choices: [
+      { label: 'Olur, gelsin', fx: { crowd: 4 }, result: 'Dondurma kuyruğu kitaplara uzandı.' },
+      { label: 'Yer yok', fx: {}, result: 'Biraz ileride durdu.' },
+    ] },
+  { id: 'iade', icon: '↩️', title: 'İade isteyen müşteri', when: { minDay: 2 },
+    text: 'Dün kitap alan biri geri geldi: "Bu kitap bana göre değilmiş."',
+    choices: [
+      { label: 'Parasını ver', fx: { coins: -6, gain: 1 }, result: 'Kitap rafa döndü; müşteri gönlü rahat ayrıldı.' },
+      { label: 'Başka kitap öner', fx: { chance: 0.6, coins: 4, fail: { coins: -6, gain: 1 } }, result: 'Yeni önerin tuttu, üstüne bir de bahşiş bıraktı.', failResult: 'Olmadı; parasını geri verdin.' },
+    ] },
+  { id: 'rehber', icon: '🚩', title: 'Tur grubu', when: { season: 'Yaz' },
+    text: 'Bayraklı bir rehber, arkasında yirmi kişilik bir grupla karavanın önünde durdu.',
+    choices: [
+      { label: 'Gruba indirim yap', fx: { crowd: 6, coins: -5 }, result: 'Grup raflara dağıldı; kasa çınlayıp durdu.' },
+      { label: 'Normal fiyat', fx: { crowd: 2 }, result: 'Birkaç kişi aldı, gerisi fotoğraf çekti.' },
+    ] },
+  { id: 'gelin', icon: '💐', title: 'Gelin ve damat', when: { season: 'İlkbahar' },
+    text: 'Yeni evliler karavanın önünde düğün fotoğrafı çektirmek istiyor.',
+    choices: [
+      { label: 'Tabii, buyurun', fx: { buff: 1.2 }, result: 'Fotoğraflar paylaşıldı; yarın karavanı görmeye gelen olacak.' },
+      { label: 'Bir de şiir kitabı hediye et', fx: { lose: 1, buff: 1.3, heart: 1 }, result: 'Gelin kitabı göğsüne bastırdı. Bütün kasaba bu hikâyeyi konuşacak.' },
+    ] },
+  { id: 'gazeteci', icon: '📰', title: 'Ege Postası muhabiri', when: { minDay: 10, once: true },
+    text: 'Ege Postası\'ndan bir muhabir "kasabaların seyyar sahafı" için röportaj istiyor.',
+    choices: [
+      { label: 'Konuş', fx: { buff: 1.35 }, result: 'Yarın gazetede fotoğrafın çıkacak!' },
+      { label: 'Utanırım', fx: {}, result: 'Muhabir yine de bir fotoğraf çekti, uzaktan.' },
+    ] },
+  { id: 'damgali', icon: '🏛️', title: 'Kütüphane damgası', when: { shelf: 4 },
+    text: 'Rafındaki bir kitabın içinde belediye kütüphanesinin damgası var. Kim bilir nasıl karışmış.',
+    choices: [
+      { label: 'Kütüphaneye götür', fx: { lose: 1, heart: 1 }, result: 'Kütüphaneci çok sevindi, sana da bir çay ısmarladı.' },
+      { label: 'Kimse fark etmez', fx: { coins: 7 }, result: 'Kitap satıldı. İçin biraz rahat değil.' },
+    ] },
+  { id: 'resim', icon: '🖍️', title: 'Bir çocuğun çizimi',
+    text: 'Bir çocuk karavanın resmini çizmiş, kedisiyle birlikte. Sana hediye ediyor.',
+    choices: [
+      { label: 'Tabelaya as', fx: { crowd: 2 }, result: 'Resmi görenler gülümseyip yaklaştı.' },
+      { label: 'Teşekkür et, sakla', fx: { heart: 1 }, result: 'Çizim defterinin arasına girdi. Bu da bir anı.' },
+    ] },
+  { id: 'corba', icon: '🍲', title: 'Sıcak çorba', when: { season: 'Kış' },
+    text: 'Komşu teyze bir kâse sıcak çorba getirdi: "Bu soğukta dışarıda durulur mu, iç bakalım."',
+    choices: [
+      { label: 'Afiyetle iç', fx: { heart: 1 }, result: 'İçin ısındı. Teyze de bir aşk romanı istedi, tabii ki hediye ettin.' },
+    ] },
+  { id: 'balikci_kova', icon: '🐟', title: 'Bir kova balık', when: { scene: 'sahil', shelf: 1 },
+    text: 'Bir balıkçı, karşılığında kitap almak için bir kova taze balık getirdi.',
+    choices: [
+      { label: 'Takas et', fx: { lose: 1, coins: 9 }, result: 'Balıkları köşedeki lokantaya sattın; balıkçı kitabına sarıldı.' },
+      { label: 'Kitabı hediye et', fx: { lose: 1, heart: 1 }, result: 'Balıkçı mahcup oldu, "borcum olsun" dedi.' },
+    ] },
+  { id: 'paket', icon: '📦', title: 'Yanlış paket',
+    text: 'Postacı aceleyle bir paket bıraktı: üzerinde "Kitapçıya" yazıyor ama adres başka bir kasabanın.',
+    choices: [
+      { label: 'Sahibine ulaştır', fx: { coins: 10 }, result: 'Paketin sahibi telefonda çok teşekkür etti, ödülünü postayla yolladı.' },
+      { label: 'İçine bir göz at', fx: { gain: 1 }, result: 'İçinden tek bir kitap çıktı ve not: "Kim bulursa onun olsun."' },
+    ] },
+  { id: 'tente', icon: '🌬️', title: 'Tente uçacak!', when: { weather: 'ruzgarli' },
+    text: 'Rüzgâr tenteyi yerinden sökmek üzere.',
+    choices: [
+      { label: 'Sıkıca bağla', fx: {}, result: 'Bağladın. Tente dalgalanıyor ama yerinde.' },
+      { label: 'Kitapları içeri al', fx: { crowd: -2 }, result: 'Kitaplar korundu ama bir süre kimse raflara bakamadı.' },
+    ] },
+  { id: 'kostum', icon: '🎭', title: 'Kostümlü çocuklar', when: { event: true },
+    text: 'Festival kostümlü bir çocuk ordusu karavanın önünü bastı.',
+    choices: [
+      { label: 'Şeker dağıt', fx: { coins: -4, crowd: 5 }, result: 'Şekerler bitti, aileler kitaplara yöneldi.' },
+      { label: 'Masal köşesi kur', fx: { crowd: 3 }, result: 'Kostümlü dinleyiciler halka olup oturdu.' },
+    ] },
+  { id: 'cuzdan', icon: '👛', title: 'Yerde bir cüzdan',
+    text: 'Karavanın önünde biri cüzdanını düşürmüş.',
+    choices: [
+      { label: 'Sahibini bekle', fx: { coins: 15 }, result: 'Sahibi telaşla geri geldi; teşekkür olarak bir koleksiyon kitabı aldı.' },
+      { label: 'Karakola götür', fx: { heart: 1 }, result: 'Karakoldaki komiser kitap kurdu çıktı, yarın uğrayacakmış.' },
+    ] },
+  { id: 'yavrular', icon: '🐾', title: 'Sürpriz yavrular', once: true, when: { minDay: 6 },
+    text: 'Karavanın altından minik miyavlamalar geliyor: kedinin yanında üç yavru!',
+    choices: [
+      { label: 'Kasabaya haber ver', fx: { crowd: 4, buff: 1.15 }, result: 'Çocuklar sırayla yavruları sevmeye geldi. Hepsine yuva bulundu.' },
+    ] },
+  { id: 'rakip', icon: '🚐', title: 'Rakip sahaf', once: true, when: { minDay: 12 },
+    text: 'Karşı köşeye başka bir seyyar sahaf geldi. Yaşlı bir adam, el sallıyor.',
+    choices: [
+      { label: 'Kitap takası yap', fx: { lose: 2, gain: 2, rare: 1 }, result: 'Adam Nermin Teyzeni tanıyormuş! Takasın sonunda bir ilk baskıyı sana bıraktı.' },
+      { label: 'Rekabete gir', fx: { crowd: 3, coins: -5 }, result: 'İndirim yarışı kasabayı güldürdü; akşam beraber çay içtiniz.' },
+    ] },
+  { id: 'kuyruklu', icon: '🌠', title: 'Kayan yıldız', when: { minDay: 4 },
+    text: 'Gün batarken gökyüzünde bir kayan yıldız geçti. Etraftakiler "dilek tut!" diye bağırdı.',
+    choices: [
+      { label: 'Dilek tut', fx: { buff: 1.2 }, result: 'Ne dilediğini kimseye söylemedin. Yarın görürüz.' },
+    ] },
+  { id: 'bisiklet', icon: '🚲', title: 'Bisikletli okurlar', when: { scene: 'tepe' },
+    text: 'Tepeyi tırmanan bir bisiklet grubu nefes almak için karavanın önünde durdu.',
+    choices: [
+      { label: 'Su ikram et', fx: { coins: -2, crowd: 3 }, result: 'Mataralar doldu, sırt çantalarına birer ince kitap girdi.' },
+      { label: 'Kısa kitapları öne çıkar', fx: { crowd: 2 }, result: 'Hafif kitaplar hızla gitti.' },
+    ] },
+  { id: 'cay_ocagi', icon: '🫖', title: 'Çay ocağından davet', when: { scene: 'carsi' },
+    text: 'Karşıdaki çay ocağının sahibi el ediyor: "Gel bir çay iç, dükkân kaçmaz."',
+    choices: [
+      { label: 'Bir çay iç', fx: { heart: 1 }, result: 'Çay ocağında kasabanın bütün dedikodusunu öğrendin.' },
+      { label: 'Raflardan ayrılma', fx: { coins: 4 }, result: 'Tam o sırada bir müşteri geldi; iyi ki kalmışsın.' },
+    ] },
+];

@@ -8,6 +8,8 @@ import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
 import { checkStory } from './story.js';
 import { checkStamps } from './stamps.js';
+import { morningLetter, offerQuest, settleQuest } from './mail.js';
+import { scheduleHappenings, dueHappening, chooseHappening, buffFor, HAP } from './happenings.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
@@ -16,7 +18,7 @@ export function openShop(S) {
   const newTown = S.town !== S.prevTown;
   // hava ve etkinlik kalabalığı çarpar; süs ve yeni kasaba ilgisi üstüne eklenir
   const mods = dayMods(S.day, S.town);
-  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic) + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
+  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic * buffFor(S)) + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
   const n = Math.max(4, base + rndInt(S, BAL.trafficJitter * 2 + 1) - BAL.trafficJitter);
   const times = [];
   for (let i = 0; i < n; i++) {
@@ -35,6 +37,7 @@ export function openShop(S) {
   // kasabanın müdavimleri bazı günler uğrar
   S.regArrivals = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town && rnd(S) < VISIT_CHANCE)
     .map(id => ({ id, t: Math.round(BAL.dayStart + 30 + rnd(S) * (len - 90)) })).sort((a, b) => a.t - b.t);
+  scheduleHappenings(S);
   S.today = { town: S.town, spot: S.spot, newTown, weather: weatherOf(S.day), event: mods.event, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 } };
   return null;
 }
@@ -49,7 +52,7 @@ export function advanceClock(S, minutes) {
   return due;
 }
 
-export const closingTime = S => S.phase === 'open' && S.clock >= BAL.dayEnd && !S.arrivals.length && !S.regArrivals.length;
+export const closingTime = S => S.phase === 'open' && S.clock >= BAL.dayEnd && !S.arrivals.length && !S.regArrivals.length && !S.haps.length;
 
 export function closeShop(S) {
   if (S.phase !== 'open') return null;
@@ -62,6 +65,7 @@ export function closeShop(S) {
     S.totals.festivals++;
     if (!S.festKinds.includes(T.event)) S.festKinds.push(T.event);
   }
+  T.quest = settleQuest(S, T);
   T.page = checkStory(S, T);
   T.stamps = checkStamps(S);
   S.lastDay = T;
@@ -77,14 +81,19 @@ export function nextMorning(S) {
   S.phase = 'morning';
   S.travelled = false;
   S.clock = BAL.dayStart;
+  // sabah postası: geçmiş önerilerden mektup, gazetede yeni ilan
+  S.post = { letter: morningLetter(S), quest: offerQuest(S) };
 }
 
 // Başsız tam gün: test ve denge simülasyonu için
-export function simulateDay(S) {
+export function simulateDay(S, pick = () => 0) {
   openShop(S);
-  // öneri isteyene raftaki en uygun kitap verilir (dikkatli oyuncu)
-  for (const c of advanceClock(S, BAL.dayEnd - BAL.dayStart)) {
-    if (c.ask) recommend(S, c, bestBook(S, c.ask)); else resolveCustomer(S, c);
+  // yarım saatlik adımlar: olaylar zamanında çıksın; öneri isteyene raftaki en uygun kitap, olayda pick(seçenekler)
+  while (!closingTime(S)) {
+    for (const c of advanceClock(S, 30)) {
+      if (c.ask) recommend(S, c, bestBook(S, c.ask)); else resolveCustomer(S, c);
+    }
+    for (let h; (h = dueHappening(S));) chooseHappening(S, h, pick(HAP[h].choices.length));
   }
   const T = closeShop(S);
   nextMorning(S);

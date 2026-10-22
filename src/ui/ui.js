@@ -11,10 +11,12 @@ import { nextShelf } from '../game/decor.js';
 import { SPOTS } from '../data/spots.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX } from '../data/regulars.js';
 import { WEATHER, EVENTS } from '../data/calendar.js';
-import { weatherOf, eventOf, gossipOf } from '../game/calendar.js';
+import { weatherOf, eventOf, gossipOf, specialOf } from '../game/calendar.js';
+import { questText, questProgress } from '../game/mail.js';
 import { SEASON } from '../data/calendar.js';
 import { PAGES } from '../data/story.js';
 import { nextPage, progressOf } from '../game/story.js';
+import { HAP } from '../game/happenings.js';
 import { STAMPS, STAMP_REWARD } from '../data/stamps.js';
 import { stampProgress } from '../game/stamps.js';
 import { personSVG, nameOf } from '../render/people.js';
@@ -106,6 +108,7 @@ export function createUI(root, act) {
     const p = openPanel(`
       <h2>📦 Toptancı</h2>
       <p class="hint">Bu kasabada çok aranan: <b>${hot}</b></p>${missed}
+      ${S.quest ? `<p class="hint">📌 İlan: ${questText(S.quest)} <b>(${questProgress(S).have}/${questProgress(S).n})</b></p>` : ''}
       <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 Raflar <b>${shelfCount(S)}/${shelfCap(S)}</b></span></div>
       <div class="ggrid">${cards}</div>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
@@ -307,6 +310,8 @@ export function createUI(root, act) {
         <div><span>Toplam</span><b>🪙 ${S.coins}</b></div>
       </div>
       <p>${profitNote}${T.newTown ? ` Yeni kasabada karavanı merak edenler de uğradı.` : ''}</p>
+      ${(T.haps || []).length ? `<p class="recline">Bugün yaşananlar: ${T.haps.map(id => HAP[id].icon + ' ' + HAP[id].title).join(' · ')}</p>` : ''}
+      ${T.quest ? `<p class="tip page">${T.quest.done ? `📌 İlan teslim edildi: +₺${T.quest.coins}${T.quest.rare ? ` ve bir ilk baskı (${BOOK[T.quest.rare].title})` : ''}` : '📌 İlanın süresi doldu; bir dahaki sefere.'}</p>` : ''}
       ${(T.regulars || []).length ? `<p class="recline">Uğrayan müdavimler: ${T.regulars.map(r => `${REGULARS[r.id].name} ${r.grade === 'perfect' ? '💛' : r.grade === 'good' ? '🙂' : '😕'} <span class="hearts">${hearts(S.friends[r.id] || 0)}</span>`).join(' · ')}</p>` : ''}
       ${T.soldCount ? `<div class="chips">${chips(T.sold)}</div>` : ''}
       ${recLine}
@@ -323,15 +328,24 @@ export function createUI(root, act) {
   function paperPanel(S) {
     const w = WEATHER[weatherOf(S.day)], wt = WEATHER[weatherOf(S.day + 1)];
     const ev = eventOf(S.day), evT = eventOf(S.day + 1);
+    const sp = specialOf(S.day);
+    const special = sp ? `<div class="kicker">Bugün · bütün kasabalarda</div><div class="headline">${sp.icon} ${sp.name}</div><p>${sp.note}</p>` : '';
     const today = ev
       ? `<div class="kicker">Bugün · ${TOWNS[EVENTS[ev].town].name}</div><div class="headline">🎉 ${EVENTS[ev].name}</div><p>${EVENTS[ev].note}</p>
          <p class="hint">${EVENTS[ev].town === S.town ? 'Tam da buradasın, kaçırma!' : 'Haritadan yola çıkabilirsin.'}</p>`
-      : '<div class="kicker">Bugün</div><div class="headline">Sakin bir gün</div><p>Kasabalarda özel bir etkinlik yok. Raflara özen göstermek için iyi bir gün.</p>';
+      : sp ? '' : '<div class="kicker">Bugün</div><div class="headline">Sakin bir gün</div><p>Kasabalarda özel bir etkinlik yok. Raflara özen göstermek için iyi bir gün.</p>';
+    // bu sabahın mektubu (varsa) ve ilan panosu
+    const L = S.post?.letter;
+    const letter = L ? `<div class="letterbox"><div class="kicker">📮 Sana bir mektup var · ${L.from}</div><p class="say">“${L.text}”</p>${L.coins ? `<p class="hint">Zarfın içinden ₺${L.coins} çıktı: “bir sonraki kitap benden”.</p>` : ''}</div>` : '';
+    const q = S.quest, qp = questProgress(S);
+    const ad = q ? `<div class="kicker">📌 İlan${S.post?.quest ? ' · yeni' : ''}</div><p>${questText(q)}</p>
+      <p class="hint">Rafta ${qp.have}/${qp.n} · son gün: ${q.deadline - S.day === 0 ? 'bugün' : `${q.deadline - S.day} gün sonra`} · ödül ₺${q.coins}${q.rare ? ' + sürpriz' : ''}</p>` : '';
     const p = openPanel(`
       <div class="paper">
         <div class="masthead"><h2>📰 Ege Postası</h2><small>${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün · fiyatı bir gülümseme</small></div>
+        ${letter}
         <div class="news">
-          <div>${today}</div>
+          <div>${special}${today}${ad}</div>
           <div class="col2">
             <div class="kicker">Hava</div><div class="headline">${w.icon} ${w.name}</div><p>${w.note}</p>
             <div class="kicker">Yarın</div><p>${wt.icon} ${wt.name}${evT ? ` · 🎉 ${EVENTS[evT].name} (${TOWNS[EVENTS[evT].town].name})` : ''}</p>
@@ -345,6 +359,38 @@ export function createUI(root, act) {
     p.querySelector('[data-go]')?.addEventListener('click', () => act('map'));
   }
 
+  // Defter sekmeleri: hikâye, pul albümü, mektuplar
+  function bookTabs(S, on) {
+    const t = (k, label) => `<button class="tab ${on === k ? 'is-on' : ''}" data-tab="${k}">${label}</button>`;
+    return `<div class="tabs head">${t('book', "📜 Kostas Efendi'nin defteri")}${t('album', `🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 Mektuplar (${S.letters.length})`)}</div>`;
+  }
+  function wireTabs(p, S, back) {
+    p.querySelectorAll('[data-tab]').forEach(b => b.onclick = () =>
+      b.dataset.tab === 'book' ? bookPanel(S, null, back) : b.dataset.tab === 'album' ? albumPanel(S, back) : mailPanel(S, back));
+  }
+  function mailPanel(S, back = null) {
+    const list = S.letters.slice().reverse().map(L => `<div class="letterbox"><div class="kicker">${L.from} · ${seasonOf(L.day)}, ${dayOfSeason(L.day)}. gün</div><p>“${L.text}”</p></div>`).join('')
+      || '<p class="hint">Henüz mektup yok. Tam isabetli öneriler bir gün kapını çalar.</p>';
+    const p = openPanel(`${bookTabs(S, 'mail')}<div class="maillist">${list}</div>
+      <div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
+    wireTabs(p, S, back);
+    p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
+  }
+
+  // Gün içi olay kartı: seçenekler, sonra sonuç
+  function hapPanel(H, onChoose) {
+    const p = openPanel(`
+      <div class="hap"><div class="big-icon">${H.icon}</div><h2>${H.title}</h2><p class="say">${H.text}</p></div>
+      <div class="row center">${H.choices.map((c, i) => `<button class="btn ${i === 0 ? 'hl' : ''}" data-ch="${i}">${c.label}</button>`).join('')}</div>`);
+    p.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => {
+      const r = onChoose(+b.dataset.ch);
+      p.innerHTML = `<div class="hap"><div class="big-icon">${H.icon}</div><h2>${H.title}</h2><p class="say">${r.text}</p>
+        ${r.tags.length ? `<div class="chips center">${r.tags.map(t => `<span class="chip">${t}</span>`).join('')}</div>` : ''}</div>
+        <div class="row center"><button class="btn hl" data-ok>Devam</button></div>`;
+      p.querySelector('[data-ok]').onclick = () => { closePanel(); r.after && r.after(); };
+    });
+  }
+
   // Kostas Efendi'nin defteri: bulunan sayfalar, seçili sayfanın metni, sıradaki ipucu
   function bookPanel(S, open = null, back = null) {
     const found = PAGES.filter(p => S.pages.includes(p.id));
@@ -354,7 +400,7 @@ export function createUI(root, act) {
       ? `<button class="ptab ${cur && p.id === cur.id ? 'is-on' : ''}" data-page="${p.id}">${i + 1}. ${p.title}</button>`
       : `<span class="ptab locked">${i + 1}. ???</span>`).join('');
     const p = openPanel(`
-      <div class="tabs head"><button class="tab is-on">📜 Kostas Efendi'nin defteri</button><button class="tab" data-album>🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})</button></div>
+      ${bookTabs(S, 'book')}
       <div class="book">
         <div class="ptabs">${list}</div>
         <div class="pagebody">
@@ -364,7 +410,7 @@ export function createUI(root, act) {
       </div>
       <div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
     p.querySelectorAll('[data-page]').forEach(b => b.onclick = () => bookPanel(S, b.dataset.page, back));
-    p.querySelector('[data-album]').onclick = () => albumPanel(S, back);
+    wireTabs(p, S, back);
     p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
   }
 
@@ -398,11 +444,11 @@ export function createUI(root, act) {
         <div class="sdesc">${st.desc}${got ? '' : ` <b>${pr.now}/${pr.of}</b>`}</div></div>`;
     }).join('');
     const p = openPanel(`
-      <div class="tabs head"><button class="tab" data-book>📜 Kostas Efendi'nin defteri</button><button class="tab is-on">🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})</button></div>
+      ${bookTabs(S, 'album')}
       <p class="hint">Her pul kasaya ₺${STAMP_REWARD} bırakır.</p>
       <div class="album">${cards}</div>
       <div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
-    p.querySelector('[data-book]').onclick = () => bookPanel(S, null, back);
+    wireTabs(p, S, back);
     p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
   }
 
@@ -427,5 +473,5 @@ export function createUI(root, act) {
     p.querySelector('[data-go]').onclick = () => { closePanel(); onContinue(); };
   }
 
-  return { hud, toast, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  return { hud, toast, hapPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

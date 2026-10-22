@@ -61,7 +61,14 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - İstek dilbilgisi: selam + bağlam (tip, hava, mevsim, mekân) + istek + kapanış; 1000+ istekte %85+ benzersiz
 - Tekrar bekçisi (game/memory.js): son 40 cümle, 20 hedef kitap, 4 müşteri tipi penceresi
 - İlk baskılar: kolide %5, rafta altın sırt; normal müşteriye satılmaz, koleksiyoncu 5 katına alır; 2 yeni pul
-- Sıradaki: Faz B (gün içi olaylar, mektuplar, gizemli ziyaretçiler, özel günler)
+### Faz B — sürprizler ✅
+- 30 gün içi olay (kedi rafı devirir, martı kitap kapar, yazar uğrar, eskici, film ekibi, rakip sahaf…): koşullu
+  (mekân, mevsim, hava, gün, festival), seçimli, bazıları şanslı; 6 gün bekleme, bir kerelikler; günde ~0.7 olay
+- Mektuplar: tam isabetli öneriler 5+ gün sonra mektupla döner (44 şablon, kitabın etiketine göre); bazen para
+- İlanlar: 10 tür çok günlü görev (belirli kitap / etiketli n kitap / türden n kitap, kasabada ya da her yerde)
+- Özel günler: 23 Nisan, Hıdırellez, Kitap Fuarı (ilk baskı ×3), Okullar açıldı, Yılbaşı
+- Defterde Mektuplar sekmesi; gazetede mektup, ilan, özel gün; gün sonunda yaşananlar ve ilan sonucu; 4 yeni pul
+- Sıradaki: Faz D (gün ışığı, canlı arka plan, oyun hissi, müzik motifleri)
 
 ## Faz 2 başlangıcı ✅
 - Sabah gazetesi (Ege Postası): günün havası, bugünün ve yarının etkinliği, kasabadan haber; her sabah açılır,

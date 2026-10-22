@@ -18,6 +18,8 @@ import { unlock, sfx, settings, applySettings, setSeason, setRain } from './audi
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
 import { checkStory } from './game/story.js';
+import { HAP, dueHappening, chooseHappening } from './game/happenings.js';
+import { morningLetter, writeLetter, offerQuest } from './game/mail.js';
 import { checkStamps } from './game/stamps.js';
 import { STAMPS } from './data/stamps.js';
 import { PAGES } from './data/story.js';
@@ -156,7 +158,8 @@ function refreshDay() {
   scene.setWeather(weatherOf(S.day));
   setSeason(seasonOf(S.day));
   setRain(weatherOf(S.day) === 'yagmurlu');
-  scene.setFestival(!!dayMods(S.day, S.town).event);
+  const m = dayMods(S.day, S.town);
+  scene.setFestival(!!(m.event || m.special));
 }
 
 function changeTown(done) {
@@ -188,6 +191,13 @@ if (PREVIEW) {
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
+  if (panel === 'olay') ui.hapPanel(HAP[q.get('olay') || 'eskici'], i => chooseHappening(S, q.get('olay') || 'eskici', i));
+  if (panel === 'posta') {
+    S.recHistory.push({ day: 1, town: 'ayvalik', spot: 'iskele', book: 'yasliadam', arch: 'balikci', look: 3 });
+    S.day = 9;
+    S.post = { letter: morningLetter(Object.assign(S, { day: 9 })) || writeLetter(S, S.recHistory[0]), quest: offerQuest(S) || offerQuest(S) || offerQuest(S) };
+    ui.paperPanel(S);
+  }
   if (q.has('nadir')) { const ids = Object.keys(S.shelf); S.rare = { [ids[0]]: 1, [ids[7]]: 1 }; scene.setStock(S); }
   if (panel === 'koleksiyoncu') { let c; do c = makeCustomer(S); while (!(c.ask && c.ask.rare)); ui.recPanel(S, c, () => {}); }
   if (panel === 'album') { S.stamps = ['ilkgun', 'isabet', 'elli', 'ege', 'festival', 'yagmur', 'dost']; S.totals.sold = 120; ui.albumPanel(S); }
@@ -214,6 +224,20 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
+  // gün içi olay: saati geldiyse kart açılır (panel açıkken zaman durur)
+  if (S.phase === 'open' && !ui.isOpen()) {
+    const h = dueHappening(S);
+    if (h) {
+      sfx('page');
+      ui.hapPanel(HAP[h], idx => {
+        const r = chooseHappening(S, h, idx);
+        scene.setStock(S);
+        sfx(r.tags.some(t => t.startsWith('+₺') || t.startsWith('✨') || t.startsWith('💛')) ? 'heart' : 'tap');
+        if (r.friend?.gift || r.friend?.coins) r.after = () => ui.giftPanel(r.friend);
+        return r;
+      });
+    }
+  }
   // panel açıkken (öneri seçerken) zaman durur
   if (S.phase === 'open' && !ui.isOpen()) {
     for (const c of advanceClock(S, dt * MIN_PER_SEC * speed)) crowd.add(c);

@@ -1,7 +1,7 @@
 // Günün havası ve etkinliği: gün numarasından sabit üretilir (kayıttan ve RNG'den bağımsız).
 import { seeded } from '../core/rng.js';
-import { WEATHER, EVENTS, EVENT_CHANCE, GOSSIP, SEASON } from '../data/calendar.js';
-import { seasonOf } from './state.js';
+import { WEATHER, EVENTS, EVENT_CHANCE, GOSSIP, SEASON, SPECIAL } from '../data/calendar.js';
+import { seasonOf, dayOfSeason } from './state.js';
 
 // ardışık günler birbirine benzemesin: gün numarasını karıştırıp tohum yap
 function dayRng(day, salt) {
@@ -31,14 +31,23 @@ export function eventOf(day) {
 
 export const gossipOf = day => GOSSIP[Math.floor(dayRng(day, 3)() * GOSSIP.length)];
 
+// Bugün bütün kasabalarda özel bir gün mü?
+export const specialOf = day => SPECIAL[seasonOf(day)]?.[dayOfSeason(day)] || null;
+
 // Bugün bu kasabada geçerli çarpanlar
 export function dayMods(day, town) {
   const w = WEATHER[weatherOf(day)], se = SEASON[seasonOf(day)], ek = eventOf(day), e = ek && EVENTS[ek].town === town ? EVENTS[ek] : null;
   const demand = { ...(w.demand || {}) };
   for (const g in e?.demand || {}) demand[g] = (demand[g] || 1) * e.demand[g];
+  const sp = specialOf(day);
+  for (const g in sp?.demand || {}) demand[g] = (demand[g] || 1) * sp.demand[g];
   return {
-    traffic: w.traffic * se.traffic * (e ? e.traffic : 1),
-    ask: w.ask * se.ask * (e ? e.ask : 1),
+    traffic: w.traffic * se.traffic * (e ? e.traffic : 1) * (sp ? sp.traffic : 1),
+    ask: w.ask * se.ask * (e ? e.ask : 1) * (sp ? sp.ask : 1),
+    special: sp ? sp.id : null,
+    arch: sp?.arch || {},
+    rare: sp?.rare || 1,
+    tip: sp?.tip || 0,
     demand,
     event: e ? ek : null,
   };

@@ -16,6 +16,28 @@ export const SEASON = {
   'Kış':      { weather: { gunesli: 25, bulutlu: 30, yagmurlu: 35, ruzgarli: 10 }, traffic: 0.8,  ask: 1.3,  note: 'Sokaklar sakin; gelenler uzun uzun sohbet ediyor.' },
 };
 
+// Özel günler: mevsimin belli bir gününde bütün kasabalarda (dayOfSeason). arch: müşteri tipi çarpanı, rare: ilk baskı çarpanı
+export const SPECIAL = {
+  'İlkbahar': {
+    3: { id: 'cocukbayrami', name: '23 Nisan Çocuk Bayramı', icon: '🎈', traffic: 1.3, ask: 1, demand: { cocuk: 2 }, arch: { cocuk: 3, anne: 2 },
+      note: 'Bayram! Çocuklar sokakta, masal kitapları kapış kapış.' },
+    6: { id: 'hidirellez', name: 'Hıdırellez', icon: '🌹', traffic: 1.25, ask: 1.3, demand: { siir: 1.6 }, arch: { sevgili: 3 },
+      note: 'Dilekler gül dallarına asılıyor; âşıklar şiir kitabı arıyor.' },
+  },
+  'Yaz': {
+    4: { id: 'kitapfuari', name: 'Ege Kitap Fuarı', icon: '📚', traffic: 1.35, ask: 1.2, demand: {}, arch: { koleksiyoncu: 4, yazar: 2 }, rare: 3,
+      note: 'Fuar haftası: koleksiyoncular kasabalarda, kolilerden ilk baskı çıkma ihtimali üç kat.' },
+  },
+  'Sonbahar': {
+    2: { id: 'okullar', name: 'Okullar açıldı', icon: '🎒', traffic: 1.15, ask: 1.1, demand: { cocuk: 1.6, tarih: 1.2 }, arch: { ogrenci: 3, anne: 1.5 },
+      note: 'Defterler, kalemler ve tabii kitaplar: öğrenciler yolda.' },
+  },
+  'Kış': {
+    7: { id: 'yilbasi', name: 'Yılbaşı', icon: '🎄', traffic: 1.4, ask: 1.1, demand: { roman: 1.3, cocuk: 1.3 }, arch: { teyze: 2 }, tip: 3,
+      note: 'Hediye telaşı! Kitap en güzel hediye; bahşişler de cömert.' },
+  },
+};
+
 export const EVENTS = {
   zeytin:  { town: 'ayvalik', name: 'Zeytinyağı Festivali', traffic: 1.5, ask: 1, demand: { roman: 1.3, tarih: 1.3 },
     note: 'Bütün bölge zeytin tadımına geliyor. Kalabalık büyük, eski usul roman ve tarih kitapları ilgi görür.' },

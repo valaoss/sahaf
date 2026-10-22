@@ -18,6 +18,9 @@ export const BAL = {
   rareMul: 5,          // ilk baskı koleksiyoncuya kaç katına satılır
   tipPerfect: 5,       // istediği her şeye uyan öneri: bahşiş
   tipGood: 1,          // kısmen uyan öneri: bahşiş
+  hapChance: 0.55,     // bir günde en az bir olay çıkma ihtimali
+  letterChance: 0.35,  // sabah mektup gelme ihtimali (bekleyen tam isabet varsa)
+  questChance: 0.4,    // aktif ilan yokken sabah yeni ilan çıkma ihtimali
   patience: 14,        // öneri isteyen müşterinin bekleme süresi (sn, normal hızda)
   daysPerSeason: 7,
 };

@@ -1,6 +1,6 @@
 // Başsız oyun testleri: gerçek modüller, DOM yok. Kullanım: node tests/sim.test.mjs
 import assert from 'node:assert/strict';
-import { BAL } from '../src/data/balance.js';
+import { BAL, SEASONS } from '../src/data/balance.js';
 import { GENRES, GENRE_KEYS } from '../src/data/genres.js';
 import { TOWNS } from '../src/data/towns.js';
 import { BOOKS, BOOK, TAGS, booksOf } from '../src/data/books.js';
@@ -9,6 +9,10 @@ import { newGame, restore, shelfCount, shelfCap, genreCount, seasonOf } from '..
 import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot } from '../src/game/shop.js';
 import { SPOTS } from '../src/data/spots.js';
 import { ARCHETYPES, ARCH_KEYS } from '../src/data/archetypes.js';
+import { HAPPENINGS } from '../src/data/happenings.js';
+import { VISITORS } from '../src/data/visitors.js';
+import { HAP, chooseHappening, dueHappening } from '../src/game/happenings.js';
+import { offerQuest, settleQuest, questText } from '../src/game/mail.js';
 import { TOWN_KEYS } from '../src/data/towns.js';
 import { WEATHER, EVENTS, EVENT_CHANCE, SEASON } from '../src/data/calendar.js';
 import { PAGES, FINALE_REWARD } from '../src/data/story.js';
@@ -16,7 +20,7 @@ import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR } from '../src/audio/compose
 import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
 import { checkStamps, stampProgress } from '../src/game/stamps.js';
 import { checkStory, nextPage, progressOf } from '../src/game/story.js';
-import { weatherOf, eventOf, dayMods } from '../src/game/calendar.js';
+import { weatherOf, eventOf, dayMods, specialOf } from '../src/game/calendar.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../src/data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint } from '../src/game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, simulateDay } from '../src/game/day.js';
@@ -178,6 +182,7 @@ test('yükseltme: raf büyür, boya değişir', () => {
 });
 
 test('tam gün: stok eksiye düşmez, defter tutarlı, para korunur', () => {
+  const hc = BAL.hapChance; BAL.hapChance = 0;   // olaylar ayrı testte; burada defter sade kalsın
   for (let seed = 1; seed <= 50; seed++) {
     const S = newGame(seed);
     const before = S.coins, stockBefore = shelfCount(S);
@@ -190,6 +195,7 @@ test('tam gün: stok eksiye düşmez, defter tutarlı, para korunur', () => {
     assert.ok(T.visitors >= TOWNS.ayvalik.traffic - BAL.trafficJitter);
     assert.equal(S.day, 2);
   }
+  BAL.hapChance = hc;
 });
 
 test('aynı tohum aynı günü üretir', () => {
@@ -522,6 +528,141 @@ test('ilk baskı: koleksiyoncu istekleri karşılanabilir, müdavim istekleri te
   const S = newGame(4);
   const texts = Array.from({ length: 30 }, () => makeRegular(S, 'hasan').ask.text);
   assert.ok(new Set(texts).size >= 25, 'müdavim cümleleri: ' + new Set(texts).size);
+});
+
+// --- Faz B: sürprizler ---
+test('olaylar: veri tutarlı (kimlik, seçenek, sonuç metni, bilinen etkiler)', () => {
+  const FX = ['coins', 'crowd', 'lose', 'gain', 'gainTag', 'rare', 'heart', 'buff', 'chance', 'fail'];
+  assert.ok(HAPPENINGS.length >= 28);
+  assert.equal(new Set(HAPPENINGS.map(h => h.id)).size, HAPPENINGS.length);
+  for (const h of HAPPENINGS) {
+    assert.ok(h.title && h.text && h.icon && h.choices.length >= 1, h.id);
+    for (const c of h.choices) {
+      assert.ok(c.label && c.result, h.id);
+      for (const k in c.fx) assert.ok(FX.includes(k), h.id + ':' + k);
+      if (c.fx.chance !== undefined) assert.ok(c.failResult, h.id + ' şanslı seçimin başarısız metni');
+    }
+  }
+});
+
+test('olaylar: günde ortalama ~1, koşullara uyar, aynı olay kısa sürede tekrar etmez', () => {
+  const S = newGame(19);
+  S.coins = 1e5;
+  const seen = [];
+  let total = 0;
+  for (let d = 0; d < 120; d++) {
+    if (d % 3 === 0) travel(S, TOWN_KEYS[(d / 3) % 4]);
+    buyBox(S, GENRE_KEYS[d % 6]);
+    openShop(S);
+    for (const h of S.haps) {
+      const H = HAP[h.id], w = H.when || {};
+      if (w.weather) assert.equal(weatherOf(S.day), w.weather, h.id);
+      if (w.season) assert.equal(seasonOf(S.day), w.season, h.id);
+      if (w.minDay) assert.ok(S.day >= w.minDay, h.id);
+      const last = seen.filter(x => x.id === h.id).pop();
+      if (last) assert.ok(S.day - last.day >= 6, h.id + ' bekleme süresi');
+      if (H.once || w.once) assert.ok(!last, h.id + ' bir kerelik');
+      seen.push({ id: h.id, day: S.day });
+      total++;
+    }
+    while (!closingTime(S)) {
+      advanceClock(S, 30).forEach(c => c.ask ? recommend(S, c, bestBook(S, c.ask)) : resolveCustomer(S, c));
+      for (let h; (h = dueHappening(S));) chooseHappening(S, h, d % 2);
+    }
+    closeShop(S); nextMorning(S);
+  }
+  assert.ok(total / 120 > 0.4 && total / 120 < 1.1, 'günde olay: ' + (total / 120).toFixed(2));
+  assert.ok(new Set(seen.map(x => x.id)).size >= 20, 'farklı olay: ' + new Set(seen.map(x => x.id)).size);
+});
+
+test('olaylar: etkiler uygulanır (para, kalabalık, kayıp, ilk baskı, yarına ilgi)', () => {
+  const S = newGame(6);
+  openShop(S);
+  const arrivals = S.arrivals.length, books = shelfCount(S), coins = S.coins;
+  const r1 = chooseHappening(S, 'muzisyen', 0);
+  assert.equal(S.arrivals.length, arrivals + 4);
+  assert.ok(r1.tags.includes('👣 +4'));
+  chooseHappening(S, 'bagis', 0);
+  assert.equal(shelfCount(S), books - 3);
+  const r2 = chooseHappening(S, 'imza', 1);
+  assert.ok(r2.rare && S.rare[r2.rare] >= 1);
+  chooseHappening(S, 'film', 0);
+  assert.equal(S.coins, coins + 30);
+  assert.ok(S.buffs.some(b => b.day === S.day + 1 && b.traffic === 1.3));
+  assert.ok(S.hapDone.includes('film') && S.hapLast.film === S.day);
+});
+
+test('olaylar: yarına kalan ilgi ertesi gün kalabalığı artırır', () => {
+  let boosted = 0, plain = 0;
+  for (let seed = 1; seed <= 30; seed++) {
+    const A = newGame(seed), B = newGame(seed);
+    A.buffs.push({ day: 1, traffic: 1.4 });
+    openShop(A); openShop(B);
+    boosted += A.arrivals.length; plain += B.arrivals.length;
+  }
+  assert.ok(boosted > plain * 1.25, `${boosted} > ${plain}`);
+});
+
+test('mektuplar: yalnız gerçekten tam isabet önerilen kitaplara, en az 5 gün sonra', () => {
+  const S = newGame(8);
+  S.coins = 1e5;
+  // her tam isabeti kayıt dışında da izle (geçmiş sınırlı)
+  const perfectBooks = new Set();
+  for (let d = 0; d < 40; d++) {
+    GENRE_KEYS.forEach(g => buyBox(S, g));
+    simulateDay(S);
+    for (const r of S.recHistory) perfectBooks.add(r.book + '@' + r.day);
+  }
+  assert.ok(S.letters.length >= 3, 'mektup sayısı: ' + S.letters.length);
+  for (const L of S.letters) {
+    assert.ok(L.recDay >= 1 && L.day - L.recDay >= 5, 'en az 5 gün');
+    assert.ok(perfectBooks.has(L.book + '@' + L.recDay), 'gerçekten önerilmiş: ' + L.book);
+    assert.ok(L.text.includes(BOOK[L.book].title) && !/[{}]/.test(L.text), L.text);
+    assert.ok(/^[A-ZÇĞİÖŞÜ«]/.test(L.text), 'büyük harfle başlar: ' + L.text);
+    assert.ok(!/[^.!?] (Geçen|İki|Üç) (hafta|ay)/.test(L.text), 'cümle ortasında küçük harf: ' + L.text);
+  }
+  assert.equal(new Set(S.letters.map(l => l.id)).size, S.letters.length, 'aynı şablon tekrar etmez');
+});
+
+test('ilanlar: çıkar, teslim edilince ödül, süre dolunca kalkar', () => {
+  const S = newGame(2);
+  S.day = 4;
+  let q = null;
+  for (let i = 0; i < 40 && !q; i++) q = offerQuest(S);
+  assert.ok(q, 'ilan çıktı');
+  assert.ok(!/[{}]/.test(questText(q)), questText(q));
+  assert.equal(offerQuest(S), null, 'aktif ilan varken yenisi yok');
+  const ids = q.kind === 'book' ? [q.book] : BOOKS.filter(b => q.kind === 'tag' ? b.tags.includes(q.tag) : b.genre === q.genre).slice(0, q.n).map(b => b.id);
+  for (const id of ids) S.shelf[id] = (S.shelf[id] || 0) + (q.kind === 'book' ? q.n : 1);
+  const coins = S.coins;
+  const r = settleQuest(S, { town: q.town || S.town });
+  assert.ok(r && r.done);
+  assert.equal(S.coins, coins + q.coins);
+  assert.equal(S.quest, null);
+  assert.equal(S.questsDone, 1);
+  const P = newGame(3);
+  P.day = 5;
+  let q2 = null;
+  for (let i = 0; i < 40 && !q2; i++) q2 = offerQuest(P);
+  P.shelf = {};
+  P.day = q2.deadline;
+  assert.deepEqual(settleQuest(P, { town: 'yok' }), { done: false, vid: q2.vid });
+  for (const V of VISITORS) assert.ok(['book', 'tag', 'genre'].includes(V.kind), V.id);
+});
+
+test('özel günler: doğru günde, bütün kasabalarda; fuar ilk baskıyı artırır', () => {
+  const day = (season, n) => SEASONS.indexOf(season) * BAL.daysPerSeason + n;
+  assert.equal(specialOf(day('İlkbahar', 3)).id, 'cocukbayrami');
+  assert.equal(specialOf(day('Kış', 7)).id, 'yilbasi');
+  assert.equal(specialOf(day('İlkbahar', 4)), null);
+  for (const t of TOWN_KEYS) assert.equal(dayMods(day('Yaz', 4), t).special, 'kitapfuari');
+  const rareRate = d => {
+    const S = newGame(5); S.day = d; S.coins = 1e6; S.shelfLv = 2;
+    let r = 0;
+    for (let i = 0; i < 300; i++) { S.shelf = {}; S.rare = {}; buyBox(S, 'roman'); r += S.lastBox.rare.length; }
+    return r;
+  };
+  assert.ok(rareRate(day('Yaz', 4)) > rareRate(day('Yaz', 3)) * 2, 'fuarda ilk baskı');
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {

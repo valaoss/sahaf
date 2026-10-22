@@ -16,9 +16,7 @@ const SPOTS = [{ x: 1250, side: 1 }, { x: 1370, side: 1 }, { x: 470, side: -1 },
 const WALK = 300;      // birim/sn
 const BROWSE = 1.9;    // sn
 
-const NAMES = ['Deniz', 'Elif', 'Mert', 'Zeynep', 'Can', 'Ayşe', 'Emre', 'Selin', 'Kerem', 'Defne', 'Ali', 'Nehir', 'Barış', 'Ece', 'Umut', 'Lale', 'Oya', 'Kaan'];
-// names: müşteri tipinin kendi isim listesi (varsa)
-export const nameOf = (look, names = NAMES) => names[look % names.length];
+export { nameOf } from '../data/archetypes.js';
 
 // o: müdavimler için sabit görünüm (coat, hair, skin, hat, hatC, long, tall, beard, glasses)
 export function personSVG(look, o = {}) {

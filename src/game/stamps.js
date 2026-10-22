@@ -18,6 +18,9 @@ const VALUE = {
   paints: S => S.paints.length,
   coins: S => S.coins,
   rareSold: S => S.totals.rareSold,
+  letters: S => S.lettersTotal || S.letters.length,
+  quests: S => S.questsDone,
+  haps: S => S.hapDone.length,
   story: S => S.pages.length >= PAGES.length ? 1 : 0,
 };
 
