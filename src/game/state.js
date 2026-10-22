@@ -3,6 +3,7 @@ import { BAL, SEASONS } from '../data/balance.js';
 import { GENRE_KEYS } from '../data/genres.js';
 import { BOOK, booksOf } from '../data/books.js';
 import { DEFAULT_DECOR, SHELF_LEVELS } from '../data/decor.js';
+import { SPOTS, firstSpot } from '../data/spots.js';
 import { seedRng, rndInt } from '../core/rng.js';
 
 export const SAVE_V = 2;
@@ -33,6 +34,11 @@ export function newGame(seed = Date.now()) {
     decor: { owned: Object.values(DEFAULT_DECOR), on: { ...DEFAULT_DECOR } },
     paint: 'nane',
     paints: ['nane'],
+    spot: 'iskele',            // kasaba içindeki mekân (data/spots.js)
+    friends: {},               // müdavim → kalp (0..5)
+    met: [],                   // tanışılan müdavimler
+    gifts: [],                 // hediyesini vermiş müdavimler
+    regArrivals: [],           // açık gün: gelecek müdavimler [{ t, id }]
     travelled: false,          // bu sabah yola çıkıldı mı
     clock: BAL.dayStart,
     arrivals: [],              // açık gün: henüz gelmemiş müşterilerin saatleri
@@ -71,8 +77,10 @@ export function restore(saved) {
   const S = Object.assign(newGame(1), saved);
   S.totals = Object.assign(newGame(1).totals, saved.totals);
   for (const id in S.shelf) if (!BOOK[id] || S.shelf[id] <= 0) delete S.shelf[id];
+  if (!SPOTS[S.town]?.[S.spot]) S.spot = firstSpot(S.town);
+  S.regArrivals = S.regArrivals || [];
   // gün ortasında kapanan oyun o sabaha döner (sabah kaydı stok ve parayı zaten tutuyor)
-  if (S.phase === 'open') { S.phase = 'morning'; S.arrivals = []; S.today = null; S.clock = BAL.dayStart; }
+  if (S.phase === 'open') { S.phase = 'morning'; S.arrivals = []; S.regArrivals = []; S.today = null; S.clock = BAL.dayStart; }
   return S;
 }
 

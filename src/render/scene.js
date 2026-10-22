@@ -7,6 +7,7 @@ import { booksOf } from '../data/books.js';
 import { PAINTS } from '../data/decor.js';
 import { shelfCap, genreCounts } from '../game/state.js';
 import { DECOR_ART } from './decor-art.js';
+import { spotArt, GROUND, SHOW_HOUSES } from './spot-art.js';
 
 const cloud = (delay, slow, cy, s) => `
   <g class="drift${slow ? ' slow' : ''}" style="animation-delay:${delay}s">
@@ -26,6 +27,15 @@ const MARKUP = `
       <rect x="4" y="5" width="28" height="13" rx="6" fill="#ead0a3"/><rect x="38" y="5" width="28" height="13" rx="6" fill="#edd5ab"/>
       <rect x="-14" y="23" width="28" height="13" rx="6" fill="#edd5ab"/><rect x="20" y="23" width="28" height="13" rx="6" fill="#ead0a3"/>
       <rect x="56" y="23" width="28" height="13" rx="6" fill="#ead0a3"/>
+    </pattern>
+    <pattern id="sand" width="60" height="40" patternUnits="userSpaceOnUse">
+      <rect width="60" height="40" fill="#f3e0b8"/>
+      <circle cx="10" cy="8" r="2" fill="#e6cc9a"/><circle cx="40" cy="20" r="2.5" fill="#e6cc9a"/><circle cx="24" cy="32" r="1.8" fill="#ead3a8"/><circle cx="52" cy="5" r="1.5" fill="#ead3a8"/>
+    </pattern>
+    <pattern id="grass" width="70" height="44" patternUnits="userSpaceOnUse">
+      <rect width="70" height="44" fill="#dfe3ae"/>
+      <path d="M10 30 l3 -8 l3 8 M44 14 l3 -8 l3 8 M58 38 l2 -6 l2 6" fill="none" stroke="#b9c983" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="30" cy="8" r="2.5" fill="#fff6e8"/><circle cx="64" cy="22" r="2" fill="#f6a5c0"/>
     </pattern>
   </defs>
 
@@ -63,10 +73,11 @@ const MARKUP = `
   </g></g>
 
   <g id="houses"></g>
+  <g id="spotBack"></g>
 
   <!-- zemin -->
-  <rect x="0" y="560" width="1600" height="340" fill="url(#cobble)"/>
-  <rect x="0" y="556" width="1600" height="10" fill="#e3c597"/>
+  <rect id="ground" x="0" y="560" width="1600" height="340" fill="url(#cobble)"/>
+  <rect id="curb" x="0" y="556" width="1600" height="10" fill="#e3c597"/>
 
   <!-- zeytin ağacı -->
   <ellipse cx="160" cy="642" rx="80" ry="12" fill="#d9bb8b" opacity=".7"/>
@@ -257,6 +268,13 @@ export function buildScene(host) {
       $('seaTop').setAttribute('stop-color', t.sea[0]);
       $('seaBot').setAttribute('stop-color', t.sea[1]);
       drawHouses($('houses'), 7 + TOWN_KEYS.indexOf(key) * 101);
+    },
+    // kasaba içindeki mekân: arka plan, zemin, evlerin görünürlüğü
+    setSpot(scene, town) {
+      $('spotBack').innerHTML = spotArt(scene, town);
+      $('ground').setAttribute('fill', GROUND[scene]);
+      $('curb').setAttribute('fill', scene === 'sahil' ? '#ecd3a4' : scene === 'tepe' ? '#c9d38f' : '#e3c597');
+      $('houses').style.display = SHOW_HOUSES[scene] ? '' : 'none';
     },
     setStock(S) {
       drawShelves($('shelves'), S.shelf, shelfCap(S));

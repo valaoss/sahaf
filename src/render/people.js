@@ -19,10 +19,11 @@ const BROWSE = 1.9;    // sn
 const NAMES = ['Deniz', 'Elif', 'Mert', 'Zeynep', 'Can', 'Ayşe', 'Emre', 'Selin', 'Kerem', 'Defne', 'Ali', 'Nehir', 'Barış', 'Ece', 'Umut', 'Lale', 'Oya', 'Kaan'];
 export const nameOf = look => NAMES[look % NAMES.length];
 
-export function personSVG(look) {
+// o: müdavimler için sabit görünüm (coat, hair, skin, hat, hatC, long, tall, beard, glasses)
+export function personSVG(look, o = {}) {
   const r = seeded(look), pick = a => a[Math.floor(r() * a.length)];
-  const coat = pick(COATS), hair = pick(HAIR), skin = pick(SKIN), pants = pick(PANTS), hat = Math.floor(r() * 3), hatC = pick(HATS);
-  const long = r() > .5, tall = 0.92 + r() * .16;
+  const rolled = { coat: pick(COATS), hair: pick(HAIR), skin: pick(SKIN), pants: pick(PANTS), hat: Math.floor(r() * 3), hatC: pick(HATS), long: r() > .5, tall: 0.92 + r() * .16 };
+  const { coat, hair, skin, pants, hat, hatC, long, tall, beard, glasses } = { ...rolled, ...o };
   const coatDark = coat === '#fff1d6' ? '#e9d3ad' : 'rgba(0,0,0,.12)';
   const hatSvg = hat === 0 ? '' : hat === 1
     ? `<path d="M-40 590 C-34 552 34 548 44 586 C20 576 -16 578 -40 590Z" fill="${hatC}"/><circle cx="4" cy="552" r="9" fill="#fff4e0"/>`
@@ -48,6 +49,8 @@ export function personSVG(look) {
       <circle cx="-14" cy="620" r="1.6" fill="#fff"/><circle cx="18" cy="620" r="1.6" fill="#fff"/>
       <circle cx="-28" cy="636" r="8" fill="#f59a8e" opacity=".55"/><circle cx="28" cy="636" r="8" fill="#f59a8e" opacity=".55"/>
       <path d="M-6 640 Q0 646 6 640" fill="none" stroke="#7a4e3c" stroke-width="3" stroke-linecap="round"/>
+      ${beard ? `<path d="M-40 622 C-40 672 40 672 40 622 C30 648 -30 648 -40 622Z" fill="${hair}"/><path d="M-14 640 Q0 632 14 640 Q0 646 -14 640Z" fill="${hair}"/>` : ''}
+      ${glasses ? '<g fill="none" stroke="#5a3d30" stroke-width="3"><circle cx="-16" cy="622" r="11"/><circle cx="16" cy="622" r="11"/><path d="M-5 622 L5 622"/></g>' : ''}
       ${hatSvg}
     </g>
     </g>`;
@@ -67,7 +70,7 @@ export function createCrowd(layer, fx, handlers) {
     const spot = free[Math.floor(Math.random() * free.length)];
     const g = el('g', {}, layer);
     const flip = el('g', {}, g);
-    flip.innerHTML = personSVG(c.look);
+    flip.innerHTML = personSVG(c.look, c.style);
     // dokunma alanı (yalnızca öneri isteyende işe yarar)
     el('rect', { x: -60, y: 470, width: 120, height: 340, fill: 'transparent' }, g);
     const bubble = el('g', { class: 'bubble' }, g);
@@ -135,7 +138,7 @@ export function createCrowd(layer, fx, handlers) {
           if (Math.abs(d) <= step) {
             p.x = p.spot.x; p.t = 0;
             p.g.classList.remove('walking');
-            if (p.c.ask) { p.state = 'wait'; p.g.classList.add('asking'); say(p, '❓'); }
+            if (p.c.ask) { p.state = 'wait'; p.g.classList.add('asking'); say(p, p.c.reg ? '💌' : '❓'); }
             else { p.state = 'browse'; say(p, GENRES[p.c.wants].icon); }
           } else p.x += Math.sign(d) * step;
           place(p, Math.sign(d));

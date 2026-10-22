@@ -17,10 +17,18 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Atölye: raf 30 → 40 → 50; karavan boyası (5 renk)
 - Yolculuk ödülü: yeni gelinen kasabada +5 ziyaretçi; simülasyonda her gün gezmek artık biraz kârlı
 
-Sırada (Faz 1, ikinci tur):
-- Kasaba içinde 2–3 mekân (iskele, pazar, kale önü), her biri farklı kalabalık
-- Müdavim müşteriler: aynı kişi tekrar gelir, zevkini hatırlar
-- Kitap listesini büyütmek (türde 20+), etiketleri dengelemek
+### Faz 1 — ikinci tur ✅
+- Kasaba içi mekânlar (9): iskele, çarşı, liman, ada tepesi, kale önü, kayalıklar, değirmenler, plaj; her biri kendi
+  kalabalığı, öneri sıklığı, tür zevki ve istek konularıyla. Üç sahne tipi: sahil (kum, iskele, şemsiye), çarşı
+  (tezgâhlar, flamalar), tepe (Foça'da kale, Alaçatı'da yel değirmenleri, Cunda'da şapel)
+- Müdavimler (8, kasaba başına 2): sabit görünüş ve kişilik, 💌 balonuyla gelir, zevkine göre öneri ister;
+  tam isabet = 1 kalp, 3 kalpte ek bahşiş, 5 kalpte hediye (4 özel süs ya da ₺40 ve bir not)
+- Kitaplar 120'ye çıktı (türde 20)
+- Geliştirme: `?sahne=foca/kale&panel=spot|decor|gift|rec&kim=hasan&susler=...` önizleme parametreleri (yalnız dev)
+
+Sırada:
+- Müdavimlere küçük hikâye zincirleri (Faz 2'ye geçiş): her kalpte yeni bir konuşma
+- Sabah gazetesi ve etkinlik takvimi (atlanabilir)
 
 ## Faz 2 — dünya
 - İsimli karakterler ve dostluk, kasabaların hikâyesi, sabah gazetesi ve etkinlik takvimi (atlanabilir)

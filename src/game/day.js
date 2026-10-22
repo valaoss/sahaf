@@ -2,7 +2,8 @@
 import { BAL } from '../data/balance.js';
 import { TOWNS } from '../data/towns.js';
 import { rnd, rndInt } from '../core/rng.js';
-import { makeCustomer, resolveCustomer, recommend, bestBook } from './shop.js';
+import { REGULARS, REGULAR_KEYS, VISIT_CHANCE } from '../data/regulars.js';
+import { makeCustomer, makeRegular, resolveCustomer, recommend, bestBook, spotOf } from './shop.js';
 import { effects } from './decor.js';
 
 export function openShop(S) {
@@ -10,7 +11,7 @@ export function openShop(S) {
   const len = BAL.dayEnd - BAL.dayStart;
   // yeni gelinen kasabada karavanı merak edenler de uğrar
   const newTown = S.town !== S.prevTown;
-  const base = TOWNS[S.town].traffic + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
+  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic) + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
   const n = Math.max(4, base + rndInt(S, BAL.trafficJitter * 2 + 1) - BAL.trafficJitter);
   const times = [];
   for (let i = 0; i < n; i++) {
@@ -22,7 +23,10 @@ export function openShop(S) {
   S.phase = 'open';
   S.clock = BAL.dayStart;
   S.arrivals = times;
-  S.today = { town: S.town, newTown, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 } };
+  // kasabanın müdavimleri bazı günler uğrar
+  S.regArrivals = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town && rnd(S) < VISIT_CHANCE)
+    .map(id => ({ id, t: Math.round(BAL.dayStart + 30 + rnd(S) * (len - 90)) })).sort((a, b) => a.t - b.t);
+  S.today = { town: S.town, spot: S.spot, newTown, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 } };
   return null;
 }
 
@@ -32,10 +36,11 @@ export function advanceClock(S, minutes) {
   S.clock = Math.min(S.clock + minutes, BAL.dayEnd);
   const due = [];
   while (S.arrivals.length && S.arrivals[0] <= S.clock) { S.arrivals.shift(); due.push(makeCustomer(S)); }
+  while (S.regArrivals.length && S.regArrivals[0].t <= S.clock) due.push(makeRegular(S, S.regArrivals.shift().id));
   return due;
 }
 
-export const closingTime = S => S.phase === 'open' && S.clock >= BAL.dayEnd && !S.arrivals.length;
+export const closingTime = S => S.phase === 'open' && S.clock >= BAL.dayEnd && !S.arrivals.length && !S.regArrivals.length;
 
 export function closeShop(S) {
   if (S.phase !== 'open') return null;

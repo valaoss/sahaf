@@ -3,7 +3,10 @@
 import { BAL } from '../data/balance.js';
 import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { TOWNS } from '../data/towns.js';
-import { BOOK, booksOf, TAGS, ASK_ONE, ASK_TWO } from '../data/books.js';
+import { BOOK, BOOKS, booksOf, TAGS, ASK_ONE, ASK_TWO } from '../data/books.js';
+import { SPOTS, firstSpot } from '../data/spots.js';
+import { REGULARS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../data/regulars.js';
+import { DECOR } from '../data/decor.js';
 import { rnd, rndInt, rndPick, weighted } from '../core/rng.js';
 import { shelfCount, shelfCap, genreCount, takeBook } from './state.js';
 import { effects } from './decor.js';
@@ -51,7 +54,17 @@ export function travel(S, key) {
   S.coins -= BAL.travelCost;
   S.totals.spent += BAL.travelCost;
   S.town = key;
+  S.spot = firstSpot(key);
   S.travelled = true;
+  return null;
+}
+
+export const spotOf = S => SPOTS[S.town][S.spot];
+
+export function chooseSpot(S, key) {
+  if (S.phase !== 'morning') return 'Mekân yalnızca sabah değişir.';
+  if (!SPOTS[S.town][key]) return 'Bu kasabada böyle bir yer yok.';
+  S.spot = key;
   return null;
 }
 
@@ -64,9 +77,11 @@ export function rescue(S) {
   return gift;
 }
 
-// Kasabanın zevki × süslerin etkisi
+// Kasabanın zevki × mekân × süslerin etkisi
 export function demandOf(S, townKey = S.town) {
   const d = { ...TOWNS[townKey].demand }, mul = effects(S).demand;
+  const spot = townKey === S.town ? spotOf(S).demand : {};
+  for (const g in spot) d[g] *= spot[g];
   for (const g in mul) d[g] *= mul[g];
   return d;
 }
@@ -86,11 +101,17 @@ export function askText(tags, pick) {
 
 export function makeCustomer(S) {
   const c = { id: S.nextId++, wants: weighted(S, demandOf(S)), look: Math.floor(rnd(S) * 1e9) };
-  if (rnd(S) < BAL.askChance) {
+  if (rnd(S) < BAL.askChance * spotOf(S).ask) {
     // gerçek bir kitaptan yola çıkılır: istek her zaman en az bir kitapla tam karşılanabilir.
-    // Çoğu zaman bu kitap rafta olandır (çeşitli raf ödüllendirilir), bazen raf dışındandır.
+    // Çoğu zaman bu kitap rafta olandır (çeşitli raf ödüllendirilir), bazen raf dışındandır;
+    // raf dışındaysa yarı yarıya mekânın havasına uyan bir kitaptır (iskelede deniz, kalede savaş…).
     const onShelf = Object.keys(S.shelf);
-    const target = onShelf.length && rnd(S) < BAL.askFromShelf ? BOOK[rndPick(S, onShelf.sort())] : rndPick(S, booksOf(c.wants));
+    let target;
+    if (onShelf.length && rnd(S) < BAL.askFromShelf) target = BOOK[rndPick(S, onShelf.sort())];
+    else {
+      const moody = BOOKS.filter(b => b.tags.some(t => spotOf(S).tags.includes(t)));
+      target = rnd(S) < 0.5 ? rndPick(S, moody) : rndPick(S, booksOf(c.wants));
+    }
     c.wants = target.genre;
     const tags = target.tags.slice();
     for (let i = tags.length - 1; i > 0; i--) { const j = rndInt(S, i + 1); [tags[i], tags[j]] = [tags[j], tags[i]]; }
@@ -98,6 +119,36 @@ export function makeCustomer(S) {
     c.ask = { tags: tags.slice(0, n), text: askText(tags.slice(0, n), arr => rndPick(S, arr)) };
   }
   return c;
+}
+
+// Müdavim: zevkine en çok uyan kitaplardan birinden yola çıkan bir istek
+export function makeRegular(S, id) {
+  const R = REGULARS[id];
+  const overlap = b => b.tags.filter(t => R.likes.includes(t)).length;
+  const best = Math.max(...BOOKS.map(overlap));
+  // raftakilerden uyanı varsa çoğunlukla onu ister (karşılanabilir kalsın)
+  const shelfFit = Object.keys(S.shelf).map(i => BOOK[i]).filter(b => overlap(b) >= 2);
+  const target = shelfFit.length && rnd(S) < BAL.askFromShelf
+    ? rndPick(S, shelfFit.sort((a, b) => a.id < b.id ? -1 : 1))
+    : rndPick(S, BOOKS.filter(b => overlap(b) >= Math.min(best, 2)));
+  const tags = target.tags.filter(t => R.likes.includes(t)).slice(0, 2);
+  return { id: S.nextId++, reg: id, wants: R.genre, look: R.look, style: R.style,
+    ask: { tags, text: askText(tags, arr => rndPick(S, arr)) } };
+}
+
+// Kalp ekle; eşikleri geçince ödül bilgisini döndür
+function befriend(S, id, res) {
+  const before = S.friends[id] || 0;
+  if (before >= HEARTS_MAX) return;
+  const now = before + 1;
+  S.friends[id] = now;
+  res.friend = { id, hearts: now };
+  if (now === HEARTS_MAX && !S.gifts.includes(id)) {
+    S.gifts.push(id);
+    const R = REGULARS[id];
+    if (R.gift && DECOR[R.gift]) { S.decor.owned.push(R.gift); res.friend.gift = R.gift; }
+    else { S.coins += GIFT_COINS; res.friend.coins = GIFT_COINS; }
+  }
 }
 
 // Raftaki o türden bir kitap (çok olan daha olası)
@@ -166,10 +217,16 @@ export function recommend(S, c, id) {
       sell(S, id, res);
       res.happy = true;
       res.tip = (res.grade === 'perfect' ? BAL.tipPerfect : BAL.tipGood) + effects(S).tip;
+      if (c.reg && (S.friends[c.reg] || 0) >= HEARTS_TIP) res.tip += REGULAR_TIP;
       res.paid += res.tip;
       T.tips += res.tip;
       if (res.grade === 'perfect') S.totals.perfect++;
     }
+  }
+  if (c.reg) {
+    if (!S.met.includes(c.reg)) S.met.push(c.reg);
+    if (res.grade === 'perfect') befriend(S, c.reg, res);
+    (T.regulars = T.regulars || []).push({ id: c.reg, grade: res.grade });
   }
   T.recs[res.grade]++;
   return settle(S, res);

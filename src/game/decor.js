@@ -23,6 +23,7 @@ export function equipDecor(S, key) {
   const why = morningOnly(S);
   if (why) return why;
   if (!S.decor.owned.includes(key)) {
+    if (d.gift) return 'Bu bir hediye: bir müdavimle dost olunca gelir.';
     if (S.coins < d.price) return 'Paran yetmiyor.';
     S.coins -= d.price;
     S.totals.spent += d.price;

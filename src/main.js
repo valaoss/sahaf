@@ -8,10 +8,12 @@ import { TOWNS } from './data/towns.js';
 import { GENRES } from './data/genres.js';
 import { DECOR, PAINTS } from './data/decor.js';
 import { newGame, shelfCount, shelfCap } from './game/state.js';
-import { buyBox, travel, resolveCustomer, recommend, rescue } from './game/shop.js';
+import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular } from './game/shop.js';
+import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
-import { loadGame, saveGame } from './core/save.js';
+import { loadGame, saveGame as persistGame } from './core/save.js';
+import { SPOTS } from './data/spots.js';
 import { tap } from './core/native.js';
 import { buildScene } from './render/scene.js';
 import { createCrowd } from './render/people.js';
@@ -21,6 +23,13 @@ const MIN_PER_SEC = (BAL.dayEnd - BAL.dayStart) / 120;   // normal hızda bir g�
 const FAST = 3;
 
 const S = loadGame() || newGame();
+// geliştirme: ?sahne=foca/kale ile kayda dokunmadan bir mekânı aç (ekran görüntüleri için)
+const PREVIEW = import.meta.env.DEV && new URLSearchParams(location.search).get('sahne');
+if (PREVIEW) {
+  const [town, spot] = PREVIEW.split('/');
+  if (SPOTS[town]?.[spot]) Object.assign(S, { town, spot, phase: 'morning' });
+}
+const saveGame = PREVIEW ? () => {} : persistGame;
 const scene = buildScene(document.getElementById('scene'));
 let speed = 1;
 
@@ -36,7 +45,9 @@ const crowd = createCrowd(scene.people, scene.fx, {
       const r = recommend(S, c, id);
       if (r.bought.length) { scene.setStock(S); tap(r.grade === 'perfect' ? 'MEDIUM' : 'LIGHT'); }
       crowd.answer(c, r);
-      if (r.grade === 'perfect') ui.toast(`Tam isabet! Bahşiş ₺${r.tip}`);
+      if (r.friend?.gift || r.friend?.coins) { saveGame(S); ui.giftPanel(r.friend); }
+      else if (r.friend) ui.toast(`💛 ${REGULARS[c.reg].name} ile aranız ısınıyor (${r.friend.hearts}/${HEARTS_MAX})`);
+      else if (r.grade === 'perfect') ui.toast(`Tam isabet! Bahşiş ₺${r.tip}`);
       else if (r.grade === 'good') ui.toast('Fena değil, ama tam aradığı bu değildi.');
       else ui.toast(id ? 'Bu kitap ona hiç uymadı…' : 'Bir dahaki sefere belki.');
     });
@@ -46,6 +57,13 @@ const crowd = createCrowd(scene.people, scene.fx, {
 
 const ui = createUI(document.getElementById('ui'), (a, arg) => {
   if (a === 'stock') ui.stockPanel(S);
+  else if (a === 'spot') {
+    if (!arg) return ui.spotPanel(S);
+    const why = chooseSpot(S, arg);
+    if (why) return ui.toast(why);
+    saveGame(S);
+    changeTown(() => { ui.closePanel(); ui.toast(`📍 Karavan kuruldu: ${spotOf(S).name}`); });
+  }
   else if (a === 'decor') ui.decorPanel(S);
   else if (a === 'map') ui.mapPanel(S);
   else if (a === 'buy') {
@@ -95,16 +113,30 @@ function changeTown(done) {
   fade.classList.add('on');
   setTimeout(() => {
     scene.setTown(S.town);
+    scene.setSpot(spotOf(S).scene, S.town);
     done && done();
     fade.classList.remove('on');
   }, 500);
 }
 
 scene.setTown(S.town);
+scene.setSpot(spotOf(S).scene, S.town);
 scene.setStock(S);
 scene.setDecor(S.decor.on);
 scene.setPaint(PAINTS[S.paint] ? S.paint : 'nane');
 // açılış: krem perde yazı tipi ve sahne hazır olunca kalkar
+if (PREVIEW) {
+  document.getElementById('fade').style.display = 'none';
+  // ?susler=zeytin,kabuk,fok · ?panel=spot|decor|gift
+  const q = new URLSearchParams(location.search);
+  for (const k of (q.get('susler') || '').split(',')) if (DECOR[k]) S.decor.on[DECOR[k].slot] = k;
+  scene.setDecor(S.decor.on);
+  const panel = q.get('panel');
+  if (panel === 'spot') ui.spotPanel(S);
+  if (panel === 'decor') ui.decorPanel(S);
+  if (panel === 'rec') ui.recPanel(S, makeRegular(S, q.get('kim') || 'hasan'), () => {});
+  if (panel === 'gift') ui.giftPanel({ id: 'hasan', hearts: 5, gift: 'zeytin' });
+}
 document.fonts.ready.then(() => setTimeout(() => document.getElementById('fade').classList.remove('boot'), 50));
 if (S.phase === 'evening' && S.lastDay) { scene.setDusk(1); ui.summaryPanel(S, S.lastDay); }
 if (S.totals.days === 0 && S.phase === 'morning') {

@@ -21,6 +21,21 @@ export const DECOR_ART = {
       <path d="M0 0 L0 30 L-20 16Z" fill="#5b8bd0"/><path d="M0 0 L-30 0 L-16 -20Z" fill="#8bc49a"/>
       <circle r="5" fill="#fff6e8"/></g></g>`,
 
+  zeytin: `<g class="sway"><circle cx="0" cy="-46" r="36" fill="none" stroke="#7f9c5a" stroke-width="8"/>
+    <g fill="#9cb67f">${Array.from({ length: 12 }, (_, i) => { const a = i / 12 * Math.PI * 2; return `<ellipse cx="${(Math.cos(a) * 36).toFixed(1)}" cy="${(-46 + Math.sin(a) * 36).toFixed(1)}" rx="10" ry="5" transform="rotate(${(a * 180 / Math.PI + 60).toFixed(0)} ${(Math.cos(a) * 36).toFixed(1)} ${(-46 + Math.sin(a) * 36).toFixed(1)})"/>`; }).join('')}</g>
+    <g fill="#5d6e45"><circle cx="-30" cy="-30" r="5"/><circle cx="26" cy="-70" r="5"/><circle cx="34" cy="-36" r="5"/></g>
+    <path d="M-12 -8 L0 -14 L12 -8 L8 4 L0 -4 L-8 4Z" fill="#f08a7e"/></g>`,
+  degirmen: `<path d="M-16 0 L-11 -60 L11 -60 L16 0Z" fill="#fffaf2"/><path d="M-14 -60 Q0 -78 14 -60Z" fill="#c96f5a"/>
+    <rect x="-5" y="-18" width="10" height="18" rx="5" fill="#5b8bd0"/>
+    <g transform="translate(0 -64)"><g class="spin">
+      <path d="M0 0 L-4 -46 L4 -46Z M0 0 L46 -4 L46 4Z M0 0 L4 46 L-4 46Z M0 0 L-46 4 L-46 -4Z" fill="#8a6a4f"/>
+      <path d="M-3 -42 L-16 -40 L-15 -14 L-3 -11Z M42 -3 L40 -16 L14 -15 L11 -3Z M3 42 L16 40 L15 14 L3 11Z M-42 3 L-40 16 L-14 15 L-11 3Z" fill="#fff4e0"/>
+      <circle r="5" fill="#5a3d30"/></g></g>`,
+  kabuk: `<path d="M-20 0 L20 0 L22 -40 L-22 -40Z" fill="#cfe8f2" opacity=".85" stroke="#9cc7e0" stroke-width="2"/>
+    <rect x="-24" y="-48" width="48" height="10" rx="4" fill="#c9a676"/>
+    <path d="M-14 -6 C-18 -18 -6 -22 -4 -10Z" fill="#f6a5c0"/><path d="M2 -6 L10 -24 L16 -6Z" fill="#f2c45a"/>
+    <circle cx="-8" cy="-28" r="6" fill="#fff6e8"/><path d="M6 -28 C10 -38 18 -34 14 -28Z" fill="#f09a5e"/>
+    <path d="M28 0 C28 -16 44 -16 44 0Z" fill="#f6a5c0"/><path d="M30 -2 L36 -12 M36 -2 L36 -13 M42 -2 L36 -12" stroke="#e57f73" stroke-width="1.5"/>`,
   // --- sergi masası ---
   bos: '',
   ayicik: `<g transform="translate(0 -2)">
@@ -76,6 +91,15 @@ export const DECOR_ART = {
     <rect x="-24" y="-112" width="10" height="32" rx="2" fill="#5b8bd0"/><rect x="-12" y="-108" width="9" height="28" rx="2" fill="#f2c45a"/>
     <rect x="-1" y="-114" width="11" height="34" rx="2" fill="#8bc49a"/><rect x="12" y="-110" width="10" height="30" rx="2" fill="#b98ad6"/>
     <text x="0" y="-150" text-anchor="middle" font-size="13" font-weight="700" fill="#fff6e8">ASKIDA</text>`,
+  fok: `<ellipse cx="0" cy="2" rx="46" ry="8" fill="#c9a676" opacity=".6"/>
+    <rect x="-40" y="-26" width="80" height="26" rx="6" fill="#d6c094"/><rect x="-40" y="-26" width="80" height="6" rx="3" fill="#e2cfa9"/>
+    <path d="M-36 -26 C-40 -60 -10 -76 10 -70 C24 -66 30 -50 28 -40 C40 -40 46 -32 40 -26Z" fill="#9aa7b3"/>
+    <circle cx="8" cy="-82" r="20" fill="#9aa7b3"/>
+    <circle cx="2" cy="-86" r="3.5" fill="#3d2b24"/><circle cx="16" cy="-86" r="3.5" fill="#3d2b24"/>
+    <ellipse cx="10" cy="-77" rx="7" ry="5" fill="#c3ccd4"/><circle cx="10" cy="-80" r="2.5" fill="#3d2b24"/>
+    <path d="M2 -74 L-10 -72 M2 -76 L-10 -78 M18 -74 L30 -72 M18 -76 L30 -78" stroke="#5a6570" stroke-width="1.5"/>
+    <path d="M-24 -34 C-34 -28 -36 -20 -30 -18 Z" fill="#7d8a96"/>
+    <circle cx="-4" cy="-104" r="9" fill="#f08a7e"/><circle cx="-4" cy="-104" r="4" fill="#fff6e8"/>`,
   lamba: `<ellipse cx="0" cy="2" rx="34" ry="7" fill="#c9a676" opacity=".6"/>
     <rect x="-16" y="-14" width="32" height="16" rx="5" fill="#4f5b66"/>
     <rect x="-5" y="-250" width="10" height="240" rx="5" fill="#4f5b66"/>

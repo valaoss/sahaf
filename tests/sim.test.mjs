@@ -6,7 +6,9 @@ import { TOWNS } from '../src/data/towns.js';
 import { BOOKS, BOOK, TAGS, booksOf } from '../src/data/books.js';
 import { DECOR, SHELF_LEVELS, PAINTS } from '../src/data/decor.js';
 import { newGame, restore, shelfCount, shelfCap, genreCount, seasonOf } from '../src/game/state.js';
-import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, askText, demandOf } from '../src/game/shop.js';
+import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot } from '../src/game/shop.js';
+import { SPOTS } from '../src/data/spots.js';
+import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../src/data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint } from '../src/game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, simulateDay } from '../src/game/day.js';
 
@@ -14,8 +16,8 @@ let passed = 0;
 const test = (name, fn) => { fn(); passed++; console.log('✓ ' + name); };
 const emptyShelf = S => { S.shelf = {}; };
 
-test('veri: her türde 10 kitap, etiketler tanımlı, kimlikler benzersiz', () => {
-  for (const g of GENRE_KEYS) assert.equal(booksOf(g).length, 10, g);
+test('veri: her türde 20 kitap, etiketler tanımlı, kimlikler benzersiz', () => {
+  for (const g of GENRE_KEYS) assert.equal(booksOf(g).length, 20, g);
   assert.equal(new Set(BOOKS.map(b => b.id)).size, BOOKS.length);
   for (const b of BOOKS) for (const t of b.tags) assert.ok(TAGS[t], `${b.id}: ${t}`);
   for (const k in DECOR) assert.ok(['roof', 'table', 'ground'].includes(DECOR[k].slot));
@@ -187,7 +189,7 @@ test('aynı tohum aynı günü üretir', () => {
 test('saat parça parça ilerleyince de bütün müşteriler gelir', () => {
   const S = newGame(9);
   openShop(S);
-  const n = S.arrivals.length;
+  const n = S.arrivals.length + S.regArrivals.length;
   let seen = 0;
   while (!closingTime(S)) seen += advanceClock(S, 0.7).length;
   assert.equal(seen, n);
@@ -224,6 +226,85 @@ test('iflas koruması: kasa ve raf boşsa en ucuz koli kadar destek', () => {
   assert.equal(S.coins, Math.min(...GENRE_KEYS.map(boxCost)));
   assert.ok(gift > 0);
   assert.equal(rescue(S), 0);
+});
+
+test('mekân: sabah seçilir, kalabalığı ve zevki değiştirir, yolculukta ilk mekâna döner', () => {
+  for (const t in SPOTS) for (const k in SPOTS[t]) {
+    const sp = SPOTS[t][k];
+    assert.ok(['sahil', 'carsi', 'tepe'].includes(sp.scene), k);
+    for (const tag of sp.tags) assert.ok(TAGS[tag], k + ':' + tag);
+    for (const g in sp.demand) assert.ok(GENRES[g], k + ':' + g);
+  }
+  const S = newGame(4);
+  assert.equal(S.spot, 'iskele');
+  assert.equal(chooseSpot(S, 'kale'), 'Bu kasabada böyle bir yer yok.');
+  assert.equal(chooseSpot(S, 'carsi'), null);
+  assert.equal(demandOf(S).cocuk, TOWNS.ayvalik.demand.cocuk * SPOTS.ayvalik.carsi.demand.cocuk);
+  let busy = 0, calm = 0;
+  for (let seed = 1; seed <= 20; seed++) {
+    const A = newGame(seed); chooseSpot(A, 'carsi'); busy += simulateDay(A).visitors;
+    calm += simulateDay(newGame(seed)).visitors;
+  }
+  assert.ok(busy > calm, `çarşı ${busy} > iskele ${calm}`);
+  travel(S, 'cunda');
+  assert.equal(S.spot, 'liman');
+  openShop(S);
+  assert.equal(chooseSpot(S, 'tepe'), 'Mekân yalnızca sabah değişir.');
+});
+
+test('müdavim: zevkine uyan, karşılanabilir istek; kasabasında uğrar', () => {
+  for (const id of REGULAR_KEYS) {
+    const S = newGame(7);
+    const c = makeRegular(S, id);
+    assert.equal(c.reg, id);
+    assert.ok(c.ask.tags.length >= 1 && c.ask.tags.every(t => REGULARS[id].likes.includes(t)), id);
+    assert.ok(BOOKS.some(b => matchGrade(c.ask, b.id) === 'perfect'), id);
+  }
+  let seen = 0;
+  for (let seed = 1; seed <= 40; seed++) {
+    const T = simulateDay(newGame(seed));
+    seen += (T.regulars || []).length;
+    for (const r of T.regulars || []) assert.equal(REGULARS[r.id].town, 'ayvalik');
+  }
+  assert.ok(seen > 20 && seen < 60, 'iki müdavim, %45 ihtimal: ' + seen);
+});
+
+test('dostluk: tam isabet kalp verir, 3 kalpte ek bahşiş, 5 kalpte hediye', () => {
+  const S = newGame(8);
+  openShop(S);
+  const give = id => {
+    const c = makeRegular(S, id);
+    const book = BOOKS.find(b => matchGrade(c.ask, b.id) === 'perfect');
+    S.shelf = { [book.id]: 1 };
+    return recommend(S, c, book.id);
+  };
+  let r;
+  for (let i = 1; i <= HEARTS_TIP; i++) r = give('hasan');
+  assert.equal(S.friends.hasan, HEARTS_TIP);
+  r = give('hasan');
+  assert.equal(r.tip, BAL.tipPerfect + REGULAR_TIP, '3 kalpten sonra ek bahşiş');
+  r = give('hasan');
+  assert.equal(S.friends.hasan, HEARTS_MAX);
+  assert.equal(r.friend.gift, 'zeytin');
+  assert.ok(S.decor.owned.includes('zeytin'));
+  assert.equal(give('hasan').friend, undefined, 'en fazla 5 kalp');
+  for (let i = 0; i < HEARTS_MAX; i++) r = give('melis');
+  assert.equal(r.friend.coins, GIFT_COINS, 'süs hediyesi olmayan para verir');
+  const c = makeRegular(S, 'ruya');
+  S.shelf = { garip: 1 };
+  recommend(S, c, 'garip');
+  assert.equal(S.friends.ruya, undefined, 'uymayan öneri kalp vermez');
+  assert.ok(S.met.includes('ruya'));
+});
+
+test('hediye süs satın alınamaz, alınınca takılır', () => {
+  const S = newGame(1);
+  S.coins = 999;
+  assert.equal(equipDecor(S, 'fok'), 'Bu bir hediye: bir müdavimle dost olunca gelir.');
+  S.decor.owned.push('fok');
+  assert.equal(equipDecor(S, 'fok'), null);
+  assert.equal(S.coins, 999);
+  assert.equal(effects(S).traffic, DECOR.fok.effect.traffic);
 });
 
 console.log(`\n${passed} test geçti`);

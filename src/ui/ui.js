@@ -8,12 +8,17 @@ import { DECOR, SLOTS, PAINTS } from '../data/decor.js';
 import { shelfCount, shelfCap, genreCount, seasonOf, dayOfSeason } from '../game/state.js';
 import { boxCost, canBuyBox, canTravel, topDemand } from '../game/shop.js';
 import { nextShelf } from '../game/decor.js';
+import { SPOTS } from '../data/spots.js';
+import { REGULARS, REGULAR_KEYS, HEARTS_MAX } from '../data/regulars.js';
 import { personSVG, nameOf } from '../render/people.js';
 
 const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 const chips = (obj, cls = '') => Object.keys(obj).sort((a, b) => obj[b] - obj[a])
   .map(g => `<span class="chip ${cls}" style="--c:${GENRES[g].color}">${GENRES[g].icon} ${GENRES[g].name} <b>×${obj[g]}</b></span>`).join('');
-const tagChips = tags => tags.map(t => `<span class="tag">${TAGS[t].icon} ${TAGS[t].name}</span>`).join('');
+const hearts = n => '♥'.repeat(n) + '♡'.repeat(HEARTS_MAX - n);
+const SCENE_ICON = { sahil: '🏖️', carsi: '🛍️', tepe: '⛰️' };
+const level = (x, lo, hi) => x >= hi ? 'çok' : x <= lo ? 'az' : 'orta';
+const tagChips = tags =>tags.map(t => `<span class="tag">${TAGS[t].icon} ${TAGS[t].name}</span>`).join('');
 
 export function createUI(root, act) {
   root.innerHTML = `
@@ -57,11 +62,13 @@ export function createUI(root, act) {
     $('coins').textContent = S.coins;
     $('shelf').textContent = `${shelfCount(S)}/${shelfCap(S)}`;
     const b = $('bottom');
-    const want = S.phase + speed;
+    const want = S.phase + speed + S.spot;
     if (b.dataset.k === want) return;
     b.dataset.k = want;
     if (S.phase === 'morning') {
-      b.innerHTML = `<button class="btn" data-a="stock">📦 Toptancı</button>
+      const sp = SPOTS[S.town][S.spot];
+      b.innerHTML = `<button class="btn" data-a="spot">📍 ${sp.name}</button>
+        <button class="btn" data-a="stock">📦 Toptancı</button>
         <button class="btn" data-a="decor">🪴 Süsle</button>
         <button class="btn" data-a="map">🗺️ Harita</button>
         <button class="btn hl" data-a="open">🔔 Dükkânı aç</button>`;
@@ -94,10 +101,53 @@ export function createUI(root, act) {
     p.querySelector('[data-close]').onclick = closePanel;
   }
 
+  function spotPanel(S) {
+    const spots = SPOTS[S.town];
+    const cards = Object.keys(spots).map(k => {
+      const sp = spots[k], here = S.spot === k;
+      const hot = Object.keys(sp.demand).map(g => GENRES[g].icon).join(' ');
+      return `<div class="dcard spot ${here ? 'is-on' : ''}"><div class="dicon">${SCENE_ICON[sp.scene]}</div>
+        <div><div class="gname">${sp.name}</div><div class="gmeta">${sp.desc}</div>
+        <div class="gmeta">👣 Kalabalık: <b>${level(sp.traffic, .9, 1.2)}</b> · 💬 Öneri: <b>${level(sp.ask, .9, 1.3)}</b> · Sevilen: ${hot}</div></div>
+        ${here ? '<span class="on">✓ Buradasın</span>' : `<button class="btn sm" data-spot="${k}">Burada kur</button>`}</div>`;
+    }).join('');
+    const regs = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town).map(id => {
+      const met = S.met.includes(id);
+      return `<span class="chip reg">${met ? REGULARS[id].name : '❔ Henüz tanışmadın'} <b class="hearts">${hearts(S.friends[id] || 0)}</b></span>`;
+    }).join('');
+    const p = openPanel(`
+      <h2>📍 Karavanı nereye kuralım?</h2>
+      <p class="hint">${TOWNS[S.town].name} içinde yer değiştirmek ücretsiz. Kalabalık yerde satış, sakin yerde sohbet ve öneri çok olur.</p>
+      <div class="dgrid one">${cards}</div>
+      <h3>Bu kasabanın müdavimleri</h3><div class="chips">${regs}</div>
+      <p class="hint">Müdavimler 💌 balonuyla gelir. Zevklerine tam uyan her öneri bir kalp; 5 kalpte bir hediye bırakırlar.</p>
+      <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
+    p.querySelectorAll('[data-spot]').forEach(b => b.onclick = () => act('spot', b.dataset.spot));
+    p.querySelector('[data-close]').onclick = closePanel;
+  }
+
+  // Müdavimin hediyesi: küçük bir mektup
+  function giftPanel(f) {
+    const R = REGULARS[f.id], d = f.gift && DECOR[f.gift];
+    const p = openPanel(`
+      <div class="letter">
+        <h2>💌 Bir not var · ${R.name}</h2>
+        <p class="say">“${R.giftNote}”</p>
+        ${d ? `<div class="dcard is-on"><div class="dicon">${d.icon}</div><div><div class="gname">${d.name}</div><div class="gmeta">${d.desc}</div></div></div>
+          <p class="hint">🪴 Süsle panelinden takabilirsin.</p>` : `<p class="gold big">+₺${f.coins}</p>`}
+      </div>
+      <div class="row end"><button class="btn hl" data-close>Teşekkürler!</button></div>`);
+    p.querySelector('[data-close]').onclick = closePanel;
+  }
+
   function decorPanel(S) {
     const slots = Object.keys(SLOTS).map(slot => {
       const items = Object.keys(DECOR).filter(k => DECOR[k].slot === slot).map(k => {
         const d = DECOR[k], on = S.decor.on[slot] === k, owned = S.decor.owned.includes(k);
+        if (d.gift && !owned) {
+          return `<div class="dcard locked"><div class="dicon">🎁</div>
+            <div><div class="gname">Gizli hediye</div><div class="gmeta">Bir müdavimle dost ol (${TOWNS[REGULARS[d.gift].town].name}).</div></div></div>`;
+        }
         const btn = on ? '<span class="on">✓ Takılı</span>'
           : `<button class="btn sm ${!owned && S.coins < d.price ? 'off' : ''}" data-decor="${k}">${owned ? 'Tak' : `₺${d.price} · Al`}</button>`;
         return `<div class="dcard ${on ? 'is-on' : ''}"><div class="dicon">${d.icon}</div>
@@ -141,10 +191,15 @@ export function createUI(root, act) {
         <span class="btitle">${b.title}</span><span class="bauthor">${b.author}</span>
         <span class="btags">${tagChips(b.tags)}</span>${S.shelf[b.id] > 1 ? `<span class="bcount">×${S.shelf[b.id]}</span>` : ''}
       </button>`).join('');
+    const R = c.reg && REGULARS[c.reg];
+    const first = R && !S.met.includes(c.reg);
+    const who = R ? `${R.name} <span class="hearts">${hearts(S.friends[c.reg] || 0)}</span>` : nameOf(c.look);
     const p = openPanel(`
       <div class="rec-head">
-        <div class="portrait"><svg viewBox="-62 540 124 150">${personSVG(c.look)}</svg></div>
-        <div><div class="name">${nameOf(c.look)}</div><p class="say">“${c.ask.text}”</p></div>
+        <div class="portrait"><svg viewBox="-62 540 124 150">${personSVG(c.look, c.style)}</svg></div>
+        <div><div class="name">${who}</div>
+          ${first ? `<p class="hello">“${R.hello}”</p>` : ''}
+          <p class="say">“${c.ask.text}”</p></div>
       </div>
       <div class="tabs">${tabs}</div>
       <div class="bgrid">${cards || '<p class="hint">Rafta hiç kitap yok…</p>'}</div>
@@ -234,6 +289,7 @@ export function createUI(root, act) {
         <div><span>Toplam</span><b>🪙 ${S.coins}</b></div>
       </div>
       <p>${profitNote}${T.newTown ? ` Yeni kasabada karavanı merak edenler de uğradı.` : ''}</p>
+      ${(T.regulars || []).length ? `<p class="recline">Uğrayan müdavimler: ${T.regulars.map(r => `${REGULARS[r.id].name} ${r.grade === 'perfect' ? '💛' : r.grade === 'good' ? '🙂' : '😕'} <span class="hearts">${hearts(S.friends[r.id] || 0)}</span>`).join(' · ')}</p>` : ''}
       ${T.soldCount ? `<div class="chips">${chips(T.sold)}</div>` : ''}
       ${recLine}
       ${Object.keys(T.missed).length ? `<p class="hint">Aranıp bulunamayan:</p><div class="chips">${chips(T.missed, 'miss')}</div>` : ''}
@@ -242,5 +298,5 @@ export function createUI(root, act) {
     p.querySelector('[data-next]').onclick = () => { closePanel(); act('next'); };
   }
 
-  return { hud, toast, stockPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  return { hud, toast, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }
