@@ -18,6 +18,7 @@ import { nextPage, progressOf } from '../game/story.js';
 import { STAMPS, STAMP_REWARD } from '../data/stamps.js';
 import { stampProgress } from '../game/stamps.js';
 import { personSVG, nameOf } from '../render/people.js';
+import { ARCHETYPES } from '../data/archetypes.js';
 
 const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 const chips = (obj, cls = '') => Object.keys(obj).sort((a, b) => obj[b] - obj[a])
@@ -201,18 +202,20 @@ export function createUI(root, act) {
       <button class="bcard" data-book="${b.id}" data-g="${b.genre}" style="--c:${GENRES[b.genre].color}">
         <span class="btitle">${b.title}</span><span class="bauthor">${b.author}</span>
         <span class="btags">${tagChips(b.tags)}</span>${S.shelf[b.id] > 1 ? `<span class="bcount">×${S.shelf[b.id]}</span>` : ''}
+        ${S.rare[b.id] ? `<span class="rarebadge">✨ İlk baskı${S.rare[b.id] > 1 ? ' ×' + S.rare[b.id] : ''}</span>` : ''}
       </button>`).join('');
     const R = c.reg && REGULARS[c.reg];
     // ilk karşılaşmada kendini tanıtır, sonra kalp sayısına göre hikâyesinden bir parça anlatır
     const h = R ? S.friends[c.reg] || 0 : 0;
     const chat = !R ? null : !S.met.includes(c.reg) ? R.hello : h ? R.story[h - 1] : null;
-    const who = R ? `${R.name} <span class="hearts">${hearts(h)}</span>` : nameOf(c.look);
+    const who = R ? `${R.name} <span class="hearts">${hearts(h)}</span>`
+      : `${nameOf(c.look, ARCHETYPES[c.arch]?.names)}${c.arch ? ` <span class="arch">· ${ARCHETYPES[c.arch].name}</span>` : ''}`;
     const p = openPanel(`
       <div class="rec-head">
         <div class="portrait"><svg viewBox="-62 540 124 150">${personSVG(c.look, c.style)}</svg></div>
         <div><div class="name">${who}</div>
           ${chat ? `<p class="hello">“${chat}”</p>` : ''}
-          <p class="say">“${c.ask.text}”</p></div>
+          <p class="say">“${c.ask.text}”</p>${c.ask.rare ? '<p class="hint">✨ İlk baskı arıyor: ilk baskı verirsen kat kat öder.</p>' : ''}</div>
       </div>
       <div class="tabs">${tabs}</div>
       <div class="bgrid">${cards || '<p class="hint">Rafta hiç kitap yok…</p>'}</div>

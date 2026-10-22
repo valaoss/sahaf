@@ -113,6 +113,7 @@ const STYLES = {
   bora:   { hair: '#6a4434', beard: true, hat: 0, coat: '#8bc49a', skin: '#eec09c', long: false },
 };
 for (const id in STYLES) REGULARS[id].style = STYLES[id];
+REGULARS.ela.voice = 'cocuk';
 
 export const REGULAR_KEYS = Object.keys(REGULARS);
 export const GIFT_COINS = 40;

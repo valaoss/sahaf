@@ -17,6 +17,8 @@ export const STAMPS = [
   { id: 'susler',    name: 'Süs meraklısı',     icon: '🪴', color: '#e3f1d8', need: { decor: 8 },      desc: '8 süs eşyasına sahip ol.' },
   { id: 'raflar',    name: 'Dolu raflar',       icon: '🗄️', color: '#efe3d2', need: { shelfLv: 2 },    desc: 'Rafları en büyük hâline getir.' },
   { id: 'gokkusagi', name: 'Gökkuşağı karavan', icon: '🌈', color: '#f3e2f7', need: { paints: 5 },     desc: 'Beş boyanın hepsini al.' },
+  { id: 'nadir',     name: 'İlk baskı',         icon: '✨', color: '#fff4c4', need: { rareSold: 1 },   desc: 'Bir koleksiyoncuya ilk baskı sat.' },
+  { id: 'nadir5',    name: 'Nadir kitap avcısı', icon: '🗝️', color: '#f0e2c8', need: { rareSold: 5 },   desc: 'Beş ilk baskı sat.' },
   { id: 'kasa',      name: 'Dolu kasa',         icon: '💰', color: '#fdeec4', need: { coins: 1000 },   desc: 'Kasada ₺1000 biriktir.' },
   { id: 'yil',       name: 'Bir yıl',           icon: '🍂', color: '#f7e1c6', need: { days: 28 },      desc: 'Dört mevsimi tamamla (28 gün).' },
   { id: 'kutuphane', name: 'Kayıp kütüphane',   icon: '🏛️', color: '#e6dccb', need: { story: 1 },      desc: 'Kostas Efendi\'nin defterini tamamla.' },

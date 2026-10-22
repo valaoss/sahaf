@@ -14,6 +14,8 @@ export const BAL = {
   newTownTraffic: 5,   // dün başka kasabadaydıysan: yeni karavanı merak eden ek ziyaretçi
   askChance: 0.2,      // müşterinin öneri isteme ihtimali
   askFromShelf: 0.6,   // isteğin raftaki bir kitaptan doğma ihtimali (kalanı tüm katalogdan)
+  rareChance: 0.05,    // kolideki her kitabın ilk baskı çıkma ihtimali
+  rareMul: 5,          // ilk baskı koleksiyoncuya kaç katına satılır
   tipPerfect: 5,       // istediği her şeye uyan öneri: bahşiş
   tipGood: 1,          // kısmen uyan öneri: bahşiş
   patience: 14,        // öneri isteyen müşterinin bekleme süresi (sn, normal hızda)

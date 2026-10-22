@@ -53,6 +53,43 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Gün sonu özetinde ve sabah alışverişlerinden sonra yeni pul bildirimi
 - Hikâye bitince kapanış ekranı (istatistikler, en yakın dost), sonra oyun sürüyor
 
+## Sahaf 2.0 (plan: tekrar etmeyen, şaşırtan içerik)
+### Faz A — çeşitlilik çekirdeği ✅
+- 240 kitap (türde 40), her etiket en az 12 kitapta; her etiketin 3 söyleyişi
+- 11 müşteri tipi (öğrenci, emekli öğretmen, balıkçı, turist, anne, çocuk, genç âşık, yazar adayı, koleksiyoncu,
+  yaşlı teyze, sörfçü): kendi zevki, üslubu, görünüşü, ismi; mekâna ve mevsime göre gelme ağırlığı
+- İstek dilbilgisi: selam + bağlam (tip, hava, mevsim, mekân) + istek + kapanış; 1000+ istekte %85+ benzersiz
+- Tekrar bekçisi (game/memory.js): son 40 cümle, 20 hedef kitap, 4 müşteri tipi penceresi
+- İlk baskılar: kolide %5, rafta altın sırt; normal müşteriye satılmaz, koleksiyoncu 5 katına alır; 2 yeni pul
+- Sıradaki: Faz B (gün içi olaylar, mektuplar, gizemli ziyaretçiler, özel günler)
+
+## Faz 2 başlangıcı ✅
+- Sabah gazetesi (Ege Postası): günün havası, bugünün ve yarının etkinliği, kasabadan haber; her sabah açılır,
+  üstteki konum hapına dokununca tekrar açılır
+- Hava (güneşli / bulutlu / yağmurlu / rüzgârlı): kalabalığı ve öneri isteğini değiştirir; yağmur ve rüzgâr sahnede görünür
+- Etkinlikler (Zeytinyağı Festivali, Ada Resim Sergisi, Fok Gözlem Günü, Ot Festivali): günlerin ~%35'inde bir kasabada;
+  kalabalık ×1.4–1.6, festival balonları. Atlanabilir: gitmezsen ceza yok, simülasyonda festivali kovalamak en kârlısı
+- Müdavim hikâyeleri: her kalpte yeni bir konuşma (8 × 5 satır)
+
+### Faz 2 — ana hikâye ve mevsimler ✅
+- Ana hikâye "Kostas Efendi'nin kayıp kütüphanesi": 8 defter sayfası, sırayla açılır (dört kasaba, 10 tam isabet,
+  3 kalp, festival, 150 satış, en büyük raf, Cunda tepesinde final). İlk sayfa (teyzenin mektubu) oyun başında açılır.
+  Final ödülü: Kostas'ın feneri (çatı süsü) + ₺150. 📜 Defter panelinde sayfalar, sıradaki ipucu ve ilerleme (x/y)
+- Mevsimler (7 gün): yaz kalabalık, kış sakin ama sohbet bol; yağmur kışın 9 kat sık. Ağaç rengi, ilkbaharda
+  çiçek, sonbaharda yaprak düşer, kışın serin ton. Gazetede mevsim notu
+
+### Ses ve müzik ✅
+- Hiç ses dosyası yok: Web Audio ile üretiliyor (src/audio). Müzik: mevsime göre akor ve tempo değişen, gitar
+  tıngırtısı + bas + yumuşak pad + ara sıra çan melodisi (compose.js saf ve test edilebilir)
+- Efektler: düğme, kasa, kalp, üzgün, sayfa, koli, zil, yolculuk; yağmurlu günlerde yağmur sesi
+- ⚙️ Ayarlar: müzik ve efektler ayrı ayrı, "Baştan başla" (iki adımlı onay); ayarlar kayıtla birlikte saklanır
+
+### Pul albümü ve kapanış ✅
+- 18 pul (başarım): satış, isabet, gezi, dokuz mekân, festival türleri, yağmur, dostluk, hediyeler, süsler, raflar,
+  boyalar, kasa, bir yıl, hikâye; her biri ₺15. Defter panelinde "Pul albümü" sekmesi, kalanların ilerlemesiyle
+- Gün sonu özetinde ve sabah alışverişlerinden sonra yeni pul bildirimi
+- Hikâye bitince kapanış ekranı (istatistikler, en yakın dost), sonra oyun sürüyor
+
 Sırada:
 - Telefonda geri bildirime göre dokunma ve yazı boyutu ayarları
 - İngilizce dil desteği, iOS paketleme (Mac'te)

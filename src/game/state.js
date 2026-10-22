@@ -30,6 +30,9 @@ export function newGame(seed = Date.now()) {
     town: 'ayvalik',
     prevTown: 'ayvalik',       // dünkü kasaba (yeni kasaba ilgisi için)
     shelf: {},                 // kitap kimliği → adet
+    rare: {},                  // bu kopyalardan kaçı ilk baskı (koleksiyoncuya saklanır)
+    recent: {},                // tekrar bekçisi (game/memory.js)
+    recHistory: [],            // tam isabetli öneriler: mektuplar için
     shelfLv: 0,
     decor: { owned: Object.values(DEFAULT_DECOR), on: { ...DEFAULT_DECOR } },
     paint: 'nane',
@@ -51,7 +54,7 @@ export function newGame(seed = Date.now()) {
     arrivals: [],              // açık gün: henüz gelmemiş müşterilerin saatleri
     today: null,               // açık gün: o günün defteri
     lastDay: null,             // son kapanan günün özeti
-    totals: { days: 0, sold: 0, revenue: 0, spent: 0, perfect: 0, festivals: 0 },
+    totals: { days: 0, sold: 0, revenue: 0, spent: 0, perfect: 0, festivals: 0, rareSold: 0 },
     nextId: 1,
     rng: 0,
   };
@@ -84,6 +87,7 @@ export function restore(saved) {
   const S = Object.assign(newGame(1), saved);
   S.totals = Object.assign(newGame(1).totals, saved.totals);
   for (const id in S.shelf) if (!BOOK[id] || S.shelf[id] <= 0) delete S.shelf[id];
+  for (const id in S.rare) if (!S.shelf[id] || S.rare[id] <= 0) delete S.rare[id]; else S.rare[id] = Math.min(S.rare[id], S.shelf[id]);
   if (!SPOTS[S.town]?.[S.spot]) S.spot = firstSpot(S.town);
   S.regArrivals = S.regArrivals || [];
   // gün ortasında kapanan oyun o sabaha döner (sabah kaydı stok ve parayı zaten tutuyor)

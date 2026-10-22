@@ -6,9 +6,10 @@ import './style.css';
 import { BAL } from './data/balance.js';
 import { TOWNS } from './data/towns.js';
 import { GENRES } from './data/genres.js';
+import { BOOK } from './data/books.js';
 import { DECOR, PAINTS } from './data/decor.js';
 import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
-import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular } from './game/shop.js';
+import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
@@ -94,7 +95,12 @@ const act = (a, arg) => {
   else if (a === 'buy') {
     const why = buyBox(S, arg);
     if (why) ui.toast(why);
-    else { tap(); sfx('box'); scene.setStock(S); saveGame(S); ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap raflara dizildi`); }
+    else {
+      tap(); sfx('box'); scene.setStock(S); saveGame(S);
+      const rare = S.lastBox.rare;
+      if (rare.length) { sfx('heart'); ui.toast(`✨ Kolide bir ilk baskı çıktı: ${BOOK[rare[0]].title}! Koleksiyoncuya sakla.`); }
+      else ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap raflara dizildi`);
+    }
     ui.stockPanel(S);
   } else if (a === 'decor-on') {
     const why = equipDecor(S, arg);
@@ -182,6 +188,8 @@ if (PREVIEW) {
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
+  if (q.has('nadir')) { const ids = Object.keys(S.shelf); S.rare = { [ids[0]]: 1, [ids[7]]: 1 }; scene.setStock(S); }
+  if (panel === 'koleksiyoncu') { let c; do c = makeCustomer(S); while (!(c.ask && c.ask.rare)); ui.recPanel(S, c, () => {}); }
   if (panel === 'album') { S.stamps = ['ilkgun', 'isabet', 'elli', 'ege', 'festival', 'yagmur', 'dost']; S.totals.sold = 120; ui.albumPanel(S); }
   if (panel === 'finale') { Object.assign(S.totals, { days: 34, sold: 512, perfect: 61 }); S.friends = { hasan: 5, ela: 4 }; S.stamps = STAMPS.slice(0, 14).map(s => s.id); ui.finalePanel(S, () => {}); }
   if (panel === 'book') { S.pages = ['miras', 'dostlar', 'liste']; S.visited = ['ayvalik', 'cunda']; ui.bookPanel(S); }

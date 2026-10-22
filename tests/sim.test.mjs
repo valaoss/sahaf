@@ -8,6 +8,7 @@ import { DECOR, SHELF_LEVELS, PAINTS } from '../src/data/decor.js';
 import { newGame, restore, shelfCount, shelfCap, genreCount, seasonOf } from '../src/game/state.js';
 import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot } from '../src/game/shop.js';
 import { SPOTS } from '../src/data/spots.js';
+import { ARCHETYPES, ARCH_KEYS } from '../src/data/archetypes.js';
 import { TOWN_KEYS } from '../src/data/towns.js';
 import { WEATHER, EVENTS, EVENT_CHANCE, SEASON } from '../src/data/calendar.js';
 import { PAGES, FINALE_REWARD } from '../src/data/story.js';
@@ -24,8 +25,10 @@ let passed = 0;
 const test = (name, fn) => { fn(); passed++; console.log('✓ ' + name); };
 const emptyShelf = S => { S.shelf = {}; };
 
-test('veri: her türde 20 kitap, etiketler tanımlı, kimlikler benzersiz', () => {
-  for (const g of GENRE_KEYS) assert.equal(booksOf(g).length, 20, g);
+test('veri: her türde 40 kitap, etiketler tanımlı, kimlikler benzersiz, her etiket en az 12 kitapta', () => {
+  for (const g of GENRE_KEYS) assert.equal(booksOf(g).length, 40, g);
+  for (const t in TAGS) assert.ok(BOOKS.filter(b => b.tags.includes(t)).length >= 12, t);
+  for (const t in TAGS) assert.ok(Array.isArray(TAGS[t].say) && TAGS[t].say.length >= 3, t);
   assert.equal(new Set(BOOKS.map(b => b.id)).size, BOOKS.length);
   for (const b of BOOKS) for (const t of b.tags) assert.ok(TAGS[t], `${b.id}: ${t}`);
   for (const k in DECOR) assert.ok(['roof', 'table', 'ground'].includes(DECOR[k].slot));
@@ -439,6 +442,86 @@ test('pullar: normal oyunda gün kapanınca kazanılır; mekân, hava ve festiva
   simulateDay(S);
   assert.ok(S.festKinds.includes(eventOf(d)));
   assert.ok(S.stamps.includes('festival'));
+});
+
+// --- Faz A: çeşitlilik ---
+function manyAsks(seed, n, setup = () => {}) {
+  const S = newGame(seed);
+  setup(S);
+  const asks = [];
+  for (let i = 0; i < n; i++) {
+    if (i % 40 === 0) { S.day = 2 + (i / 40 | 0); S.town = TOWN_KEYS[(i / 40 | 0) % 4]; S.spot = Object.keys(SPOTS[S.town])[(i / 160 | 0) % Object.keys(SPOTS[S.town]).length]; }
+    const c = makeCustomer(S);
+    if (c.ask) asks.push(c);
+  }
+  return { S, asks };
+}
+
+test('çeşitlilik: istek cümleleri çok farklı, tekrar penceresinde aynı cümle yok', () => {
+  const { asks } = manyAsks(77, 6000);
+  const texts = asks.map(c => c.ask.text);
+  assert.ok(texts.length > 1000, 'yeterli istek: ' + texts.length);
+  const ratio = new Set(texts).size / texts.length;
+  assert.ok(ratio > 0.85, 'benzersiz oran ' + ratio.toFixed(3));
+  let clash = 0;
+  for (let i = 1; i < texts.length; i++) if (texts.slice(Math.max(0, i - 40), i).includes(texts[i])) clash++;
+  assert.equal(clash, 0, 'son 40 istekte aynı cümle');
+  for (const t of texts) assert.ok(!/[{}]/.test(t) && /^[A-ZÇĞİÖŞÜ]/.test(t) && /[.!?…]$/.test(t), t);
+});
+
+test('çeşitlilik: hedef kitap kısa aralıkla tekrar etmez, müşteri tipleri mevsime göre değişir', () => {
+  const { asks } = manyAsks(5, 3000);
+  let near = 0;
+  const targets = asks.map(c => c.ask.tags.join('+') + c.wants);
+  for (let i = 1; i < asks.length; i++) if (targets.slice(Math.max(0, i - 3), i).includes(targets[i])) near++;
+  assert.ok(near / asks.length < 0.08, 'art arda aynı istek: ' + near);
+  const count = (season, arch) => {
+    const S = newGame(9);
+    S.day = { 'Yaz': 8, 'Kış': 22 }[season];
+    S.spot = 'carsi';
+    let n = 0;
+    for (let i = 0; i < 2000; i++) if (makeCustomer(S).arch === arch) n++;
+    return n;
+  };
+  assert.ok(count('Yaz', 'turist') > count('Kış', 'turist') * 3, 'yazın turist çok');
+  for (const k of ARCH_KEYS) assert.ok(['resmi', 'samimi', 'genc', 'cocuk', 'turist'].includes(ARCHETYPES[k].voice), k);
+});
+
+test('ilk baskı: kolilerden arada çıkar, normal müşteriye satılmaz, koleksiyoncu kat kat öder', () => {
+  const S = newGame(14);
+  S.coins = 1e6; S.shelfLv = 2;
+  let rare = 0, books = 0;
+  for (let i = 0; i < 400; i++) {
+    S.shelf = {}; S.rare = {};
+    buyBox(S, GENRE_KEYS[i % 6]);
+    rare += S.lastBox.rare.length; books += 5;
+  }
+  assert.ok(Math.abs(rare / books - BAL.rareChance) < 0.02, 'oran ' + rare / books);
+  // yalnız ilk baskı varsa normal müşteri o türü bulamaz
+  openShop(S);
+  S.shelf = { hobbit: 1 }; S.rare = { hobbit: 1 };
+  const r = resolveCustomer(S, { id: 1, wants: 'fantastik', look: 1 });
+  assert.equal(r.bought.length, 0);
+  assert.equal(S.shelf.hobbit, 1);
+  // koleksiyoncu: ilk baskıya kat kat, normal baskıya en fazla 'good'
+  const ask = { tags: ['macera'], rare: true };
+  const ok = recommend(S, { id: 2, arch: 'koleksiyoncu', ask, look: 1 }, 'hobbit');
+  assert.equal(ok.grade, 'perfect');
+  assert.equal(ok.paid, GENRES.fantastik.price * BAL.rareMul + BAL.tipPerfect);
+  assert.equal(S.rare.hobbit, undefined);
+  assert.equal(S.totals.rareSold, 1);
+  S.shelf = { hobbit: 1 };
+  assert.equal(recommend(S, { id: 3, arch: 'koleksiyoncu', ask, look: 1 }, 'hobbit').grade, 'good');
+});
+
+test('ilk baskı: koleksiyoncu istekleri karşılanabilir, müdavim istekleri tekrar etmez', () => {
+  const { asks } = manyAsks(3, 8000);
+  const rareAsks = asks.filter(c => c.ask.rare);
+  assert.ok(rareAsks.length > 5, 'koleksiyoncu istekleri: ' + rareAsks.length);
+  for (const c of rareAsks) { assert.equal(c.arch, 'koleksiyoncu'); assert.equal(c.ask.tags.length, 1); }
+  const S = newGame(4);
+  const texts = Array.from({ length: 30 }, () => makeRegular(S, 'hasan').ask.text);
+  assert.ok(new Set(texts).size >= 25, 'müdavim cümleleri: ' + new Set(texts).size);
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {

@@ -17,7 +17,8 @@ const WALK = 300;      // birim/sn
 const BROWSE = 1.9;    // sn
 
 const NAMES = ['Deniz', 'Elif', 'Mert', 'Zeynep', 'Can', 'Ayşe', 'Emre', 'Selin', 'Kerem', 'Defne', 'Ali', 'Nehir', 'Barış', 'Ece', 'Umut', 'Lale', 'Oya', 'Kaan'];
-export const nameOf = look => NAMES[look % NAMES.length];
+// names: müşteri tipinin kendi isim listesi (varsa)
+export const nameOf = (look, names = NAMES) => names[look % names.length];
 
 // o: müdavimler için sabit görünüm (coat, hair, skin, hat, hatC, long, tall, beard, glasses)
 export function personSVG(look, o = {}) {
@@ -117,7 +118,7 @@ export function createCrowd(layer, fx, handlers) {
     p.res = r;
     if (r.grade) say(p, r.grade === 'perfect' ? '🤩' : r.grade === 'good' ? '🙂' : '😕');
     else say(p, r.happy ? '💛' : r.bought.length ? '🙂' : '😕');
-    if (r.paid) floatText(p.x, `+₺${r.paid}`, '#c7802b');
+    if (r.paid) floatText(p.x, `+₺${r.paid}${r.rare ? ' ✨' : ''}`, r.rare ? '#d9961a' : '#c7802b');
     else if (!r.grade) floatText(p.x, GENRES[p.c.wants].icon + '✕', '#a07d6c');
     if (r.grade === 'perfect') hearts(p.x);
     p.state = 'browse';
