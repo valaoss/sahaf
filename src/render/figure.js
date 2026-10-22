@@ -118,8 +118,29 @@ function face(t) {
     ${t.glasses ? `<g fill="#fff" fill-opacity=".18" stroke="#4a3a33" stroke-width="1.8"><circle cx="-8" cy="-29" r="6.5"/><circle cx="8" cy="-29" r="6.5"/></g><path d="M-1.5 -29 L1.5 -29" stroke="#4a3a33" stroke-width="1.8"/>` : ''}`;
 }
 
-export function personSVG(look, o = {}) {
+// Elde taşınanlar (kolun yerel koordinatında; el 68'de). Şemsiye başın üstünde açılır, fener elden sarkar.
+const UMB = ['#f08a7e', '#5b8bd0', '#f2c45a', '#8bc49a', '#b98ad6', '#e57f73'];
+function umbrellaSVG(t, hx) {
+  const c = UMB[t.seed % UMB.length], cy = -112;
+  return `<g class="p-umb"><path d="M${hx} 70 L${hx} ${cy}" stroke="#5a4636" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M${hx} 70 q0 10 -7 10" fill="none" stroke="#5a4636" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M${hx - 66} ${cy + 26} C${hx - 60} ${cy - 22} ${hx + 60} ${cy - 22} ${hx + 66} ${cy + 26} Q${hx + 44} ${cy + 16} ${hx + 22} ${cy + 26} Q${hx} ${cy + 16} ${hx - 22} ${cy + 26} Q${hx - 44} ${cy + 16} ${hx - 66} ${cy + 26}Z" fill="${c}"/>
+    <path d="M${hx} ${cy - 10} C${hx - 14} ${cy} ${hx - 22} ${cy + 14} ${hx - 22} ${cy + 26} M${hx} ${cy - 10} C${hx + 14} ${cy} ${hx + 22} ${cy + 14} ${hx + 22} ${cy + 26}" fill="none" stroke="#000" stroke-opacity=".12" stroke-width="2"/>
+    <path d="M${hx - 50} ${cy + 4} C${hx - 36} ${cy - 12} ${hx - 18} ${cy - 14} ${hx - 8} ${cy - 12}" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="${hx}" cy="${cy - 13}" r="3" fill="#5a4636"/></g>`;
+}
+function lanternSVG(hx) {
+  return `<g class="p-lantern" transform="translate(${hx} 70) scale(1.55) translate(${-hx} -70)"><g class="lantern-glow"><circle cx="${hx}" cy="97" r="34" fill="#ffd56b" opacity=".22"/><circle cx="${hx}" cy="97" r="20" fill="#ffe7a0" opacity=".45"/></g>
+    <path d="M${hx} 70 L${hx} 82" stroke="#4a3a33" stroke-width="2"/><path d="M${hx - 7} 82 L${hx + 7} 82 L${hx + 5} 86 L${hx - 5} 86Z" fill="#4a3a33"/>
+    <rect x="${hx - 8}" y="86" width="16" height="22" rx="4" fill="#ffd56b" stroke="#4a3a33" stroke-width="2.4"/>
+    <path d="M${hx} 88 L${hx} 106" stroke="#4a3a33" stroke-width="1.4" opacity=".5"/><circle cx="${hx}" cy="98" r="3.4" fill="#fff6c2" class="twinkle"/>
+    <path d="M${hx - 6} 108 L${hx + 6} 108 L${hx + 3} 112 L${hx - 3} 112Z" fill="#4a3a33"/></g>`;
+}
+
+export function personSVG(look, o = {}, carry = {}) {
   const t = figureTraits(look, o), m = figureMeta(look, o);
+  t.seed = Math.abs(look | 0);
+  t.umbrella = !!carry.umbrella; t.lantern = !!carry.lantern;
   const w = t.build, sw = 21 * w, hw = 17 * w;                       // omuz ve kalça yarı genişliği
   const top = t.top, topD = shade(top, 0.82), bot = t.bottom;
   const skirt = t.outfit === 'skirt' || t.outfit === 'dress', dress = t.outfit === 'dress', shorts = t.outfit === 'shorts';
@@ -140,6 +161,7 @@ export function personSVG(look, o = {}) {
       <circle cx="${side * 6}" cy="68" r="5.5" fill="${t.skin}"/>
       ${side > 0 ? `<g class="p-book"><rect x="-4" y="58" width="18" height="24" rx="2" fill="#5b8bd0" transform="rotate(-12 5 70)"/><rect x="-1" y="61" width="12" height="3" rx="1" fill="#fff" opacity=".6" transform="rotate(-12 5 70)"/></g>` : ''}
       ${side > 0 && t.cane ? `<path d="M${side * 6} 66 L${side * 10} 146" stroke="#7a4e33" stroke-width="4" stroke-linecap="round"/>` : ''}
+      ${side > 0 && t.umbrella ? umbrellaSVG(t, 6) : ''}${side < 0 && t.lantern ? lanternSVG(-6) : ''}
     </g></g>`;
 
   // gövde: gömlek + (ceket ya da üst) + (etek ya da elbise)
@@ -148,7 +170,7 @@ export function personSVG(look, o = {}) {
     ${t.outfit === 'jacket' ? `<path d="M-${sw} -150 Q-${sw + 3} -118 -${hw} -80 L-3 -80 L-4 -136 L-8 -153Z" fill="${top}"/><path d="M${sw} -150 Q${sw + 3} -118 ${hw} -80 L3 -80 L4 -136 L8 -153Z" fill="${top}"/>
       <circle cx="-6" cy="-112" r="1.8" fill="${topD}"/><circle cx="-6" cy="-96" r="1.8" fill="${topD}"/>` : `<path d="M-7 -153 L0 -142 L7 -153" fill="none" stroke="${topD}" stroke-width="2.5"/>`}
     <path d="M${sw * 0.35} -152 Q${sw + 3} -118 ${hw} -80 L${hw * 0.4} -80Z" fill="#000" opacity=".07"/>
-    ${skirt ? `<path d="M-${hw + 1} -${dress ? 92 : 84} L-${hw + 11} -32 Q0 -26 ${hw + 11} -32 L${hw + 1} -${dress ? 92 : 84}Z" fill="${dress ? top : bot}"/>
+    ${skirt ? `<path class="p-skirt" d="M-${hw + 1} -${dress ? 92 : 84} L-${hw + 11} -32 Q0 -26 ${hw + 11} -32 L${hw + 1} -${dress ? 92 : 84}Z" fill="${dress ? top : bot}"/>
       <path d="M-${hw + 11} -32 Q0 -26 ${hw + 11} -32 L${hw + 10} -36 Q0 -30 -${hw + 10} -36Z" fill="#000" opacity=".1"/>` : `<rect x="-${hw}" y="-86" width="${hw * 2}" height="6" fill="${shade(bot, 0.85)}"/>`}
     ${t.outfit === 'jacket' || !skirt ? '' : ''}`;
 
@@ -195,6 +217,7 @@ function sideView(t, m) {
       <path d="M1 36 L3 64" stroke="${sleeveLong ? (dark ? shade(top, 0.8) : top) : (dark ? shade(sk, 0.85) : sk)}" stroke-width="${sleeveLong ? 11 : 9}" stroke-linecap="round"/>
       <circle cx="3" cy="68" r="5.5" fill="${dark ? shade(sk, 0.85) : sk}"/>
       ${!dark && t.cane ? '<path d="M3 66 L14 146" stroke="#7a4e33" stroke-width="4" stroke-linecap="round"/>' : ''}
+      ${!dark && t.umbrella ? umbrellaSVG(t, 3) : ''}${dark && t.lantern ? lanternSVG(3) : ''}
     </g></g>`;
   // profil baş: yüz sağa, burun çıkıntısı, tek göz, kulak; saç arkada
   const hairSide = {
@@ -230,7 +253,7 @@ function sideView(t, m) {
       ${t.bag === 'backpack' ? `<rect x="-${bw + 12}" y="-150" width="16" height="52" rx="6" fill="${shade(t.bagC, 0.85)}"/>` : ''}
       <path d="M-${bw} -150 Q-${bw + 2} -116 -${bw - 2} -80 L${bw - 1} -80 Q${bw + 4} -118 ${bw} -150 Q0 -156 -${bw} -150Z" fill="${top}"/>
       <path d="M${bw * 0.2} -152 Q${bw + 4} -118 ${bw - 1} -80 L${bw * 0.2} -80Z" fill="#000" opacity=".06"/>
-      ${skirt ? `<path d="M-${bw} -${dress ? 92 : 84} L-${bw + 8} -32 Q0 -27 ${bw + 10} -32 L${bw} -${dress ? 92 : 84}Z" fill="${dress ? top : bot}"/>` : `<rect x="-${bw - 1}" y="-86" width="${bw * 2 - 1}" height="6" fill="${shade(bot, 0.85)}"/>`}
+      ${skirt ? `<path class="p-skirt" d="M-${bw} -${dress ? 92 : 84} L-${bw + 8} -32 Q0 -27 ${bw + 10} -32 L${bw} -${dress ? 92 : 84}Z" fill="${dress ? top : bot}"/>` : `<rect x="-${bw - 1}" y="-86" width="${bw * 2 - 1}" height="6" fill="${shade(bot, 0.85)}"/>`}
       ${t.bag === 'tote' ? `<path d="M-4 -150 L-${bw + 2} -96" stroke="${shade(t.bagC, 0.8)}" stroke-width="3"/><rect x="-${bw + 12}" y="-100" width="16" height="22" rx="3" fill="${t.bagC}"/>` : ''}
       <rect x="-4" y="-162" width="10" height="14" fill="${shade(sk, 0.9)}"/>
       ${head}

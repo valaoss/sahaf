@@ -22,6 +22,7 @@ const BUBBLE = `
 // handlers: browse(c) → sonuç (normal müşteri), ask(c) (öneri isteyene dokunuldu), timeout(c) → sonuç (sabrı tükendi)
 export function createCrowd(layer, fx, handlers) {
   const people = [], pending = [];
+  const ctx = { rain: false, dark: false };
 
   function spawn(c) {
     const free = SPOTS.filter(s => !people.some(p => p.spot === s && p.state !== 'out'));
@@ -29,7 +30,10 @@ export function createCrowd(layer, fx, handlers) {
     const spot = free[Math.floor(Math.random() * free.length)];
     const g = el('g', {}, layer);
     const flip = el('g', {}, g);
-    flip.innerHTML = personSVG(c.look, c.style);
+    // yağmurda çoğu kişi şemsiyeli, akşam bazıları fenerli (aynı kişi her seferinde aynı karar)
+    const r = seeded(c.look * 31 + 7);
+    const carry = { umbrella: ctx.rain && r() < 0.85, lantern: ctx.dark && r() < 0.6 };
+    flip.innerHTML = personSVG(c.look, c.style, carry);
     // dokunma alanı (yalnızca öneri isteyende işe yarar)
     el('rect', { x: -60, y: 470, width: 120, height: 340, fill: 'transparent' }, g);
     const bubble = el('g', { class: 'bubble' }, g);
@@ -37,6 +41,7 @@ export function createCrowd(layer, fx, handlers) {
     const meta = figureMeta(c.look, c.style);
     const p = { c, spot, g, flip, bubble, meta, x: spot.side > 0 ? 1720 : -120, state: 'in', t: 0, res: null };
     g.classList.add('walking', 'age-' + meta.age);
+    if (carry.umbrella) g.classList.add('holding');
     // balon başın üstünde dursun
     bubble.setAttribute('transform', `translate(0 ${(806 + meta.headTop - 556).toFixed(0)})`);
     g.addEventListener('click', () => {
@@ -95,6 +100,8 @@ export function createCrowd(layer, fx, handlers) {
   }
 
   return {
+    // hava ve ışık: yeni gelenlerin elindekini belirler
+    setContext(o) { Object.assign(ctx, o); },
     add(c) { pending.push(c); },
     get busy() { return people.length + pending.length; },
     answer(c, r) { const p = people.find(q => q.c === c); if (p) react(p, r); },

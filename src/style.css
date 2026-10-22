@@ -348,3 +348,19 @@ svg.interior { width: 100%; height: auto; display: block; border-radius: 1em; ma
 .speech.perfect { border-color: #ffd56b; }
 .speech.miss { border-color: #e2c8bd; }
 .portrait.mini { flex: 0 0 3.6em; height: 3.6em; border-radius: .9em; }
+
+/* şemsiye tutan kol sallanmaz, okurken de dik durur */
+.holding .p-armR, .holding .p-armF { animation: none !important; transform: rotate(-6deg) !important; }
+.p-umb { transform-box: fill-box; transform-origin: 50% 100%; }
+.walking .p-umb { animation: umbBob .52s ease-in-out infinite alternate; }
+@keyframes umbBob { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
+.lantern-glow { animation: lanternFlick 2.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes lanternFlick { from { opacity: .75; transform: scale(.94); } to { opacity: 1; transform: scale(1.06); } }
+/* rüzgâr: tente dalgalanır, etekler ve şemsiyeler savrulur */
+.awning { transform-box: fill-box; transform-origin: 50% 0; }
+.windy .awning { animation: awningFlap 1.3s ease-in-out infinite alternate; }
+@keyframes awningFlap { 0% { transform: skewX(0deg) scaleY(1); } 40% { transform: skewX(-3deg) scaleY(.94); } 100% { transform: skewX(2deg) scaleY(1.03); } }
+.p-skirt { transform-box: fill-box; transform-origin: 50% 0; }
+.windy .p-skirt { animation: skirtWind .9s ease-in-out infinite alternate; }
+@keyframes skirtWind { from { transform: skewX(-4deg); } to { transform: skewX(6deg) scaleX(1.04); } }
+.windy .p-pony { animation-duration: .6s; }

@@ -191,6 +191,7 @@ function refreshDay() {
   scene.setWeather(weatherOf(S.day));
   setSeason(seasonOf(S.day));
   setRain(weatherOf(S.day) === 'yagmurlu');
+  crowd.setContext({ rain: weatherOf(S.day) === 'yagmurlu', dark: false });
   setMood({ town: S.town, lively: !!(m.event || m.special), night: false });
   scene.setFestival(!!(m.event || m.special));
 }
@@ -236,7 +237,9 @@ if (PREVIEW) {
       const st = ['walking', 'reading', '', 'cheer'][i % 4];
       g.setAttribute('class', 'age-' + figureMeta(i * 7919 + seed, ARCHETYPES[k].style).age + (st ? ' ' + st : ''));
       g.setAttribute('transform', `translate(${110 + i * 152} 0)`);
-      g.innerHTML = personSVG(i * 7919 + seed, ARCHETYPES[k].style);
+      const tasi = q.get('tasi') || '';
+      if (tasi.includes('semsiye') && i % 4 !== 3) g.classList.add('holding');
+      g.innerHTML = personSVG(i * 7919 + seed, ARCHETYPES[k].style, { umbrella: tasi.includes('semsiye') && i % 4 !== 3, lantern: tasi.includes('fener') && i % 2 === 0 });
       scene.people.appendChild(g);
     });
   }
@@ -249,6 +252,7 @@ if (PREVIEW) {
   if (q.has('gelistir')) { S.upgrades = ['cay', 'plak']; scene.setUpgrades(S.upgrades); }
   if (panel === 'harita') ui.mapPanel(S);
   if (panel === 'kostas') { S.pages = PAGES.map(p => p.id); S.unlocked.push('bozcaada'); S.kostasFound = ['yasliadam', 'odysseia', 'korfez']; ui.kostasPanel(S); }
+  if (q.has('hava')) scene.setWeather(q.get('hava'));
   if (q.has('aksam')) setTimeout(() => scene.setDaylight(+q.get('aksam') || 0.95), 100);
   if (panel === 'olay') ui.hapPanel(HAP[q.get('olay') || 'eskici'], i => chooseHappening(S, q.get('olay') || 'eskici', i));
   if (panel === 'posta') {
@@ -307,6 +311,7 @@ function frame(now) {
     crowd.update(dt, speed, BAL.patience * effects(S).patience);
     const dayT = (S.clock - BAL.dayStart) / (BAL.dayEnd - BAL.dayStart);
     scene.setDaylight(dayT);
+    crowd.setContext({ dark: dayT > 0.74 });
     setMood({ night: dayT > 0.82 });
     if (closingTime(S) && crowd.busy === 0) {
       const T = closeShop(S);

@@ -157,7 +157,7 @@ const MARKUP = `
     <rect x="50" y="118" width="350" height="22" rx="10" fill="#5a3d30"/>
     <g id="shelves"></g>
     <rect x="50" y="130" width="350" height="26" fill="#000" opacity=".16" pointer-events="none"/>
-    <g id="awning"></g>
+    <g id="awning" class="awning"></g>
     <g transform="translate(140 -58)">
       <path d="M30 58 L22 78 M140 58 L148 78" stroke="#7a4e33" stroke-width="6" stroke-linecap="round"/>
       <rect x="0" y="0" width="170" height="62" rx="16" fill="#fff6e8" stroke="#e2c29c" stroke-width="5"/>
