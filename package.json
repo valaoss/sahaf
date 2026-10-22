@@ -1,0 +1,25 @@
+{
+  "name": "sahaf",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host --port 8770",
+    "build": "vite build",
+    "preview": "vite preview --port 8770",
+    "test": "node tests/sim.test.mjs",
+    "sim": "node scripts/balance-sim.mjs",
+    "ios": "vite build && cap sync ios"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/preferences": "^8.0.1",
+    "@fontsource/fredoka": "^5.2.0"
+  }
+}

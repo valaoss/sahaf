@@ -1,0 +1,33 @@
+// iOS (Capacitor) köprüsü: web'de hiçbir şey yapmaz, eklentiler yalnızca uygulamada yüklenir.
+import { Capacitor } from '@capacitor/core';
+
+export const isNative = Capacitor.isNativePlatform();
+
+// Kayıtlar: localStorage hızlı önbellek, Preferences (UserDefaults) kalıcı kopya; iOS depolamayı temizlerse geri yüklenir
+export const SAVE_KEYS = ['sahaf.save.v1'];
+// eklenti nesnesi bir sözün sonucu olamaz (vekil nesne then() sorusuna yerel çağrıyla cevap verir): modülü döndür
+const prefs = () => import('@capacitor/preferences');
+
+export async function restoreSaves() {
+  if (!isNative) return;
+  try {
+    const { Preferences: P } = await prefs();
+    for (const key of SAVE_KEYS) {
+      if (localStorage.getItem(key) != null) continue;
+      const { value } = await P.get({ key });
+      if (value != null) localStorage.setItem(key, value);
+    }
+  } catch (e) { /* yok */ }
+}
+
+export function persist(key, value) {
+  if (!isNative) return;
+  prefs().then(({ Preferences: P }) => value == null ? P.remove({ key }) : P.set({ key, value })).catch(() => {});
+}
+
+let haptics = null;
+export function tap(style = 'LIGHT') {
+  if (!isNative) return;
+  (haptics || (haptics = import('@capacitor/haptics')))
+    .then(({ Haptics }) => Haptics.impact({ style })).catch(() => {});
+}

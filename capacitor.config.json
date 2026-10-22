@@ -1,0 +1,10 @@
+{
+  "appId": "com.baranbulduk.sahaf",
+  "appName": "Sahaf",
+  "webDir": "dist",
+  "backgroundColor": "#fbeed7",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#fbeed7"
+  }
+}
