@@ -15,6 +15,8 @@ import { weatherOf, eventOf, gossipOf } from '../game/calendar.js';
 import { SEASON } from '../data/calendar.js';
 import { PAGES } from '../data/story.js';
 import { nextPage, progressOf } from '../game/story.js';
+import { STAMPS, STAMP_REWARD } from '../data/stamps.js';
+import { stampProgress } from '../game/stamps.js';
 import { personSVG, nameOf } from '../render/people.js';
 
 const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -306,6 +308,7 @@ export function createUI(root, act) {
       ${T.soldCount ? `<div class="chips">${chips(T.sold)}</div>` : ''}
       ${recLine}
       ${Object.keys(T.missed).length ? `<p class="hint">Aranıp bulunamayan:</p><div class="chips">${chips(T.missed, 'miss')}</div>` : ''}
+      ${(T.stamps || []).length ? `<p class="tip page">🏅 Yeni pul: ${T.stamps.map(id => { const st = STAMPS.find(x => x.id === id); return `${st.icon} <b>${st.name}</b>`; }).join(', ')} (+₺${T.stamps.length * STAMP_REWARD})</p>` : ''}
       ${T.page ? `<p class="tip page">📜 Defterden yeni bir sayfa bulundu: <b>${PAGES.find(p => p.id === T.page).title}</b></p>` : ''}
       <p class="tip">💡 ${tip}</p>
       <div class="row end">${T.page ? '<button class="btn" data-book>📜 Oku</button>' : ''}<button class="btn hl" data-next>☀️ Ertesi sabah</button></div>`);
@@ -348,7 +351,7 @@ export function createUI(root, act) {
       ? `<button class="ptab ${cur && p.id === cur.id ? 'is-on' : ''}" data-page="${p.id}">${i + 1}. ${p.title}</button>`
       : `<span class="ptab locked">${i + 1}. ???</span>`).join('');
     const p = openPanel(`
-      <h2>📜 Kostas Efendi'nin defteri</h2>
+      <div class="tabs head"><button class="tab is-on">📜 Kostas Efendi'nin defteri</button><button class="tab" data-album>🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})</button></div>
       <div class="book">
         <div class="ptabs">${list}</div>
         <div class="pagebody">
@@ -358,6 +361,7 @@ export function createUI(root, act) {
       </div>
       <div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
     p.querySelectorAll('[data-page]').forEach(b => b.onclick = () => bookPanel(S, b.dataset.page, back));
+    p.querySelector('[data-album]').onclick = () => albumPanel(S, back);
     p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
   }
 
@@ -382,5 +386,43 @@ export function createUI(root, act) {
     p.querySelector('[data-close]').onclick = closePanel;
   }
 
-  return { hud, toast, paperPanel, bookPanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  // Pul albümü: kazanılanlar renkli, kalanlar soluk ve ilerlemesiyle
+  function albumPanel(S, back = null) {
+    const cards = STAMPS.map(st => {
+      const got = S.stamps.includes(st.id), pr = stampProgress(S, st);
+      return `<div class="stamp ${got ? 'got' : ''}" style="--s:${st.color}">
+        <div class="sface"><span class="sicon">${got ? st.icon : '❔'}</span><span class="sname">${got ? st.name : '???'}</span></div>
+        <div class="sdesc">${st.desc}${got ? '' : ` <b>${pr.now}/${pr.of}</b>`}</div></div>`;
+    }).join('');
+    const p = openPanel(`
+      <div class="tabs head"><button class="tab" data-book>📜 Kostas Efendi'nin defteri</button><button class="tab is-on">🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})</button></div>
+      <p class="hint">Her pul kasaya ₺${STAMP_REWARD} bırakır.</p>
+      <div class="album">${cards}</div>
+      <div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
+    p.querySelector('[data-book]').onclick = () => bookPanel(S, null, back);
+    p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
+  }
+
+  // Hikâye bitti: kısa bir kapanış ve oyuna devam
+  function finalePanel(S, onContinue) {
+    const best = Object.entries(S.friends).sort((a, b) => b[1] - a[1])[0];
+    const p = openPanel(`
+      <div class="finale">
+        <div class="big-icon">🏛️✨</div>
+        <h2>Kayıp kütüphane bulundu</h2>
+        <p class="say">Nermin Teyzenin karavanı, Kostas Efendi'nin kitaplarıyla yeniden yollarda. Ege'nin kasabaları onları sabırsızlıkla bekliyor.</p>
+        <div class="stats">
+          <div><span>Gün</span><b>${S.totals.days}</b></div>
+          <div><span>Satılan kitap</span><b>${S.totals.sold}</b></div>
+          <div><span>Tam isabet</span><b>${S.totals.perfect}</b></div>
+          <div><span>Pul</span><b>${S.stamps.length}/${STAMPS.length}</b></div>
+        </div>
+        ${best ? `<p class="hint">En yakın dostun: <b>${REGULARS[best[0]].name}</b> <span class="hearts">${hearts(best[1])}</span></p>` : ''}
+        <p class="hint">Oyun burada bitmiyor: kalan pulları topla, müdavimlerinle dostluğunu sürdür.</p>
+      </div>
+      <div class="row end"><button class="btn hl" data-go>☀️ Yola devam</button></div>`, 'wide');
+    p.querySelector('[data-go]').onclick = () => { closePanel(); onContinue(); };
+  }
+
+  return { hud, toast, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

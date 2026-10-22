@@ -12,6 +12,8 @@ import { TOWN_KEYS } from '../src/data/towns.js';
 import { WEATHER, EVENTS, EVENT_CHANCE, SEASON } from '../src/data/calendar.js';
 import { PAGES, FINALE_REWARD } from '../src/data/story.js';
 import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR } from '../src/audio/compose.js';
+import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
+import { checkStamps, stampProgress } from '../src/game/stamps.js';
 import { checkStory, nextPage, progressOf } from '../src/game/story.js';
 import { weatherOf, eventOf, dayMods } from '../src/game/calendar.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../src/data/regulars.js';
@@ -180,7 +182,7 @@ test('tam gün: stok eksiye düşmez, defter tutarlı, para korunur', () => {
     assert.ok(Object.values(S.shelf).every(n => n > 0));
     const soldValue = Object.entries(T.sold).reduce((a, [g, n]) => a + n * GENRES[g].price, 0);
     assert.equal(T.revenue, soldValue + T.tips);
-    assert.equal(S.coins, before + T.revenue);
+    assert.equal(S.coins, before + T.revenue + T.stamps.length * STAMP_REWARD, 'satış + pul ödülü');
     assert.equal(shelfCount(S), stockBefore - T.soldCount);
     assert.ok(T.visitors >= TOWNS.ayvalik.traffic - BAL.trafficJitter);
     assert.equal(S.day, 2);
@@ -407,6 +409,36 @@ test('müzik: her mevsimde sabit, ölçüye sığan, duyulabilir aralıkta notal
     assert.ok(bells > 0, 'ara sıra melodi');
   }
   assert.equal(Math.round(midiToHz(69)), 440);
+});
+
+test('pullar: veri tutarlı, koşul tutunca bir kez verilir, ödül kasaya', () => {
+  assert.equal(new Set(STAMPS.map(s => s.id)).size, STAMPS.length);
+  const S = newGame(2);
+  for (const st of STAMPS) assert.ok(stampProgress(S, st).of > 0, st.id);
+  assert.deepEqual(checkStamps(S), [], 'yeni oyunda pul yok');
+  const coins = S.coins;
+  S.paints = Object.keys(PAINTS);
+  S.shelfLv = 2;
+  assert.deepEqual(checkStamps(S).sort(), ['gokkusagi', 'raflar']);
+  assert.equal(S.coins, coins + 2 * STAMP_REWARD);
+  assert.deepEqual(checkStamps(S), [], 'aynı pul iki kez verilmez');
+  assert.deepEqual(stampProgress(S, STAMPS.find(s => s.id === 'elli')), { now: 0, of: 50 });
+});
+
+test('pullar: normal oyunda gün kapanınca kazanılır; mekân, hava ve festival izlenir', () => {
+  const S = newGame(31);
+  const T = simulateDay(S);
+  assert.ok(T.stamps.includes('ilkgun'));
+  assert.ok(S.spotsSeen.includes('ayvalik/iskele'));
+  assert.ok(S.weathersSeen.includes('gunesli'));
+  // festival olan bir güne atla, o kasabaya git
+  const d = [...Array(300).keys()].map(i => i + 2).find(x => eventOf(x));
+  S.day = d;
+  S.coins += 100;
+  travel(S, EVENTS[eventOf(d)].town) ;
+  simulateDay(S);
+  assert.ok(S.festKinds.includes(eventOf(d)));
+  assert.ok(S.stamps.includes('festival'));
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {

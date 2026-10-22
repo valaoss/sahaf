@@ -7,6 +7,7 @@ import { makeCustomer, makeRegular, resolveCustomer, recommend, bestBook, spotOf
 import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
 import { checkStory } from './story.js';
+import { checkStamps } from './stamps.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
@@ -26,6 +27,9 @@ export function openShop(S) {
   times.sort((a, b) => a - b);
   S.phase = 'open';
   if (!S.visited.includes(S.town)) S.visited.push(S.town);
+  const spotKey = S.town + '/' + S.spot, w = weatherOf(S.day);
+  if (!S.spotsSeen.includes(spotKey)) S.spotsSeen.push(spotKey);
+  if (!S.weathersSeen.includes(w)) S.weathersSeen.push(w);
   S.clock = BAL.dayStart;
   S.arrivals = times;
   // kasabanın müdavimleri bazı günler uğrar
@@ -54,8 +58,12 @@ export function closeShop(S) {
   S.totals.days++;
   S.totals.sold += T.soldCount;
   S.totals.revenue += T.revenue;
-  if (T.event) S.totals.festivals++;
+  if (T.event) {
+    S.totals.festivals++;
+    if (!S.festKinds.includes(T.event)) S.festKinds.push(T.event);
+  }
   T.page = checkStory(S, T);
+  T.stamps = checkStamps(S);
   S.lastDay = T;
   S.prevTown = S.town;
   S.today = null;

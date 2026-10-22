@@ -193,3 +193,18 @@ svg.map { width: 100%; height: auto; display: block; border-radius: 1em; margin:
 
 .gear { pointer-events: auto; cursor: pointer; font: inherit; }
 .btn.danger { background: #f9d0c8; border-color: #e5917f; box-shadow: 0 .28em 0 #c96f5a; }
+
+/* pul albümü */
+.tabs.head { margin-top: 0; }
+.tabs.head .tab { font-size: 1.05em; padding: .35em 1em; }
+.album { display: grid; grid-template-columns: repeat(6, 1fr); gap: .6em; max-height: 19em; overflow: auto; padding: .3em; }
+.stamp { display: flex; flex-direction: column; gap: .3em; align-items: center; text-align: center; }
+.sface { width: 100%; aspect-ratio: 4 / 5; background: #f2ece2; border-radius: .3em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2em;
+  outline: .35em dotted #fffaf0; outline-offset: -.2em; box-shadow: 0 .15em .4em rgba(0,0,0,.12); filter: grayscale(1); opacity: .55; transform: rotate(-2deg); }
+.stamp:nth-child(2n) .sface { transform: rotate(2deg); }
+.stamp.got .sface { background: var(--s); filter: none; opacity: 1; }
+.sicon { font-size: 2em; }
+.sname { font-size: .75em; font-weight: 700; padding: 0 .3em; }
+.sdesc { font-size: .72em; color: #8a7468; line-height: 1.2; }
+.finale { text-align: center; }
+.big-icon { font-size: 2.2em; }

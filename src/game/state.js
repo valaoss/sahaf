@@ -40,6 +40,11 @@ export function newGame(seed = Date.now()) {
     gifts: [],                 // hediyesini vermiş müdavimler
     pages: [],                 // ana hikâye: bulunan defter sayfaları (data/story.js)
     visited: [],               // dükkân açılan kasabalar
+    spotsSeen: [],             // dükkân açılan mekânlar ('kasaba/mekân')
+    festKinds: [],             // katılınan festival türleri
+    weathersSeen: [],          // dükkân açılan günlerin havaları
+    stamps: [],                // pul albümü (data/stamps.js)
+    finaleShown: false,        // hikâye kapanış ekranı gösterildi mi
     regArrivals: [],           // açık gün: gelecek müdavimler [{ t, id }]
     travelled: false,          // bu sabah yola çıkıldı mı
     clock: BAL.dayStart,
