@@ -337,3 +337,14 @@ svg.interior { width: 100%; height: auto; display: block; border-radius: 1em; ma
 .interior .spine { cursor: pointer; transition: transform .15s; transform-box: fill-box; }
 .interior .spine:hover { transform: translateY(-6px); }
 .panel h2 .btn.sm { font-size: .55em; vertical-align: middle; margin-left: .6em; }
+
+/* müşterinin karşılığı */
+.speech { position: absolute; left: 2%; bottom: 10.5em; display: flex; gap: .7em; align-items: center; max-width: 46%; background: var(--cream);
+  border: .18em solid var(--edge); border-radius: 1.2em; padding: .5em .9em .5em .5em; box-shadow: 0 .3em 0 var(--edge-d); z-index: 5;
+  opacity: 0; transform: translateY(1em) scale(.95); transition: all .35s cubic-bezier(.3, 1.4, .5, 1); pointer-events: none; }
+.speech.show { opacity: 1; transform: none; }
+.speech p { margin: .15em 0 0; font-size: 1.05em; line-height: 1.3; }
+.speech small { color: var(--gold); font-weight: 700; }
+.speech.perfect { border-color: #ffd56b; }
+.speech.miss { border-color: #e2c8bd; }
+.portrait.mini { flex: 0 0 3.6em; height: 3.6em; border-radius: .9em; }

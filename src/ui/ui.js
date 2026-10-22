@@ -462,6 +462,20 @@ export function createUI(root, act) {
     p.querySelector('[data-close]').onclick = closePanel;
   }
 
+  // Müşterinin karşılığı: küçük portreli konuşma kartı, birkaç saniye sonra kaybolur
+  let speechTimer = 0;
+  function speech(c, text, grade, note = '') {
+    let box = $('speech');
+    if (!box) { box = document.createElement('div'); box.id = 'speech'; box.className = 'speech'; root.appendChild(box); }
+    const R = c.reg && REGULARS[c.reg];
+    const name = R ? R.name : nameOf(c.look, ARCHETYPES[c.arch]?.names);
+    box.className = 'speech show ' + (grade || '');
+    box.innerHTML = `<div class="portrait mini"><svg viewBox="${portraitBox(c)}">${personSVG(c.look, c.style)}</svg></div>
+      <div><div class="name">${name}</div><p>“${text}”</p>${note ? `<small>${note}</small>` : ''}</div>`;
+    clearTimeout(speechTimer);
+    speechTimer = setTimeout(() => box.classList.remove('show'), 3800);
+  }
+
   // Gün içi olay kartı: seçenekler, sonra sonuç
   function hapPanel(H, onChoose) {
     const p = openPanel(`
@@ -595,5 +609,5 @@ export function createUI(root, act) {
     }
   }
 
-  return { hud, toast, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  return { hud, toast, speech, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

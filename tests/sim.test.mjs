@@ -20,6 +20,8 @@ import { PAGES, FINALE_REWARD } from '../src/data/story.js';
 import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, MOTIFS, THEMES } from '../src/audio/compose.js';
 import { TUT_STEPS, tutorialStep, tutorialEvent } from '../src/game/tutorial.js';
 import { statsOf } from '../src/game/stats.js';
+import { replyFor } from '../src/game/replies.js';
+import { REPLIES } from '../src/data/replies.js';
 import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
 import { checkStamps, stampProgress } from '../src/game/stamps.js';
 import { checkStory, nextPage, progressOf, checkUnlocks } from '../src/game/story.js';
@@ -828,6 +830,21 @@ test('vitrin: en fazla üç kitap, sabah düzenlenir, müşteri önce vitrindeki
   S.shelf = { kurk: 1 }; S.featured = ['kurk'];
   resolveCustomer(S, { id: 9, wants: 'roman', look: 1 });
   if (!S.shelf.kurk) assert.deepEqual(S.featured, [], 'biten kitap vitrinden iner');
+});
+
+test('karşılıklar: dereceye ve konuya uygun, yer tutucusuz, kısa aralıkla tekrar etmez', () => {
+  const S = newGame(5);
+  for (const t of Object.keys(TAGS)) assert.ok(REPLIES.tag[t]?.length >= 2, t);
+  const seen = [];
+  for (let i = 0; i < 60; i++) {
+    const c = { id: i, arch: 'ogrenci', look: i, ask: { tags: ['deniz'] } };
+    const line = replyFor(S, c, { grade: 'perfect' }, 'yasliadam');
+    assert.ok(!/[{}]/.test(line) && line.length > 5, line);
+    seen.push(line);
+  }
+  for (let i = 1; i < seen.length; i++) assert.ok(!seen.slice(Math.max(0, i - 5), i).includes(seen[i]), 'art arda aynı karşılık');
+  assert.ok(REPLIES.miss.includes(replyFor(S, { ask: { tags: ['deniz'] } }, { grade: 'miss' }, 'garip')));
+  assert.ok(REPLIES.none.includes(replyFor(S, { ask: { tags: ['deniz'] } }, { grade: 'miss' }, null)));
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {

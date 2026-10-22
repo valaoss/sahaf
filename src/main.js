@@ -18,6 +18,7 @@ import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood } fro
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
 import { checkStory } from './game/story.js';
+import { replyFor } from './game/replies.js';
 import { tutorialStep, tutorialEvent } from './game/tutorial.js';
 import { HAP, dueHappening, chooseHappening } from './game/happenings.js';
 import { morningLetter, writeLetter, offerQuest } from './game/mail.js';
@@ -63,10 +64,10 @@ const crowd = createCrowd(scene.people, scene.fx, {
       crowd.answer(c, r);
       sfx(r.grade === 'perfect' || r.friend ? 'heart' : r.grade === 'good' ? 'coin' : 'sad');
       if (r.friend?.gift || r.friend?.coins) { saveGame(S); ui.confetti(); ui.giftPanel(r.friend); }
-      else if (r.friend) ui.toast(`💛 ${REGULARS[c.reg].name} ile aranız ısınıyor (${r.friend.hearts}/${HEARTS_MAX})`);
-      else if (r.grade === 'perfect') ui.toast(`Tam isabet! Bahşiş ₺${r.tip}`);
-      else if (r.grade === 'good') ui.toast('Fena değil, ama tam aradığı bu değildi.');
-      else ui.toast(id ? 'Bu kitap ona hiç uymadı…' : 'Bir dahaki sefere belki.');
+      // müşterinin karşılığı: konuşma kartı (kalp ya da bahşiş bilgisiyle)
+      const line = c.reg && r.grade === 'perfect' ? REGULARS[c.reg].thanks : replyFor(S, c, r, id);
+      const note = r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.grade === 'perfect' ? `Bahşiş ₺${r.tip}` : r.grade === 'good' ? `Bahşiş ₺${r.tip}` : '';
+      if (!(r.friend?.gift || r.friend?.coins)) ui.speech(c, line, r.grade, note);
     }, settings.hints !== false);
   },
   timeout: c => recommend(S, c, null),
@@ -224,6 +225,7 @@ if (PREVIEW) {
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
+  if (panel === 'konus') { const c = makeCustomer(S); c.arch = 'balikci'; c.style = ARCHETYPES.balikci.style; c.ask = { tags: ['deniz'] }; ui.speech(c, replyFor(S, c, { grade: 'perfect' }, 'yasliadam'), 'perfect', 'Bahşiş ₺5'); }
   if (panel === 'ic') { S.coins = 999; ['roman','siir','fantastik'].forEach(g => buyBox(S, g)); S.featured = Object.keys(S.shelf).slice(2, 4); S.rare[Object.keys(S.shelf)[6]] = 1; ui.interiorPanel(S); }
   // ?insanlar: farklı tiplerden on kişilik dizi (yürüyen, okuyan, sevinen)
   if (q.has('insanlar')) {
