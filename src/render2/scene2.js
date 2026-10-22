@@ -6,6 +6,8 @@ import { loadFonts, snapshotBand } from './bake.js';
 import { drawAnim } from './anim.js';
 import { canvasCrowdView } from './crowd-view.js';
 import { createLife } from './life.js';
+import { createAtmos } from './atmos.js';
+import { TOWNS } from '../data/towns.js';
 
 // bantlar (sahne birimi): üstten alta; her biri bir resim + hareketli parçaları
 const BANDS = {
@@ -62,7 +64,8 @@ export function buildScene2(host) {
   let W = 1, H = 1, dpr = 1, k = 1, ox = 0, oy = 0, bakeScale = 1;
   const bands = {}, dirty = new Set(Object.keys(BANDS));
   let baking = false, ready = null, t = 0;
-  const st = { windy: false, weather: 'gunesli', season: 'İlkbahar', day: 0, paint: true, festival: false };
+  const st = { windy: false, weather: 'gunesli', season: 'İlkbahar', day: 0, paint: true, festival: false, town: 'ayvalik', scene: 'sahil' };
+  const atmos = createAtmos();
   const crowd = canvasCrowdView(() => bakeScale);
   const life = createLife();
   const grainEl = over.querySelector('.grain');
@@ -86,6 +89,7 @@ export function buildScene2(host) {
     clone.querySelectorAll('.paintable').forEach(n => { if (st.paint) n.setAttribute('filter', 'url(#watercolor)'); });
     if (!st.paint) clone.querySelectorAll('.paintfx').forEach(n => n.remove());
     clone.querySelectorAll('#lights, #cartHit, #ambientBack, #ambientFront').forEach(n => n.remove());
+    clone.querySelectorAll('[fill="url(#sky)"], [fill="url(#sunGlow)"], circle[fill="#fff0bd"]').forEach(n => n.remove());
   };
 
   async function bakeAll() {
@@ -152,11 +156,18 @@ export function buildScene2(host) {
     const opts = { windy: st.windy, night: Math.min(1, Math.max(0, (L.night - .2) / .25)) };
     ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * ox, dpr * oy);
 
+    const rainy = st.weather === 'yagmurlu';
+    atmos.sky(ctx, TOWNS[st.town], st.day, L.night, t);
+    if (L.night < .95 && !rainy) atmos.sun(ctx, st.day);
     drawBand('bandSky', opts);
     drawBand('bandF', opts);
+    atmos.seaFar(ctx, t, L.night);
     life.drawBack(ctx, t);
     drawBand('bandH', opts);
+    if (st.scene === 'sahil') atmos.seaNear(ctx, t);
     drawBand('bandG', opts);
+    if (!rainy) atmos.cloudShadows(ctx, t, st.windy);
+    if (rainy) atmos.rainGround(ctx, t);
     // karavanın ışık zinciri: gündüz sönük, akşam yanıp söner
     ctx.save(); ctx.translate(610, 420);
     for (const p of lights) {
@@ -165,11 +176,12 @@ export function buildScene2(host) {
     }
     ctx.restore(); ctx.globalAlpha = 1;
     life.drawFront(ctx, t);
-    crowd.draw(ctx, t, dt);
+    crowd.draw(ctx, t, dt, { lean: x => rainy ? 0 : atmos.shadowLean(x, st.day) });
 
     // yaprak ve yağmur canvas'ta; renk tonları, vinyet, kâğıt ve akşam örtülerde
     const P = SEASON_LOOK[st.season] || SEASON_LOOK['İlkbahar'];
     life.drawPetals(ctx, t, P.bits);
+    if (st.windy) atmos.windLeaves(ctx, t);
     if (st.weather === 'yagmurlu') life.drawRain(ctx, t);
     tint('season', P.tint || '#000', P.tint ? .1 : 0);
     tint('weather', '#5a6b80', st.weather === 'yagmurlu' ? .22 : st.weather === 'bulutlu' ? .1 : 0);
@@ -182,6 +194,7 @@ export function buildScene2(host) {
       gctx.clearRect(0, 0, glowCanvas.width, glowCanvas.height);
       gctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * ox, dpr * oy);
       gctx.globalCompositeOperation = 'lighter';
+      atmos.lightPools(gctx, L.night, crowd.lamps());
       gctx.translate(610, 420);
       const glow = 0.05 + L.night * 0.45;
       for (const p of lights) {
@@ -205,8 +218,8 @@ export function buildScene2(host) {
     toClient(x, y) { const r = canvas.getBoundingClientRect(); return { x: r.left + ox + x * k, y: r.top + oy + y * k }; },
     onCart(fn) { cartFn = fn; },
     crowdView: () => crowd,
-    setTown(key) { base.setTown(key); rebake('bandSky', 'bandF', 'bandH'); },
-    setSpot(scene, town) { base.setSpot(scene, town); rebake('bandH', 'bandG'); },
+    setTown(key) { base.setTown(key); st.town = key; rebake('bandSky', 'bandF', 'bandH'); },
+    setSpot(scene, town) { base.setSpot(scene, town); st.scene = scene; rebake('bandH', 'bandG'); },
     setStock(S) { base.setStock(S); rebake('bandG'); },
     setDecor(on) { base.setDecor(on); rebake('bandG'); },
     setUpgrades(list) { base.setUpgrades(list); rebake('bandG'); },

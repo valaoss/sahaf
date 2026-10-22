@@ -40,9 +40,12 @@ export function canvasCrowdView(getScale) {
       return null;
     },
 
-    draw(ctx, t, dt) {
+    // akşam ışık havuzu için fenerlerin yaklaşık yeri
+    lamps() { return list.filter(p => p.carry.lantern && p.v.rig).map(p => [p.x - 22 * p.meta.scale * p.v.dir, 806 - 70 * p.meta.scale]); },
+
+    draw(ctx, t, dt, o = {}) {
       now = t;
-      for (const p of list) person(ctx, p, t, dt);
+      for (const p of list) person(ctx, p, t, dt, o);
       for (let i = fx.length - 1; i >= 0; i--) {
         const f = fx[i], u = (t - f.t0) / f.dur;
         if (u >= 1) { fx.splice(i, 1); continue; }
@@ -68,17 +71,18 @@ export function canvasCrowdView(getScale) {
   // açıyı hedefe doğru yumuşakça taşı
   const ease = (v, k, target, rate, dt) => { v.ang[k] = (v.ang[k] ?? target) + (target - (v.ang[k] ?? target)) * Math.min(1, dt * rate); return v.ang[k]; };
 
-  function person(ctx, p, t, dt) {
+  function person(ctx, p, t, dt, o) {
     const v = p.v, r = v.rig;
     if (!r) return;
     const st = v.st, walking = st.has('walking'), age = r.meta.age, s = r.meta.scale;
     const lt = t + v.seed;
     ctx.save();
     ctx.translate(p.x, 0);
-    // gölge
+    // gölge: güneşin tersine uzar (sabah ve akşam daha uzun)
+    const lean = o.lean ? o.lean(p.x) : 0;
     ctx.globalAlpha = .22;
     ctx.fillStyle = '#7a5a3c';
-    ctx.beginPath(); ctx.ellipse(0, 806, r.shadowRx, 7, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(lean * 48 * s, 806, r.shadowRx + Math.abs(lean) * 60 * s, 7, 0, 0, TAU); ctx.fill();
     ctx.globalAlpha = 1;
 
     ctx.save();
@@ -93,7 +97,7 @@ export function canvasCrowdView(getScale) {
       const ph = TAU * (t - (v.since?.walking || 0)) / period;
       const leg = age === 'elder' ? 12 : 24, arm = age === 'elder' ? 8 : 22;
       A.legF = deg(leg * Math.sin(ph)); A.legB = -A.legF;
-      A.armF = st.has('holding') ? deg(-6) : deg(-arm * Math.sin(ph)); A.armB = deg(arm * Math.sin(ph));
+      A.armF = st.has('holding') ? deg(-6 + 2.5 * Math.sin(ph)) : deg(-arm * Math.sin(ph)); A.armB = deg(arm * Math.sin(ph));
       upY = -4 * (0.5 - 0.5 * Math.cos(2 * ph));
     } else {
       upY = -1.5 * wave(lt / 3.6);
