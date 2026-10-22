@@ -64,15 +64,29 @@ const MARKUP = `
     <linearGradient id="groundDepth" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8ec" stop-opacity=".35"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#5a3d30" stop-opacity=".14"/></linearGradient>
     <linearGradient id="cartVol" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".25" stop-color="#fff" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
     <radialGradient id="vignette" cx=".5" cy=".45" r=".75"><stop offset=".65" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#3d2b24" stop-opacity=".16"/></radialGradient>
+    <!-- boyanmış görünüm: kâğıt lifi, fırça lekesi, suluboya kenarı -->
+    <filter id="paperGrain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .32  0 0 0 0 .25  0 0 0 0 .2  0 0 0 .09 0"/>
+    </filter>
+    <filter id="wash" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".0035 .006" numOctaves="3" seed="11"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 .92  0 0 0 0 .82  0 0 0 .22 -.05"/>
+    </filter>
+    <filter id="watercolor" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="4" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
   </defs>
 
   <rect width="1600" height="900" fill="url(#sky)"/>
+  <rect class="paintfx" width="1600" height="560" filter="url(#wash)"/>
   <circle cx="1290" cy="170" r="190" fill="url(#sunGlow)"/>
   <circle cx="1290" cy="170" r="62" fill="#fff0bd"/>
   ${cloud(-20, false, 120, 1)}${cloud(-60, true, 220, 1.2)}${cloud(-45, false, 80, .7)}
 
   <!-- uzak tepe + deniz feneri -->
-  <path d="M1080 360 C1200 270 1320 250 1420 265 C1500 278 1560 300 1600 320 L1600 380 L1080 380Z" fill="#c4dc9b"/>
+  <path class="paintable" d="M1080 360 C1200 270 1320 250 1420 265 C1500 278 1560 300 1600 320 L1600 380 L1080 380Z" fill="#c4dc9b"/>
   <path d="M1180 360 C1260 310 1360 300 1450 312 C1520 322 1570 340 1600 352 L1600 380 L1180 380Z" fill="#acd08a"/>
   <g transform="translate(1440 190)">
     <path d="M10 0 L40 0 L46 90 L4 90Z" fill="#fffaf2"/>
@@ -81,7 +95,7 @@ const MARKUP = `
     <path d="M2 -22 L25 -46 L48 -22Z" fill="#f08a7e"/>
     <circle cx="25" cy="-10" r="30" fill="#fff3b0" opacity=".35" class="twinkle"/>
   </g>
-  <path d="M0 330 C80 280 170 270 260 300 C330 320 380 335 420 345 L420 380 L0 380Z" fill="#d6cfe4" opacity=".8"/>
+  <path class="paintable" d="M0 330 C80 280 170 270 260 300 C330 320 380 335 420 345 L420 380 L0 380Z" fill="#d6cfe4" opacity=".8"/>
 
   <!-- deniz -->
   <rect x="0" y="340" width="1600" height="160" fill="url(#sea)"/>
@@ -99,7 +113,7 @@ const MARKUP = `
     <path d="M48 -34 L84 14 L48 14Z" fill="#fff4e0"/><path d="M42 -26 L14 14 L42 14Z" fill="#f08a7e"/>
   </g></g>
 
-  <g id="houses"></g>
+  <g id="houses" class="paintable"></g>
   <g id="spotBack"></g>
   <rect x="0" y="330" width="1600" height="232" fill="url(#haze)" pointer-events="none"/>
   <g id="festival"></g>
@@ -188,6 +202,7 @@ const MARKUP = `
   <g id="people"></g>
   <g id="fx"></g>
   <rect width="1600" height="900" fill="url(#vignette)" pointer-events="none"/>
+  <rect class="paintfx" width="1600" height="900" filter="url(#paperGrain)" pointer-events="none" style="mix-blend-mode:multiply"/>
   <g id="seasonFx"></g>
   <g id="weather"></g>
   <rect id="dusk" width="1600" height="900" fill="#3b2a5a" opacity="0" pointer-events="none"/>
@@ -392,6 +407,8 @@ export function buildScene(host) {
       host.querySelectorAll('.cartEdge').forEach(e => e.setAttribute('stroke', p.edge));
     },
     // akşam alacası: 0 gündüz, 1 kapanış
+    // boyanmış doku açık/kapalı (telefonda performans için kapatılabilir)
+    setPaintFx(on) { host.querySelector('svg').classList.toggle('nopaint', !on); },
     setDusk(k) { $('dusk').setAttribute('opacity', (k * .28).toFixed(3)); },
     // gün ışığı: sabah pembe, öğleden sonra altın, akşam mor; akşam pencereler ve ışık zinciri yanar
     setDaylight(t) {

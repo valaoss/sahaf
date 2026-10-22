@@ -97,10 +97,11 @@ const act = (a, arg) => {
   else if (a === 'upgrade') {
     const why = buyUpgrade(S, arg);
     if (why) ui.toast(why);
-    else { tap('MEDIUM'); sfx('box'); scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${UPGRADES[arg].icon} ${UPGRADES[arg].name} karavana eklendi`); stampCheck(); }
+    else { tap('MEDIUM'); sfx('box'); scene.setUpgrades(S.upgrades);
+scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[arg].icon} ${UPGRADES[arg].name} karavana eklendi`); stampCheck(); }
     ui.decorPanel(S);
   }
-  else if (a === 'toggle') { settings[arg] = !settings[arg]; applySettings(); ui.settingsPanel(settings, S); }
+  else if (a === 'toggle') { settings[arg] = !settings[arg]; applySettings(); scene.setPaintFx(settings.paint !== false); ui.settingsPanel(settings, S); }
   else if (a === 'reset') { clearGame(); location.reload(); }
   else if (a === 'spot') {
     if (!arg) { if (tutorialEvent(S, 'spot')) saveGame(S); return ui.spotPanel(S); }

@@ -326,3 +326,8 @@ mark[data-tag].is-on { background: #ffd56b; }
 .age-elder.walking .p-armF, .age-elder.walking .p-armB { animation: armstride-soft .8s ease-in-out infinite alternate; }
 @keyframes stride-soft { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
 @keyframes armstride-soft { from { transform: rotate(-6deg); } to { transform: rotate(10deg); } }
+
+/* boyanmış görünüm */
+svg.scene .paintable { filter: url(#watercolor); }
+svg.scene.nopaint .paintable { filter: none; }
+svg.scene.nopaint .paintfx { display: none; }
