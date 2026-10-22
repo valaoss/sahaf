@@ -159,7 +159,8 @@ export function personSVG(look, o = {}) {
   const hunch = t.age === 'elder' ? 'rotate(4 0 -82)' : '';
   return `
     <ellipse cx="0" cy="806" rx="${30 * w * m.scale + 6}" ry="7" fill="#7a5a3c" opacity=".22"/>
-    <g transform="translate(0 806) scale(${m.scale.toFixed(3)})">
+    ${sideView(t, m)}
+    <g class="p-front" transform="translate(0 806) scale(${m.scale.toFixed(3)})">
       ${leg(-1)}${leg(1)}
       <g class="p-upper"><g transform="${hunch}">
         ${t.bag === 'backpack' ? `<rect x="-${sw - 2}" y="-148" width="${(sw - 2) * 2}" height="52" rx="10" fill="${shade(t.bagC, 0.85)}"/>` : ''}
@@ -176,4 +177,64 @@ export function personSVG(look, o = {}) {
         ${arm(1)}
       </g></g>
     </g>`;
+}
+
+// Yan görünüş (sağa bakar): yürürken gösterilir. Bacak ve kollar ileri-geri sallanır; arkadakiler daha koyu.
+function sideView(t, m) {
+  const w = t.build, top = t.top, bot = t.bottom, sk = t.skin;
+  const skirt = t.outfit === 'skirt' || t.outfit === 'dress', dress = t.outfit === 'dress', shorts = t.outfit === 'shorts';
+  const legC = skirt ? sk : bot, sleeveLong = t.sleeves === 'long' || t.outfit === 'jacket';
+  const bw = 12 * w;                                             // gövdenin yarı derinliği
+  const leg = (cls, dark) => `<g transform="translate(0 -82)"><g class="${cls}">
+      <path d="M-6 0 L7 0 L6 74 L-5 74Z" fill="${dark ? shade(legC === sk ? sk : legC, 0.82) : legC}"/>
+      ${shorts ? `<path d="M-7 0 L8 0 L8 30 L-7 30Z" fill="${dark ? shade(bot, 0.82) : bot}"/><path d="M-5 30 L6 30 L6 74 L-5 74Z" fill="${dark ? shade(sk, 0.85) : sk}"/>` : ''}
+      <path d="M-6 72 L12 72 Q16 76 14 80 L-6 80Z" fill="${dark ? shade(t.shoe, 0.8) : t.shoe}"/>
+    </g></g>`;
+  const arm = (cls, dark) => `<g transform="translate(0 -146)"><g class="${cls}">
+      <path d="M0 0 L1 36" stroke="${dark ? shade(top, 0.8) : top}" stroke-width="12" stroke-linecap="round"/>
+      <path d="M1 36 L3 64" stroke="${sleeveLong ? (dark ? shade(top, 0.8) : top) : (dark ? shade(sk, 0.85) : sk)}" stroke-width="${sleeveLong ? 11 : 9}" stroke-linecap="round"/>
+      <circle cx="3" cy="68" r="5.5" fill="${dark ? shade(sk, 0.85) : sk}"/>
+      ${!dark && t.cane ? '<path d="M3 66 L14 146" stroke="#7a4e33" stroke-width="4" stroke-linecap="round"/>' : ''}
+    </g></g>`;
+  // profil baş: yüz sağa, burun çıkıntısı, tek göz, kulak; saç arkada
+  const hairSide = {
+    long: `<path d="M-22 -50 C-4 -62 18 -56 20 -40 C8 -44 -6 -42 -12 -34 C-16 -10 -18 18 -26 28 C-30 0 -30 -30 -22 -50Z" fill="${t.hair}"/>`,
+    bob: `<path d="M-22 -50 C-4 -62 18 -56 20 -40 C6 -44 -6 -42 -10 -32 C-12 -18 -14 -8 -22 -4 C-28 -20 -28 -38 -22 -50Z" fill="${t.hair}"/>`,
+    pony: `<path d="M-20 -50 C-2 -62 18 -56 20 -40 C6 -44 -8 -42 -14 -36 C-20 -40 -22 -46 -20 -50Z" fill="${t.hair}"/><path class="p-pony" d="M-18 -44 C-34 -40 -36 -16 -30 2 C-26 -12 -24 -28 -16 -38Z" fill="${t.hair}"/>`,
+    bun: `<path d="M-20 -48 C-4 -60 18 -56 20 -40 C6 -44 -8 -42 -16 -34 C-22 -38 -22 -44 -20 -48Z" fill="${t.hair}"/><circle cx="-16" cy="-52" r="10" fill="${t.hair}"/>`,
+    curly: `<g fill="${t.hair}">${[[-16, -46], [-4, -52], [9, -50], [-22, -34], [-18, -22]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="10"/>`).join('')}</g>`,
+    bald: `<path d="M-20 -30 C-22 -36 -18 -40 -12 -40 L-10 -28Z" fill="${t.hair}"/>`,
+  }[t.hairStyle] || `<path d="M-20 -48 C-4 -60 18 -56 20 -40 C6 -44 -8 -42 -14 -34 C-20 -34 -22 -42 -20 -48Z" fill="${t.hair}"/>`;
+  const hatSide = t.hat === 1 ? `<path d="M-22 -42 C-20 -64 22 -64 26 -46 C10 -50 -8 -48 -22 -42Z" fill="${t.hatC}"/>`
+    : t.hat === 2 ? `<ellipse cx="2" cy="-44" rx="36" ry="6" fill="${t.hatC}"/><path d="M-16 -44 C-14 -64 18 -64 20 -44Z" fill="${t.hatC}"/>`
+    : t.hat === 3 ? `<path d="M-20 -42 C-19 -62 20 -62 21 -42Z" fill="${t.hatC}"/><path d="M18 -44 L36 -40 L18 -38Z" fill="${shade(t.hatC, 0.8)}"/>` : '';
+  const head = `<g transform="translate(2 -160)"><g class="p-head"><g transform="${t.age === 'child' ? 'scale(1.22)' : ''}">
+      ${['long', 'bob'].includes(t.hairStyle) ? '' : ''}
+      <path d="M-18 -30 C-18 -52 18 -54 20 -34 L22 -26 L19 -23 C20 -14 14 -2 2 -1 C-12 -2 -18 -14 -18 -30Z" fill="${sk}"/>
+      <ellipse cx="-4" cy="-27" rx="4.5" ry="6" fill="${shade(sk, 0.92)}"/>
+      <g class="p-eyes"><ellipse cx="11" cy="-30" rx="2.3" ry="3.1" fill="#3d2b24"/></g>
+      <path d="M7 -38 L15 -37" stroke="${shade(GREY.includes(t.hair) ? '#9a9a9a' : t.hair, 0.8)}" stroke-width="2" stroke-linecap="round"/>
+      <path d="M13 -15 Q16 -13 18 -15" fill="none" stroke="#8a4a3c" stroke-width="2" stroke-linecap="round"/>
+      <ellipse cx="11" cy="-20" rx="4" ry="2.6" fill="#f08a7e" opacity=".3"/>
+      ${t.beard ? `<path d="M-6 -22 C-4 -4 6 6 16 2 C22 -2 22 -12 20 -16 C12 -12 2 -14 -6 -22Z" fill="${t.hair}"/>` : ''}
+      ${t.glasses ? '<g fill="none" stroke="#4a3a33" stroke-width="1.8"><circle cx="12" cy="-29" r="6"/><path d="M6 -30 L-4 -30"/></g>' : ''}
+      ${hairSide}
+      ${hatSide}
+    </g></g></g>`;
+  const hunch = t.age === 'elder' ? 'rotate(8 0 -82)' : '';
+  return `<g class="p-side" transform="translate(0 806) scale(${m.scale.toFixed(3)})">
+    ${leg('p-legB', true)}
+    ${arm('p-armB', true)}
+    ${leg('p-legF', false)}
+    <g class="p-upper"><g transform="${hunch}">
+      ${t.bag === 'backpack' ? `<rect x="-${bw + 12}" y="-150" width="16" height="52" rx="6" fill="${shade(t.bagC, 0.85)}"/>` : ''}
+      <path d="M-${bw} -150 Q-${bw + 2} -116 -${bw - 2} -80 L${bw - 1} -80 Q${bw + 4} -118 ${bw} -150 Q0 -156 -${bw} -150Z" fill="${top}"/>
+      <path d="M${bw * 0.2} -152 Q${bw + 4} -118 ${bw - 1} -80 L${bw * 0.2} -80Z" fill="#000" opacity=".06"/>
+      ${skirt ? `<path d="M-${bw} -${dress ? 92 : 84} L-${bw + 8} -32 Q0 -27 ${bw + 10} -32 L${bw} -${dress ? 92 : 84}Z" fill="${dress ? top : bot}"/>` : `<rect x="-${bw - 1}" y="-86" width="${bw * 2 - 1}" height="6" fill="${shade(bot, 0.85)}"/>`}
+      ${t.bag === 'tote' ? `<path d="M-4 -150 L-${bw + 2} -96" stroke="${shade(t.bagC, 0.8)}" stroke-width="3"/><rect x="-${bw + 12}" y="-100" width="16" height="22" rx="3" fill="${t.bagC}"/>` : ''}
+      <rect x="-4" y="-162" width="10" height="14" fill="${shade(sk, 0.9)}"/>
+      ${head}
+      ${arm('p-armF', false)}
+    </g></g>
+  </g>`;
 }

@@ -308,3 +308,21 @@ mark[data-tag].is-on { background: #ffd56b; }
 @keyframes boat { from { transform: translateX(0); } to { transform: translateX(var(--dx)); } }
 .map-cloud { animation: mapcloud linear infinite; }
 @keyframes mapcloud { from { transform: translateX(-200px); } to { transform: translateX(1800px); } }
+
+/* yan profil: yürürken yandan, dururken önden */
+.p-side { display: none; }
+.walking .p-side { display: inline; }
+.walking .p-front { display: none; }
+.p-legB, .p-legF, .p-armB, .p-armF { transform-origin: 0 0; }
+.walking .p-legF { animation: stride .52s ease-in-out infinite alternate; }
+.walking .p-legB { animation: stride .52s ease-in-out infinite alternate-reverse; }
+.walking .p-armF { animation: armstride .52s ease-in-out infinite alternate-reverse; }
+.walking .p-armB { animation: armstride .52s ease-in-out infinite alternate; }
+@keyframes stride { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
+@keyframes armstride { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+.age-child.walking .p-legF, .age-child.walking .p-legB, .age-child.walking .p-armF, .age-child.walking .p-armB { animation-duration: .4s; }
+.age-elder.walking .p-legF, .age-elder.walking .p-legB { animation: stride-soft .8s ease-in-out infinite alternate; }
+.age-elder.walking .p-legB { animation-direction: alternate-reverse; }
+.age-elder.walking .p-armF, .age-elder.walking .p-armB { animation: armstride-soft .8s ease-in-out infinite alternate; }
+@keyframes stride-soft { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
+@keyframes armstride-soft { from { transform: rotate(-6deg); } to { transform: rotate(10deg); } }
