@@ -11,6 +11,7 @@ import { SPOTS } from '../src/data/spots.js';
 import { TOWN_KEYS } from '../src/data/towns.js';
 import { WEATHER, EVENTS, EVENT_CHANCE, SEASON } from '../src/data/calendar.js';
 import { PAGES, FINALE_REWARD } from '../src/data/story.js';
+import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR } from '../src/audio/compose.js';
 import { checkStory, nextPage, progressOf } from '../src/game/story.js';
 import { weatherOf, eventOf, dayMods } from '../src/game/calendar.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../src/data/regulars.js';
@@ -384,6 +385,28 @@ test('ana hikâye: normal oyunda ilerler (gün kapanışında kontrol)', () => {
   }
   assert.ok(S.pages.length >= 2, 'miras ve dört kasaba: ' + S.pages.join(','));
   assert.ok(S.visited.length === 4);
+});
+
+test('müzik: her mevsimde sabit, ölçüye sığan, duyulabilir aralıkta notalar', () => {
+  for (const season of Object.keys(TEMPO)) {
+    assert.deepEqual(composeBar(5, season), composeBar(5, season), 'aynı ölçü aynı notalar');
+    let bells = 0;
+    for (let bar = 0; bar < 32; bar++) {
+      const notes = composeBar(bar, season);
+      assert.ok(notes.some(n => n.inst === 'bass' && n.t === 0), 'her ölçü bas ile başlar');
+      for (const n of notes) {
+        assert.ok(['bass', 'pluck', 'pad', 'bell'].includes(n.inst));
+        assert.ok(n.t >= 0 && n.t < BEATS_PER_BAR, 'ölçü içinde');
+        assert.ok(n.midi >= 24 && n.midi <= 100, 'aralık ' + n.midi);
+        assert.ok(n.vel > 0 && n.vel <= 1);
+        const hz = midiToHz(n.midi);
+        assert.ok(hz > 30 && hz < 3000);
+      }
+      bells += notes.filter(n => n.inst === 'bell').length;
+    }
+    assert.ok(bells > 0, 'ara sıra melodi');
+  }
+  assert.equal(Math.round(midiToHz(69)), 440);
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {

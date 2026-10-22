@@ -12,7 +12,8 @@ import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf,
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
-import { loadGame, saveGame as persistGame } from './core/save.js';
+import { loadGame, saveGame as persistGame, clearGame } from './core/save.js';
+import { unlock, sfx, settings, applySettings, setSeason, setRain } from './audio/audio.js';
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
 import { checkStory } from './game/story.js';
@@ -40,15 +41,17 @@ let speed = 1;
 const crowd = createCrowd(scene.people, scene.fx, {
   browse(c) {
     const r = resolveCustomer(S, c);
-    if (r.bought.length) { scene.setStock(S); tap(); }
+    if (r.bought.length) { scene.setStock(S); tap(); sfx('coin'); }
     return r;
   },
   // öneri isteyene dokunuldu: panel açılır, saat durur
   ask(c) {
+    sfx('page');
     ui.recPanel(S, c, id => {
       const r = recommend(S, c, id);
       if (r.bought.length) { scene.setStock(S); tap(r.grade === 'perfect' ? 'MEDIUM' : 'LIGHT'); }
       crowd.answer(c, r);
+      sfx(r.grade === 'perfect' || r.friend ? 'heart' : r.grade === 'good' ? 'coin' : 'sad');
       if (r.friend?.gift || r.friend?.coins) { saveGame(S); ui.giftPanel(r.friend); }
       else if (r.friend) ui.toast(`💛 ${REGULARS[c.reg].name} ile aranız ısınıyor (${r.friend.hearts}/${HEARTS_MAX})`);
       else if (r.grade === 'perfect') ui.toast(`Tam isabet! Bahşiş ₺${r.tip}`);
@@ -61,8 +64,11 @@ const crowd = createCrowd(scene.people, scene.fx, {
 
 const ui = createUI(document.getElementById('ui'), (a, arg) => {
   if (a === 'stock') ui.stockPanel(S);
-  else if (a === 'paper') ui.paperPanel(S);
-  else if (a === 'book') ui.bookPanel(S);
+  else if (a === 'paper') { sfx('page'); ui.paperPanel(S); }
+  else if (a === 'book') { sfx('page'); ui.bookPanel(S); }
+  else if (a === 'settings') ui.settingsPanel(settings);
+  else if (a === 'toggle') { settings[arg] = !settings[arg]; applySettings(); ui.settingsPanel(settings); }
+  else if (a === 'reset') { clearGame(); location.reload(); }
   else if (a === 'spot') {
     if (!arg) return ui.spotPanel(S);
     const why = chooseSpot(S, arg);
@@ -75,7 +81,7 @@ const ui = createUI(document.getElementById('ui'), (a, arg) => {
   else if (a === 'buy') {
     const why = buyBox(S, arg);
     if (why) ui.toast(why);
-    else { tap(); scene.setStock(S); saveGame(S); ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap raflara dizildi`); }
+    else { tap(); sfx('box'); scene.setStock(S); saveGame(S); ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap raflara dizildi`); }
     ui.stockPanel(S);
   } else if (a === 'decor-on') {
     const why = equipDecor(S, arg);
@@ -85,7 +91,7 @@ const ui = createUI(document.getElementById('ui'), (a, arg) => {
   } else if (a === 'shelf') {
     const why = upgradeShelf(S);
     if (why) ui.toast(why);
-    else { tap('MEDIUM'); scene.setStock(S); saveGame(S); ui.toast(`Raflar büyüdü: ${shelfCap(S)} kitap`); }
+    else { tap('MEDIUM'); sfx('box'); scene.setStock(S); saveGame(S); ui.toast(`Raflar büyüdü: ${shelfCap(S)} kitap`); }
     ui.decorPanel(S);
   } else if (a === 'paint') {
     const why = choosePaint(S, arg);
@@ -96,11 +102,13 @@ const ui = createUI(document.getElementById('ui'), (a, arg) => {
     const why = travel(S, arg);
     if (why) return ui.toast(why);
     saveGame(S);
+    sfx('whoosh');
     changeTown(() => { ui.closePanel(); ui.toast(`Hoş geldin: ${TOWNS[S.town].name}!`); });
   } else if (a === 'open') {
     const why = openShop(S);
     if (why) return ui.toast(why);
     tap('MEDIUM');
+    sfx('bell');
     if (!shelfCount(S)) ui.toast('Raflar boş! Müşteriler eli boş dönecek.');
     else if (S.day === 1) ui.toast('❓ balonlu müşteriye dokun: senden kitap önerisi istiyor.');
   } else if (a === 'speed') speed = speed > 1 ? 1 : FAST;
@@ -119,6 +127,8 @@ const ui = createUI(document.getElementById('ui'), (a, arg) => {
 function refreshDay() {
   scene.setSeason(seasonOf(S.day));
   scene.setWeather(weatherOf(S.day));
+  setSeason(seasonOf(S.day));
+  setRain(weatherOf(S.day) === 'yagmurlu');
   scene.setFestival(!!dayMods(S.day, S.town).event);
 }
 
@@ -150,6 +160,7 @@ if (PREVIEW) {
   const panel = q.get('panel');
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
+  if (panel === 'settings') ui.settingsPanel(settings);
   if (panel === 'book') { S.pages = ['miras', 'dostlar', 'liste']; S.visited = ['ayvalik', 'cunda']; ui.bookPanel(S); }
   if (panel === 'decor') ui.decorPanel(S);
   if (panel === 'rec') ui.recPanel(S, makeRegular(S, q.get('kim') || 'hasan'), () => {});
@@ -162,6 +173,10 @@ if (!PREVIEW && checkStory(S)) { saveGame(S); ui.bookPanel(S); }
 if (S.totals.days === 0 && S.phase === 'morning') {
   setTimeout(() => ui.toast('Sabah toptancıdan koli al, istersen haritadan kasaba seç, sonra dükkânı aç.'), 700);
 }
+
+// tarayıcı sese ancak ilk dokunuştan sonra izin verir
+document.addEventListener('pointerdown', unlock, { capture: true });
+document.addEventListener('click', e => { if (e.target.closest('.btn, .tab, .ptab, .swatch, [data-town]')) sfx('tap'); }, { capture: true });
 
 ui.hud(S, speed);
 let last = performance.now();
@@ -176,6 +191,7 @@ function frame(now) {
     if (closingTime(S) && crowd.busy === 0) {
       const T = closeShop(S);
       saveGame(S);
+      sfx(T.page ? 'heart' : 'bell');
       ui.summaryPanel(S, T);
     }
   }

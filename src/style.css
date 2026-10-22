@@ -190,3 +190,6 @@ svg.map { width: 100%; height: auto; display: block; border-radius: 1em; margin:
 .pagebody h3 { margin: .2em 0 .4em; color: var(--ink); font-size: 1.15em; }
 .pagebody .say { font-size: 1.08em; line-height: 1.85; }
 .tip.page { background: #f3e6ff; }
+
+.gear { pointer-events: auto; cursor: pointer; font: inherit; }
+.btn.danger { background: #f9d0c8; border-color: #e5917f; box-shadow: 0 .28em 0 #c96f5a; }

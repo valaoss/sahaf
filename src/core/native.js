@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 export const isNative = Capacitor.isNativePlatform();
 
 // Kayıtlar: localStorage hızlı önbellek, Preferences (UserDefaults) kalıcı kopya; iOS depolamayı temizlerse geri yüklenir
-export const SAVE_KEYS = ['sahaf.save.v1'];
+export const SAVE_KEYS = ['sahaf.save.v1', 'sahaf.settings.v1'];
 // eklenti nesnesi bir sözün sonucu olamaz (vekil nesne then() sorusuna yerel çağrıyla cevap verir): modülü döndür
 const prefs = () => import('@capacitor/preferences');
 

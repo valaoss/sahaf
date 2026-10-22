@@ -35,6 +35,7 @@ export function createUI(root, act) {
       <div class="col right">
         <span class="pill coins">🪙 <b id="coins"></b></span>
         <span class="pill shelf">📚 <span id="shelf"></span></span>
+        <button class="pill gear" id="gear" title="Ayarlar">⚙️</button>
       </div>
     </div>
     <div class="bottom" id="bottom"></div>
@@ -83,6 +84,7 @@ export function createUI(root, act) {
     } else b.innerHTML = '';
   }
   $('where').addEventListener('click', () => act('paper'));
+  $('gear').addEventListener('click', () => act('settings'));
   $('bottom').addEventListener('click', e => { const a = e.target.closest('[data-a]'); if (a) act(a.dataset.a); });
 
   function stockPanel(S) {
@@ -359,5 +361,26 @@ export function createUI(root, act) {
     p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
   }
 
-  return { hud, toast, paperPanel, bookPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  // Ayarlar: müzik, ses efektleri, kaydı sıfırlama (iki adımlı onay)
+  function settingsPanel(set) {
+    const row = (k, label) => `<div class="dcard"><div class="dicon">${k === 'music' ? '🎵' : '🔔'}</div><div class="gname">${label}</div>
+      <button class="btn sm toggle ${set[k] ? 'hl' : ''}" data-toggle="${k}">${set[k] ? 'Açık' : 'Kapalı'}</button></div>`;
+    const p = openPanel(`
+      <h2>⚙️ Ayarlar</h2>
+      <div class="dgrid one">${row('music', 'Müzik')}${row('sfx', 'Ses efektleri ve yağmur')}</div>
+      <h3>Kayıt</h3>
+      <div class="dcard"><div class="dicon">🗑️</div><div><div class="gname">Baştan başla</div><div class="gmeta">Bütün ilerleme silinir, geri alınamaz.</div></div>
+        <button class="btn sm" data-reset>Sıfırla</button></div>
+      <p class="hint">Sahaf · müzik ve sesler oyunun içinde üretilir, hiçbir veri toplanmaz.</p>
+      <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`);
+    p.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => act('toggle', b.dataset.toggle));
+    const r = p.querySelector('[data-reset]');
+    r.onclick = () => {
+      if (r.dataset.armed) return act('reset');
+      r.dataset.armed = '1'; r.textContent = 'Emin misin? Dokun'; r.classList.add('danger');
+    };
+    p.querySelector('[data-close]').onclick = closePanel;
+  }
+
+  return { hud, toast, paperPanel, bookPanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }
