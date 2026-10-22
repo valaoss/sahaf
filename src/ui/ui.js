@@ -18,6 +18,7 @@ import { questText, questProgress } from '../game/mail.js';
 import { SEASON } from '../data/calendar.js';
 import { PAGES } from '../data/story.js';
 import { nextPage, progressOf } from '../game/story.js';
+import { statsOf } from '../game/stats.js';
 import { HAP } from '../game/happenings.js';
 import { STAMPS, STAMP_REWARD } from '../data/stamps.js';
 import { stampProgress } from '../game/stamps.js';
@@ -30,6 +31,23 @@ const chips = (obj, cls = '') => Object.keys(obj).sort((a, b) => obj[b] - obj[a]
 const hearts = n => '♥'.repeat(n) + '♡'.repeat(HEARTS_MAX - n);
 const SCENE_ICON = { sahil: '🏖️', carsi: '🛍️', tepe: '⛰️' };
 const level = (x, lo, hi) => x >= hi ? 'çok' : x <= lo ? 'az' : 'orta';
+// Cümledeki etiket söyleyişlerini işaretle (öneri ipucu): <mark data-tag="..">
+function markAsk(text) {
+  // Türkçe küçük harfe çevirmek uzunluğu değiştirmez (İ→i, I→ı), konumlar korunur
+  const low = text.toLocaleLowerCase('tr'), hits = [];
+  for (const t in TAGS) for (const say of TAGS[t].say) {
+    const m = low.indexOf(say);
+    if (m >= 0) hits.push({ t, at: m, len: say.length });
+  }
+  hits.sort((a, b) => a.at - b.at || b.len - a.len);
+  let out = '', i = 0;
+  for (const h of hits) {
+    if (h.at < i) continue;
+    out += text.slice(i, h.at) + `<mark data-tag="${h.t}" title="${TAGS[h.t].icon} ${TAGS[h.t].name}">${text.slice(h.at, h.at + h.len)}</mark>`;
+    i = h.at + h.len;
+  }
+  return out + text.slice(i);
+}
 const tagChips = tags =>tags.map(t => `<span class="tag">${TAGS[t].icon} ${TAGS[t].name}</span>`).join('');
 
 export function createUI(root, act) {
@@ -202,7 +220,7 @@ export function createUI(root, act) {
   }
 
   // Öneri: müşterinin isteği + raftaki farklı kitaplar (türe göre süzülebilir)
-  function recPanel(S, c, onPick) {
+  function recPanel(S, c, onPick, hints = true) {
     const ids = Object.keys(S.shelf);
     const genres = GENRE_KEYS.filter(g => ids.some(id => BOOK[id].genre === g));
     const tabs = `<button class="tab is-on" data-f="">Hepsi</button>` +
@@ -224,7 +242,7 @@ export function createUI(root, act) {
         <div class="portrait"><svg viewBox="-62 540 124 150">${personSVG(c.look, c.style)}</svg></div>
         <div><div class="name">${who}</div>
           ${chat ? `<p class="hello">“${chat}”</p>` : ''}
-          <p class="say">“${c.ask.text}”</p>${c.ask.rare ? '<p class="hint">✨ İlk baskı arıyor: ilk baskı verirsen kat kat öder.</p>' : ''}</div>
+          <p class="say">“${hints ? markAsk(c.ask.text) : c.ask.text}”</p>${c.ask.rare ? '<p class="hint">✨ İlk baskı arıyor: ilk baskı verirsen kat kat öder.</p>' : ''}</div>
       </div>
       <div class="tabs">${tabs}</div>
       <div class="bgrid">${cards || '<p class="hint">Rafta hiç kitap yok…</p>'}</div>
@@ -235,6 +253,12 @@ export function createUI(root, act) {
     });
     p.querySelectorAll('[data-book]').forEach(b => b.onclick = () => { closePanel(); onPick(b.dataset.book); });
     p.querySelector('[data-none]').onclick = () => { closePanel(); onPick(null); };
+    p.querySelectorAll('mark[data-tag]').forEach(m => m.onclick = () => {
+      const on = !m.classList.contains('is-on');
+      p.querySelectorAll('mark[data-tag]').forEach(x => x.classList.toggle('is-on', x === m && on));
+      p.querySelectorAll('.tab').forEach(x => x.classList.toggle('is-on', !x.dataset.f));
+      p.querySelectorAll('.bcard').forEach(b => { b.style.display = !on || BOOK[b.dataset.book].tags.includes(m.dataset.tag) ? '' : 'none'; });
+    });
   }
 
   function mapPanel(S) {
@@ -385,11 +409,12 @@ export function createUI(root, act) {
   // Defter sekmeleri: hikâye, pul albümü, mektuplar
   function bookTabs(S, on) {
     const t = (k, label) => `<button class="tab ${on === k ? 'is-on' : ''}" data-tab="${k}">${label}</button>`;
-    return `<div class="tabs head">${t('book', "📜 Kostas Efendi'nin defteri")}${t('album', `🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 Mektuplar (${S.letters.length})`)}</div>`;
+    return `<div class="tabs head">${t('book', '📜 Defter')}${t('album', `🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 Mektuplar (${S.letters.length})`)}${t('stats', '📊 İstatistik')}</div>`;
   }
   function wireTabs(p, S, back) {
     p.querySelectorAll('[data-tab]').forEach(b => b.onclick = () =>
-      b.dataset.tab === 'book' ? bookPanel(S, null, back) : b.dataset.tab === 'album' ? albumPanel(S, back) : mailPanel(S, back));
+      b.dataset.tab === 'book' ? bookPanel(S, null, back) : b.dataset.tab === 'album' ? albumPanel(S, back)
+        : b.dataset.tab === 'stats' ? statsPanel(S, back) : mailPanel(S, back));
   }
   function mailPanel(S, back = null) {
     const list = S.letters.slice().reverse().map(L => `<div class="letterbox"><div class="kicker">${L.from} · ${seasonOf(L.day)}, ${dayOfSeason(L.day)}. gün</div><p>“${L.text}”</p></div>`).join('')
@@ -422,6 +447,39 @@ export function createUI(root, act) {
       ${found.done ? '<p class="tip page">✨ On iki kitabın hepsi bulundu! Kostas Efendi\'nin rafı tamamlandı: +₺300</p>' : ''}</div>
       <div class="row center"><button class="btn hl" data-close>Rafa koy</button></div>`);
     p.querySelector('[data-close]').onclick = closePanel;
+  }
+
+// İstatistik: oyunun özeti
+  function statsPanel(S, back = null) {
+    const st = statsOf(S), max = Math.max(1, ...Object.values(st.byGenre));
+    const bars = GENRE_KEYS.map(g => `<div class="sbar"><span>${GENRES[g].icon} ${GENRES[g].name}</span><i style="--w:${(st.byGenre[g] / max * 100).toFixed(0)}%;--c:${GENRES[g].color}"></i><b>${st.byGenre[g]}</b></div>`).join('');
+    const top = st.topBooks.map((b, i) => `<li>${['🥇', '🥈', '🥉', '4.', '5.'][i]} ${b.title} <b>×${b.n}</b></li>`).join('') || '<li class="hint">Henüz satış yok.</li>';
+    const p = openPanel(`${bookTabs(S, 'stats')}
+      <div class="stats">
+        <div><span>Gün</span><b>${st.days}</b></div><div><span>Satılan</span><b>${st.sold}</b></div>
+        <div><span>Kazanç</span><b class="gold">₺${st.revenue}</b></div><div><span>Tam isabet</span><b>${st.perfect}</b></div>
+      </div>
+      <div class="news"><div><h3>Türlere göre satış</h3>${bars}</div>
+        <div class="col2"><h3>En çok satanlar</h3><ul class="toplist">${top}</ul>
+          <p class="hint">En iyi gün: ${st.bestDayNo ? `${st.bestDayNo}. gün, ₺${st.bestDay}` : '—'} · En sevilen kasaba: ${st.topTownName} · İlk baskı: ${st.rareSold} · Can dostlar: ${st.friends}</p></div></div>
+      <div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
+    wireTabs(p, S, back);
+    p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
+  }
+
+  // İlk günlerin rehber balonu: hedef düğme parlar; × ile kapatılır
+  let coachKey = '';
+  function coach(step) {
+    const key = step ? step.text : '';
+    if (key === coachKey) return;
+    coachKey = key;
+    root.querySelectorAll('.pulse').forEach(e => e.classList.remove('pulse'));
+    let box = $('coach');
+    if (!step) { box?.remove(); return; }
+    if (!box) { box = document.createElement('div'); box.id = 'coach'; box.className = 'coach'; root.appendChild(box); }
+    box.innerHTML = `<span>💡 ${step.text}</span><button class="x" title="Rehberi kapat">×</button>`;
+    box.querySelector('.x').onclick = () => act('tutskip');
+    if (step.target) setTimeout(() => root.querySelector(step.target)?.classList.add('pulse'), 60);
   }
 
   // Gün içi olay kartı: seçenekler, sonra sonuç
@@ -464,11 +522,12 @@ export function createUI(root, act) {
 
   // Ayarlar: müzik, ses efektleri, kaydı sıfırlama (iki adımlı onay)
   function settingsPanel(set, S = null) {
-    const row = (k, label) => `<div class="dcard"><div class="dicon">${k === 'music' ? '🎵' : '🔔'}</div><div class="gname">${label}</div>
+    const row = (k, label) => `<div class="dcard"><div class="dicon">${k === 'music' ? '🎵' : k === 'hints' ? '🔍' : '🔔'}</div><div class="gname">${label}</div>
       <button class="btn sm toggle ${set[k] ? 'hl' : ''}" data-toggle="${k}">${set[k] ? 'Açık' : 'Kapalı'}</button></div>`;
     const p = openPanel(`
       <h2>⚙️ Ayarlar</h2>
-      <div class="dgrid one">${row('music', 'Müzik')}${row('sfx', 'Ses efektleri ve yağmur')}</div>
+      <div class="dgrid one">${row('music', 'Müzik')}${row('sfx', 'Ses efektleri ve yağmur')}${row('hints', 'Öneri ipuçları (cümledeki anahtar kelimeler)')}</div>
+      <h3>🔠 Yazı boyutu</h3><div class="swatches">${[[1, 'Normal'], [1.15, 'Büyük'], [1.3, 'Çok büyük']].map(([v, n]) => `<button class="swatch ${set.textScale === v ? 'is-on' : ''}" data-scale="${v}"><span style="font-size:${v}em">Aa</span><small>${n}</small></button>`).join('')}</div>
       ${S?.upgrades.includes('plak') ? `<h3>📻 Plak çalar</h3><div class="swatches">${Object.keys(THEMES).map(k => `<button class="swatch ${set.theme === k ? 'is-on' : ''}" data-theme="${k}"><span>${THEMES[k].name}</span><small>${set.theme === k ? '✓ çalıyor' : 'Çal'}</small></button>`).join('')}</div>` : ''}
       <h3>Kayıt</h3>
       <div class="dcard"><div class="dicon">🗑️</div><div><div class="gname">Baştan başla</div><div class="gmeta">Bütün ilerleme silinir, geri alınamaz.</div></div>
@@ -477,6 +536,7 @@ export function createUI(root, act) {
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`);
     p.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => act('toggle', b.dataset.toggle));
     p.querySelectorAll('[data-theme]').forEach(b => b.onclick = () => act('theme', b.dataset.theme));
+    p.querySelectorAll('[data-scale]').forEach(b => b.onclick = () => act('scale', +b.dataset.scale));
     const r = p.querySelector('[data-reset]');
     r.onclick = () => {
       if (r.dataset.armed) return act('reset');
@@ -555,5 +615,5 @@ export function createUI(root, act) {
     }
   }
 
-  return { hud, toast, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  return { hud, toast, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

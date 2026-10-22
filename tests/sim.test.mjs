@@ -18,6 +18,8 @@ import { TOWN_KEYS } from '../src/data/towns.js';
 import { WEATHER, EVENTS, EVENT_CHANCE, SEASON } from '../src/data/calendar.js';
 import { PAGES, FINALE_REWARD } from '../src/data/story.js';
 import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, MOTIFS, THEMES } from '../src/audio/compose.js';
+import { TUT_STEPS, tutorialStep, tutorialEvent } from '../src/game/tutorial.js';
+import { statsOf } from '../src/game/stats.js';
 import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
 import { checkStamps, stampProgress } from '../src/game/stamps.js';
 import { checkStory, nextPage, progressOf, checkUnlocks } from '../src/game/story.js';
@@ -771,6 +773,38 @@ test('müdavimler arası olaylar: iki taraf da en az 3 kalpteyken çıkar', () =
   assert.equal(S.friends.selim, 4);
   assert.ok(r.tags.some(x => x.includes('Melis')));
   assert.equal(eligible(S, H), false, 'bir kerelik');
+});
+
+// --- Faz E: kolaylık ---
+test('rehber: adımlar sırayla, doğru olayla ilerler; kapatılabilir; eski oyunda gösterilmez', () => {
+  const S = newGame(1);
+  assert.equal(tutorialStep(S).done, 'buy');
+  assert.equal(tutorialEvent(S, 'open'), false, 'sırası gelmeyen olay ilerletmez');
+  assert.equal(tutorialEvent(S, 'buy'), true);
+  assert.equal(tutorialStep(S).done, 'open');
+  for (const ev of ['open', 'rec', 'next', 'spot', 'decor', 'book']) assert.ok(tutorialEvent(S, ev), ev);
+  assert.equal(tutorialStep(S), null, 'rehber bitti');
+  const P = newGame(1);
+  tutorialEvent(P, 'skip');
+  assert.equal(tutorialStep(P), null);
+  const old = JSON.parse(JSON.stringify(newGame(2)));
+  delete old.tut; old.totals.days = 5;
+  assert.equal(tutorialStep(restore(old)), null, 'rehberden önce başlamış oyun');
+  for (const st of TUT_STEPS) assert.ok(['morning', 'open', 'evening'].includes(st.on) && st.text, st.done);
+});
+
+test('istatistik: satışlar, en iyi gün, en çok satanlar ve kasabalar doğru özetlenir', () => {
+  const S = newGame(13);
+  S.coins = 1e5;
+  for (let d = 0; d < 8; d++) { GENRE_KEYS.forEach(g => buyBox(S, g)); if (d === 4) travel(S, 'foca'); simulateDay(S); }
+  const st = statsOf(S);
+  assert.equal(st.days, 8);
+  assert.equal(Object.values(st.byGenre).reduce((a, b) => a + b, 0), S.totals.sold);
+  assert.ok(st.bestDay > 0 && st.bestDayNo >= 1 && st.bestDayNo <= 8);
+  assert.ok(st.topBooks.length === 5 && st.topBooks[0].n >= st.topBooks[4].n);
+  assert.equal(S.townDays.ayvalik + S.townDays.foca, 8);
+  assert.ok(['ayvalik', 'foca'].includes(st.topTown));
+  assert.equal(statsOf(newGame(1)).topGenre, null, 'satış yoksa en çok satan tür yok');
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {

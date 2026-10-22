@@ -67,7 +67,10 @@ export function newGame(seed = Date.now()) {
     arrivals: [],              // açık gün: henüz gelmemiş müşterilerin saatleri
     today: null,               // açık gün: o günün defteri
     lastDay: null,             // son kapanan günün özeti
-    totals: { days: 0, sold: 0, revenue: 0, spent: 0, perfect: 0, festivals: 0, rareSold: 0 },
+    totals: { days: 0, sold: 0, revenue: 0, spent: 0, perfect: 0, festivals: 0, rareSold: 0, bestDay: 0, bestDayNo: 0 },
+    soldBooks: {},             // istatistik: kitap → satış adedi
+    townDays: {},              // istatistik: kasaba → dükkân açılan gün
+    tut: 0,                    // ilk günlerin rehberi: hangi adımda (game/tutorial)
     nextId: 1,
     rng: 0,
   };
@@ -104,6 +107,8 @@ export function restore(saved) {
   if (!SPOTS[S.town]?.[S.spot]) S.spot = firstSpot(S.town);
   S.regArrivals = S.regArrivals || [];
   // gün ortasında kapanan oyun o sabaha döner (sabah kaydı stok ve parayı zaten tutuyor)
+  // rehber eklenmeden önce başlamış oyunlarda rehber gösterilmez
+  if (saved.tut === undefined && S.totals.days > 0) S.tut = -1;
   if (S.phase === 'open') { S.phase = 'morning'; S.arrivals = []; S.regArrivals = []; S.haps = []; S.today = null; S.clock = BAL.dayStart; }
   return S;
 }

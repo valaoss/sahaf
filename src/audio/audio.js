@@ -4,7 +4,7 @@ import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, THEMES } from './compose.js
 import { persist, SAVE_KEYS } from '../core/native.js';
 
 const SET_KEY = SAVE_KEYS[1];
-export const settings = Object.assign({ music: true, sfx: true, theme: 'akustik' }, (() => {
+export const settings = Object.assign({ music: true, sfx: true, theme: 'akustik', hints: true, textScale: 1 }, (() => {
   try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; }
 })());
 export function saveSettings() {

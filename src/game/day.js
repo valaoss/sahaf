@@ -61,6 +61,8 @@ export function closeShop(S) {
   S.totals.days++;
   S.totals.sold += T.soldCount;
   S.totals.revenue += T.revenue;
+  if (T.revenue > S.totals.bestDay) { S.totals.bestDay = T.revenue; S.totals.bestDayNo = S.day; }
+  S.townDays[T.town] = (S.townDays[T.town] || 0) + 1;
   if (T.event) {
     S.totals.festivals++;
     if (!S.festKinds.includes(T.event)) S.festKinds.push(T.event);

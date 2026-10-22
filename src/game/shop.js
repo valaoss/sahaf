@@ -201,6 +201,7 @@ function sell(S, id, res, rareCopy = false) {
   takeBook(S, id);
   if (rareCopy || plainCopies(S, id) < 0) { S.rare[id]--; if (!S.rare[id]) delete S.rare[id]; }
   const g = BOOK[id].genre, T = S.today;
+  S.soldBooks[id] = (S.soldBooks[id] || 0) + 1;
   res.bought.push(id);
   res.paid += GENRES[g].price * (rareCopy ? BAL.rareMul : 1);
   if (rareCopy) { res.rare = true; S.totals.rareSold++; T.rareSold = (T.rareSold || 0) + 1; }
