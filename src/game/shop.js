@@ -95,8 +95,21 @@ export function demandOf(S, townKey = S.town) {
   const today = dayMods(S.day, townKey).demand;
   for (const g in today) d[g] *= today[g];
   for (const g in mul) d[g] *= mul[g];
+  for (const id of S.featured) if (S.shelf[id]) d[BOOK[id].genre] *= 1 + BAL.featureDemand;
   return d;
 }
+
+// Vitrin: sabah raftan en fazla üç kitap öne çıkarılır
+export function toggleFeature(S, id) {
+  if (S.phase !== 'morning') return 'Vitrin sabah düzenlenir.';
+  const i = S.featured.indexOf(id);
+  if (i >= 0) { S.featured.splice(i, 1); return null; }
+  if (!S.shelf[id]) return 'Bu kitap rafta yok.';
+  if (S.featured.length >= BAL.featureMax) return 'Vitrine en fazla üç kitap sığar.';
+  S.featured.push(id);
+  return null;
+}
+const featuredOf = (S, g) => S.featured.filter(id => S.shelf[id] && BOOK[id].genre === g);
 
 // Kasabada en çok aranan türler (sabah ipucu)
 export function topDemand(townKey, n = 2) {
@@ -137,7 +150,9 @@ export function makeCustomer(S) {
     // Çoğu zaman bu kitap raftadır (çeşitli raf ödüllendirilir); değilse mekânın havasına ya da kişinin zevkine uyar.
     const onShelf = Object.keys(wantsRare ? S.rare : S.shelf).filter(id => (wantsRare ? S.rare : S.shelf)[id] > 0).sort();
     let target;
-    if (onShelf.length && rnd(S) < BAL.askFromShelf) target = BOOK[pickFresh(S, 'book', onShelf)];
+    const shown = S.featured.filter(id => S.shelf[id] && (!wantsRare || S.rare[id]));
+    if (shown.length && rnd(S) < 0.25) target = BOOK[pickFresh(S, 'book', shown)];
+    else if (onShelf.length && rnd(S) < BAL.askFromShelf) target = BOOK[pickFresh(S, 'book', onShelf)];
     else {
       const r = rnd(S);
       const pool = r < 0.35 ? BOOKS.filter(b => b.tags.some(t => sp.tags.includes(t)))
@@ -192,13 +207,14 @@ function befriend(S, id, res) {
 // Raftaki o türden, normal satışa açık bir kitap (çok olan daha olası)
 function pickBookOf(S, g) {
   const w = {};
-  for (const id in S.shelf) if (BOOK[id].genre === g && plainCopies(S, id) > 0) w[id] = plainCopies(S, id);
+  for (const id in S.shelf) if (BOOK[id].genre === g && plainCopies(S, id) > 0) w[id] = plainCopies(S, id) * (S.featured.includes(id) ? 4 : 1);
   return Object.keys(w).length ? weighted(S, w) : null;
 }
 
 // rareCopy: ilk baskı kopyası satılıyor (koleksiyoncuya, kat kat fiyata)
 function sell(S, id, res, rareCopy = false) {
   takeBook(S, id);
+  if (!S.shelf[id]) S.featured = S.featured.filter(x => x !== id);
   if (rareCopy || plainCopies(S, id) < 0) { S.rare[id]--; if (!S.rare[id]) delete S.rare[id]; }
   const g = BOOK[id].genre, T = S.today;
   S.soldBooks[id] = (S.soldBooks[id] || 0) + 1;
@@ -219,7 +235,7 @@ function settle(S, res) {
 export function resolveCustomer(S, c) {
   const T = S.today;
   const res = { bought: [], paid: 0, happy: false };
-  if (plainOfGenre(S, c.wants) > 0 && rnd(S) < BAL.buyChance) {
+  if (plainOfGenre(S, c.wants) > 0 && rnd(S) < BAL.buyChance + (featuredOf(S, c.wants).length ? BAL.featureBuy : 0)) {
     sell(S, pickBookOf(S, c.wants), res);
     res.happy = true;
     if (plainOfGenre(S, c.wants) > 0 && rnd(S) < BAL.extraChance) sell(S, pickBookOf(S, c.wants), res);

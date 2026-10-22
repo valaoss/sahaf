@@ -9,7 +9,7 @@ import { GENRES } from './data/genres.js';
 import { BOOK } from './data/books.js';
 import { DECOR, PAINTS, UPGRADES } from './data/decor.js';
 import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
-import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer } from './game/shop.js';
+import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
@@ -73,6 +73,8 @@ const crowd = createCrowd(scene.people, scene.fx, {
   paid: x => ui.flyCoin(x / 1600, 0.6),
 });
 const ambient = createAmbient(scene.ambientBack, scene.ambientFront);
+// karavana dokununca içi açılır
+scene.svg.querySelector('#cartHit').addEventListener('click', () => { if (!ui.isOpen()) { sfx('page'); ui.interiorPanel(S); } });
 
 // sabah alışverişinden sonra pul kontrolü
 function stampCheck() {
@@ -87,6 +89,12 @@ function stampCheck() {
 
 const act = (a, arg) => {
   if (a === 'stock') ui.stockPanel(S);
+  else if (a === 'inside') ui.interiorPanel(S);
+  else if (a === 'feature') {
+    const why = toggleFeature(S, arg);
+    if (why) ui.toast(why); else { tap(); sfx('tap'); saveGame(S); }
+    ui.interiorPanel(S);
+  }
   else if (a === 'decor' && tutorialEvent(S, 'decor')) { saveGame(S); ui.decorPanel(S); }
   else if (a === 'paper') { sfx('page'); ui.paperPanel(S); }
   else if (a === 'book') { sfx('page'); if (tutorialEvent(S, 'book')) saveGame(S); ui.bookPanel(S); }
@@ -216,6 +224,7 @@ if (PREVIEW) {
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
+  if (panel === 'ic') { S.coins = 999; ['roman','siir','fantastik'].forEach(g => buyBox(S, g)); S.featured = Object.keys(S.shelf).slice(2, 4); S.rare[Object.keys(S.shelf)[6]] = 1; ui.interiorPanel(S); }
   // ?insanlar: farklı tiplerden on kişilik dizi (yürüyen, okuyan, sevinen)
   if (q.has('insanlar')) {
     const kinds = ['ogrenci', 'emekli', 'balikci', 'turist', 'anne', 'cocuk', 'sevgili', 'yazar', 'teyze', 'sorfcu'];

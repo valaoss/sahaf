@@ -166,6 +166,7 @@ const MARKUP = `
     </g>
     <g id="slotRoof" transform="translate(392 32)"></g>
     <g id="slotGramo" transform="translate(92 30)"></g>
+    <rect id="cartHit" x="10" y="0" width="430" height="350" fill="transparent" style="cursor:pointer"/>
     <path d="M30 104 C120 150 330 150 420 104" fill="none" stroke="#5a3d30" stroke-width="3"/>
     <g id="lights"></g>
     <g transform="translate(110 350)"><circle r="44" fill="#5b4636"/><circle r="22" fill="#f6e2c4"/><circle r="8" fill="#5b4636"/></g>

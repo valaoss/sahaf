@@ -7,6 +7,7 @@ import { BOOK, booksOf, TAGS } from '../data/books.js';
 import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
 import { THEMES } from '../audio/compose.js';
 import { mapSVG, proj } from '../render/map3d.js';
+import { interiorSVG } from '../render/interior.js';
 import { KOSTAS } from '../data/kostas.js';
 import { shelfCount, shelfCap, genreCount, seasonOf, dayOfSeason } from '../game/state.js';
 import { boxCost, canBuyBox, canTravel, topDemand } from '../game/shop.js';
@@ -129,13 +130,14 @@ export function createUI(root, act) {
       </div>`;
     }).join('');
     const p = openPanel(`
-      <h2>📦 Toptancı</h2>
+      <h2>📦 Toptancı <button class="btn sm" data-inside>🪟 Karavanın içi</button></h2>
       <p class="hint">Bu kasabada çok aranan: <b>${hot}</b></p>${missed}
       ${S.quest ? `<p class="hint">📌 İlan: ${questText(S.quest)} <b>(${questProgress(S).have}/${questProgress(S).n})</b></p>` : ''}
       <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 Raflar <b>${shelfCount(S)}/${shelfCap(S)}</b></span></div>
       <div class="ggrid">${cards}</div>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => act('buy', b.dataset.buy));
+    p.querySelector('[data-inside]').onclick = () => interiorPanel(S);
     p.querySelector('[data-close]').onclick = closePanel;
   }
 
@@ -446,6 +448,20 @@ export function createUI(root, act) {
     if (step.target) setTimeout(() => root.querySelector(step.target)?.classList.add('pulse'), 60);
   }
 
+  // Karavanın içi: raflar ve vitrin. Sabah kitap sırtına dokunarak vitrine al/çıkar.
+  function interiorPanel(S) {
+    const cards = S.featured.map(id => `<span class="chip" style="--c:${GENRES[BOOK[id].genre].color}">⭐ ${BOOK[id].title}</span>`).join('')
+      || '<span class="hint">Vitrin boş. Bir kitabın sırtına dokun.</span>';
+    const p = openPanel(`
+      <h2>🪟 Karavanın içi</h2>
+      <svg class="interior" viewBox="0 0 1600 760">${interiorSVG(S)}</svg>
+      <p class="hint">Vitrin (en fazla ${BAL.featureMax}): ${cards}</p>
+      <p class="hint">Vitrindeki kitap müşterinin önce gözüne çarpar ve o türe ilgiyi artırır.${S.phase !== 'morning' ? ' Vitrin sabah düzenlenir.' : ''}</p>
+      <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
+    p.querySelectorAll('[data-feature]').forEach(g => g.onclick = () => act('feature', g.dataset.feature));
+    p.querySelector('[data-close]').onclick = closePanel;
+  }
+
   // Gün içi olay kartı: seçenekler, sonra sonuç
   function hapPanel(H, onChoose) {
     const p = openPanel(`
@@ -579,5 +595,5 @@ export function createUI(root, act) {
     }
   }
 
-  return { hud, toast, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  return { hud, toast, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

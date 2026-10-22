@@ -32,6 +32,7 @@ export function newGame(seed = Date.now()) {
     prevTown: 'ayvalik',       // dünkü kasaba (yeni kasaba ilgisi için)
     shelf: {},                 // kitap kimliği → adet
     rare: {},                  // bu kopyalardan kaçı ilk baskı (koleksiyoncuya saklanır)
+    featured: [],              // vitrindeki kitaplar (en fazla 3)
     recent: {},                // tekrar bekçisi (game/memory.js)
     recHistory: [],            // tam isabetli öneriler: mektuplar için
     haps: [],                  // açık gün: bugünün olayları [{ t, id }] (game/happenings.js)

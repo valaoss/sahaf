@@ -23,6 +23,9 @@ export const BAL = {
   questChance: 0.4,    // aktif ilan yokken sabah yeni ilan çıkma ihtimali
   teaChance: 0.15,     // çay köşesi varken müşterinin çay alma ihtimali
   teaPrice: 3,
+  featureMax: 3,       // vitrine sığan kitap
+  featureBuy: 0.08,    // vitrinde aradığı türden kitap varsa alma ihtimaline eklenen
+  featureDemand: 0.15, // vitrindeki her kitap kendi türüne olan ilgiyi bu kadar artırır
   patience: 14,        // öneri isteyen müşterinin bekleme süresi (sn, normal hızda)
   daysPerSeason: 7,
 };

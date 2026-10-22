@@ -331,3 +331,9 @@ mark[data-tag].is-on { background: #ffd56b; }
 svg.scene .paintable { filter: url(#watercolor); }
 svg.scene.nopaint .paintable { filter: none; }
 svg.scene.nopaint .paintfx { display: none; }
+
+/* karavanın içi */
+svg.interior { width: 100%; height: auto; display: block; border-radius: 1em; margin: .3em 0; }
+.interior .spine { cursor: pointer; transition: transform .15s; transform-box: fill-box; }
+.interior .spine:hover { transform: translateY(-6px); }
+.panel h2 .btn.sm { font-size: .55em; vertical-align: middle; margin-left: .6em; }

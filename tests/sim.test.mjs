@@ -6,7 +6,7 @@ import { TOWNS } from '../src/data/towns.js';
 import { BOOKS, BOOK, TAGS, booksOf } from '../src/data/books.js';
 import { DECOR, SHELF_LEVELS, PAINTS, UPGRADES } from '../src/data/decor.js';
 import { newGame, restore, shelfCount, shelfCap, genreCount, seasonOf } from '../src/game/state.js';
-import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot } from '../src/game/shop.js';
+import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot, toggleFeature } from '../src/game/shop.js';
 import { SPOTS } from '../src/data/spots.js';
 import { ARCHETYPES, ARCH_KEYS } from '../src/data/archetypes.js';
 import { HAPPENINGS } from '../src/data/happenings.js';
@@ -805,6 +805,29 @@ test('istatistik: satışlar, en iyi gün, en çok satanlar ve kasabalar doğru 
   assert.equal(S.townDays.ayvalik + S.townDays.foca, 8);
   assert.ok(['ayvalik', 'foca'].includes(st.topTown));
   assert.equal(statsOf(newGame(1)).topGenre, null, 'satış yoksa en çok satan tür yok');
+});
+
+test('vitrin: en fazla üç kitap, sabah düzenlenir, müşteri önce vitrindekini alır', () => {
+  const S = newGame(3);
+  S.shelf = { kurk: 5, satranc: 5, anna: 5, gatsby: 5 };
+  assert.equal(toggleFeature(S, 'hobbit'), 'Bu kitap rafta yok.');
+  for (const id of ['kurk', 'satranc', 'anna']) assert.equal(toggleFeature(S, id), null);
+  assert.equal(toggleFeature(S, 'gatsby'), 'Vitrine en fazla üç kitap sığar.');
+  assert.equal(toggleFeature(S, 'anna'), null, 'tekrar dokununca iner');
+  assert.deepEqual(S.featured, ['kurk', 'satranc']);
+  assert.ok(demandOf(S).roman > TOWNS.ayvalik.demand.roman * SPOTS.ayvalik.iskele.demand.roman * 1.3 - 1e-9, 'roman ilgisi arttı');
+  openShop(S);
+  assert.equal(toggleFeature(S, 'anna'), 'Vitrin sabah düzenlenir.');
+  let feat = 0, other = 0;
+  for (let i = 0; i < 300; i++) {
+    S.shelf = { kurk: 5, satranc: 5, anna: 5, gatsby: 5 }; S.featured = ['kurk'];
+    const r = resolveCustomer(S, { id: i, wants: 'roman', look: 1 });
+    if (r.bought[0] === 'kurk') feat++; else if (r.bought.length) other++;
+  }
+  assert.ok(feat > other, `vitrindeki ${feat} > diğerleri ${other}`);
+  S.shelf = { kurk: 1 }; S.featured = ['kurk'];
+  resolveCustomer(S, { id: 9, wants: 'roman', look: 1 });
+  if (!S.shelf.kurk) assert.deepEqual(S.featured, [], 'biten kitap vitrinden iner');
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {
