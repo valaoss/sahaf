@@ -9,6 +9,13 @@ html, body { margin: 0; height: 100%; background: #2b2320; color: var(--ink); fo
 /* 16:9 sahne; tüm ölçüler em, em de sahne genişliğinin 1/64'ü */
 #frame { position: relative; width: min(100vw, 177.78vh); aspect-ratio: 16 / 9; overflow: hidden; font-size: calc(min(1.5625vw, 2.78vh) * var(--ts, 1)); }
 #scene, #scene svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* katmanlar ayrı birleştirme katmanı: yürüyen insanlar arka planı yeniden boyatmaz */
+#scene svg { will-change: transform; }
+#scene .layer { pointer-events: none; }
+#scene .people-layer #people > g { pointer-events: auto; }
+#sprites { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; transform-origin: 0 0; pointer-events: none; }
+#scene .sprite { position: absolute; inset: auto; left: -130px; top: 440px; width: 260px; height: 390px; overflow: visible; pointer-events: none; }
+#scene .sprite .hit, #scene .sprite .bubble { pointer-events: auto; }
 #fade { position: absolute; inset: 0; background: #fbeed7; opacity: 0; pointer-events: none; transition: opacity .5s; z-index: 5; }
 #fade.on { opacity: 1; }
 #fade.boot { opacity: 1; }
@@ -18,8 +25,9 @@ html, body { margin: 0; height: 100%; background: #2b2320; color: var(--ink); fo
 .drift { animation: drift 60s linear infinite; }
 .drift.slow { animation-duration: 95s; }
 @keyframes drift { from { transform: translateX(-300px); } to { transform: translateX(1900px); } }
-.twinkle, .bulb { animation: twinkle 2.4s ease-in-out infinite; }
-.bulb { animation-duration: 1.8s; }
+.twinkle { animation: twinkle 2.4s ease-in-out infinite; }
+.bulb { opacity: .55; }
+#scene.lit .bulb { animation: twinkle 1.8s ease-in-out infinite; }
 @keyframes twinkle { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
 .bob { animation: bob 3.2s ease-in-out infinite; transform-origin: center; }
 @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
@@ -260,39 +268,30 @@ mark[data-tag].is-on { background: #ffd56b; }
 /* insanlar: eklemler kendi noktasından döner (kalça, omuz, boyun) */
 .p-legL, .p-legR, .p-armL, .p-armR, .p-head { transform-origin: 0 0; }
 .p-book { opacity: 0; transition: opacity .3s; }
-.walking .p-legL { animation: legswing .52s ease-in-out infinite alternate; }
-.walking .p-legR { animation: legswing .52s ease-in-out infinite alternate-reverse; }
-.walking .p-armL { animation: armswing .52s ease-in-out infinite alternate-reverse; }
-.walking .p-armR { animation: armswing .52s ease-in-out infinite alternate; }
-.walking .p-upper { animation: walkbob .26s ease-in-out infinite alternate; }
-@keyframes legswing { from { transform: rotate(-17deg); } to { transform: rotate(17deg); } }
-@keyframes armswing { from { transform: rotate(-15deg); } to { transform: rotate(15deg); } }
+.walking .p-side .p-upper { animation: walkbob .26s ease-in-out infinite alternate; }
 @keyframes walkbob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
-.age-child.walking .p-legL, .age-child.walking .p-legR, .age-child.walking .p-armL, .age-child.walking .p-armR { animation-duration: .4s; }
-.age-child.walking .p-upper { animation-duration: .2s; }
-.age-elder.walking .p-legL, .age-elder.walking .p-legR { animation-duration: .8s; animation-name: legswing-soft; }
-.age-elder.walking .p-armL, .age-elder.walking .p-armR { animation-duration: .8s; animation-name: armswing-soft; }
-.age-elder.walking .p-upper { animation-duration: .4s; }
-@keyframes legswing-soft { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
-@keyframes armswing-soft { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
-/* dururken: nefes, göz kırpma, ara sıra başını çevirme */
-.p-upper { animation: breathe-soft 3.6s ease-in-out infinite; }
+.age-child.walking .p-side .p-upper { animation-duration: .2s; }
+.age-elder.walking .p-side .p-upper { animation-duration: .4s; }
+/* dururken (yalnız ön görünüş): nefes, göz kırpma, ara sıra başını çevirme */
+[class*="age-"]:not(.walking) .p-front .p-upper { animation: breathe-soft 3.6s ease-in-out infinite; }
 @keyframes breathe-soft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
-.p-eyes { transform-box: fill-box; transform-origin: center; animation: blink 4.6s infinite; }
+.p-eyes { transform-box: fill-box; transform-origin: center; }
+[class*="age-"]:not(.walking) .p-front .p-eyes { animation: blink 4.6s infinite; }
 @keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
-.p-head { animation: lookaround 7s ease-in-out infinite; }
+[class*="age-"]:not(.walking) .p-front .p-head { animation: lookaround 7s ease-in-out infinite; }
 @keyframes lookaround { 0%, 60%, 100% { transform: rotate(0); } 70%, 80% { transform: rotate(-5deg); } }
-.p-pony { transform-box: fill-box; transform-origin: 0 0; animation: sway 1.6s ease-in-out infinite; }
+.p-pony { transform-box: fill-box; transform-origin: 0 0; }
+.walking .p-pony { animation: sway 1.6s ease-in-out infinite; }
 /* raflara bakarken: kitap elde, baş hafif eğik */
 .reading .p-armR { transform: rotate(22deg); transition: transform .4s; }
 .reading .p-book { opacity: 1; }
-.reading .p-head { animation: readnod 3s ease-in-out infinite; }
+[class*="age-"].reading .p-front .p-head { animation: readnod 3s ease-in-out infinite; }
 @keyframes readnod { 0%, 100% { transform: rotate(3deg); } 50% { transform: rotate(6deg); } }
 /* tepkiler */
-.cheer .p-upper { animation: cheer .5s ease-out 2; }
+[class*="age-"].cheer .p-front .p-upper { animation: cheer .5s ease-out 2; }
 @keyframes cheer { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
 .cheer .p-armL { transform: rotate(-150deg); transition: transform .25s; }
-.sad .p-head { animation: none; transform: rotate(8deg) translateY(3px); transition: transform .4s; }
+[class*="age-"].sad .p-front .p-head { animation: none; transform: rotate(8deg) translateY(3px); transition: transform .4s; }
 
 /* 2.5D harita */
 .map3d .town { cursor: pointer; }
@@ -324,9 +323,9 @@ mark[data-tag].is-on { background: #ffd56b; }
 @keyframes armstride-soft { from { transform: rotate(-6deg); } to { transform: rotate(10deg); } }
 
 /* boyanmış görünüm */
-svg.scene .paintable { filter: url(#watercolor); }
-svg.scene.nopaint .paintable { filter: none; }
-svg.scene.nopaint .paintfx { display: none; }
+#scene .paintable { filter: url(#watercolor); }
+#scene.nopaint .paintable { filter: none; }
+#scene.nopaint .paintfx { display: none; }
 
 /* karavanın içi */
 svg.interior { width: 100%; height: auto; display: block; border-radius: 1em; margin: .3em 0; }
@@ -335,14 +334,17 @@ svg.interior { width: 100%; height: auto; display: block; border-radius: 1em; ma
 .panel h2 .btn.sm { font-size: .55em; vertical-align: middle; margin-left: .6em; }
 
 /* müşterinin karşılığı */
-.speech { position: absolute; left: 2%; bottom: 10.5em; display: flex; gap: .7em; align-items: center; max-width: 46%; background: var(--cream);
-  border: .18em solid var(--edge); border-radius: 1.2em; padding: .5em .9em .5em .5em; box-shadow: 0 .3em 0 var(--edge-d); z-index: 5;
-  opacity: 0; transform: translateY(1em) scale(.95); transition: all .35s cubic-bezier(.3, 1.4, .5, 1); pointer-events: none; }
-.speech.show { opacity: 1; transform: none; }
-.speech p { margin: .15em 0 0; font-size: 1.05em; line-height: 1.3; }
-.speech small { color: var(--gold); font-weight: 700; }
+.speech { position: absolute; z-index: 3; width: max-content; max-width: 17em; background: var(--cream); border: .16em solid var(--edge);
+  border-radius: 1em; padding: .4em .8em .5em; box-shadow: 0 .22em 0 var(--edge-d); pointer-events: none; text-align: center;
+  opacity: 0; transform: translate(-50%, -90%) scale(.85); transition: opacity .25s, transform .3s cubic-bezier(.3, 1.4, .5, 1); }
+.speech.show { opacity: 1; transform: translate(-50%, -100%); }
+.speech::after { content: ''; position: absolute; left: var(--tail, 50%); bottom: -.55em; width: 1em; height: 1em; background: var(--cream);
+  border-right: .16em solid var(--edge); border-bottom: .16em solid var(--edge); transform: translateX(-50%) rotate(45deg); }
+.speech .name { font-size: .78em; font-weight: 700; color: var(--coral); }
+.speech .name small { color: var(--gold); font-size: 1em; }
+.speech p { margin: .05em 0 0; font-size: .98em; line-height: 1.25; }
 .speech.perfect { border-color: #ffd56b; }
-.speech.miss { border-color: #e2c8bd; }
+.speech.perfect::after { border-color: #ffd56b; }
 .portrait.mini { flex: 0 0 3.6em; height: 3.6em; border-radius: .9em; }
 
 /* şemsiye tutan kol sallanmaz, okurken de dik durur */
@@ -379,7 +381,7 @@ svg.interior { width: 100%; height: auto; display: block; border-radius: 1em; ma
   .bottom .btn { font-size: 1.1em; padding: .65em .3em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .toast { top: calc(var(--sb) + .7em); white-space: normal; text-align: center; width: max-content; max-width: 92%; }
   .coach { bottom: calc(env(safe-area-inset-bottom) + 10.5em); white-space: normal; width: max-content; max-width: 92%; }
-  .speech { left: 3%; right: 3%; max-width: none; bottom: auto; top: calc(var(--sb) + 6.8em); }
+  .speech { max-width: 15em; }
   .panel, .panel.wide { width: 95vw; max-height: 92%; padding: 1em 1.1em; }
   .panel.wide { font-size: 1em; }
   .row { flex-wrap: wrap; }

@@ -2,6 +2,10 @@
 // Öneri isteyen müşteri "❓" ile bekler; dokunulunca öneri paneli açılır.
 // Görünüm müşterinin `look` tohumundan gelir; aynı kişi hep aynı giyinir.
 import { el } from '../core/svg.js';
+
+const NS = 'http://www.w3.org/2000/svg';
+// her kişi kendi küçük svg'si (sprite): yer değiştirmesi GPU'da kaydırma, sahneyi yeniden çizdirmez
+const BOX = { x: -130, y: 440, w: 260, h: 390 };
 import { seeded } from '../core/rng.js';
 import { GENRES } from '../data/genres.js';
 import { personSVG, figureMeta } from './figure.js';
@@ -28,18 +32,22 @@ export function createCrowd(layer, fx, handlers) {
     const free = SPOTS.filter(s => !people.some(p => p.spot === s && p.state !== 'out'));
     if (!free.length) return false;
     const spot = free[Math.floor(Math.random() * free.length)];
-    const g = el('g', {}, layer);
+    const sprite = document.createElementNS(NS, 'svg');
+    sprite.setAttribute('class', 'sprite');
+    sprite.setAttribute('viewBox', `${BOX.x} ${BOX.y} ${BOX.w} ${BOX.h}`);
+    layer.appendChild(sprite);
+    const g = el('g', {}, sprite);
     const flip = el('g', {}, g);
     // yağmurda çoğu kişi şemsiyeli, akşam bazıları fenerli (aynı kişi her seferinde aynı karar)
     const r = seeded(c.look * 31 + 7);
     const carry = { umbrella: ctx.rain && r() < 0.85, lantern: ctx.dark && r() < 0.6 };
     flip.innerHTML = personSVG(c.look, c.style, carry);
     // dokunma alanı (yalnızca öneri isteyende işe yarar)
-    el('rect', { x: -60, y: 470, width: 120, height: 340, fill: 'transparent' }, g);
+    el('rect', { class: 'hit', x: -60, y: 470, width: 120, height: 340, fill: 'transparent' }, g);
     const bubble = el('g', { class: 'bubble' }, g);
     bubble.innerHTML = BUBBLE;
     const meta = figureMeta(c.look, c.style);
-    const p = { c, spot, g, flip, bubble, meta, x: spot.side > 0 ? 1720 : -120, state: 'in', t: 0, res: null };
+    const p = { c, spot, g, sprite, flip, bubble, meta, x: spot.side > 0 ? 1720 : -120, state: 'in', t: 0, res: null };
     g.classList.add('walking', 'age-' + meta.age);
     if (carry.umbrella) g.classList.add('holding');
     // balon başın üstünde dursun
@@ -56,8 +64,9 @@ export function createCrowd(layer, fx, handlers) {
   }
 
   function place(p, dir) {
-    p.g.setAttribute('transform', `translate(${p.x.toFixed(1)} 0)`);
-    p.flip.setAttribute('transform', dir < 0 ? 'scale(-1 1)' : '');
+    const x = Math.round(p.x);
+    if (x !== p.px) { p.sprite.style.transform = `translate3d(${x}px, 0, 0)`; p.px = x; }
+    if (dir !== p.dir) { p.flip.setAttribute('transform', dir < 0 ? 'scale(-1 1)' : ''); p.dir = dir; }
   }
 
   function say(p, text) {
@@ -105,6 +114,8 @@ export function createCrowd(layer, fx, handlers) {
     add(c) { pending.push(c); },
     get busy() { return people.length + pending.length; },
     answer(c, r) { const p = people.find(q => q.c === c); if (p) react(p, r); },
+    // konuşma balonu için: kişinin baş üstü (emoji balonunun da üstü)
+    anchor(c) { const p = people.find(q => q.c === c); return p ? { x: p.x, y: 806 + p.meta.headTop - 110 } : null; },
     // patience: öneri isteyenin bekleme süresi (sn, normal hızda)
     update(dt, mult, patience) {
       while (pending.length && spawn(pending[0])) pending.shift();
@@ -136,11 +147,11 @@ export function createCrowd(layer, fx, handlers) {
         } else if (p.state === 'out') {
           p.x += p.spot.side * step;
           place(p, p.spot.side);
-          if (p.x > 1760 || p.x < -160) { p.g.remove(); p.dead = true; }
+          if (p.x > 1760 || p.x < -160) { p.sprite.remove(); p.dead = true; }
         }
       }
       for (let i = people.length - 1; i >= 0; i--) if (people[i].dead) people.splice(i, 1);
     },
-    clear() { for (const p of people) p.g.remove(); people.length = 0; pending.length = 0; },
+    clear() { for (const p of people) p.sprite.remove(); people.length = 0; pending.length = 0; },
   };
 }

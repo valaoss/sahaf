@@ -200,13 +200,18 @@ const MARKUP = `
   <g id="ambientFront"></g>
   <g id="slotTea" transform="translate(64 660) scale(1.3)"></g>
 
+</svg>
+<div id="sprites"></div>
+<svg class="layer people-layer" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
   <g id="people"></g>
   <g id="fx"></g>
-  <rect width="1600" height="900" fill="url(#vignette)" pointer-events="none"/>
-  <rect class="paintfx" width="1600" height="900" filter="url(#paperGrain)" pointer-events="none" style="mix-blend-mode:multiply"/>
+</svg>
+<svg class="layer front-layer" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
   <g id="seasonFx"></g>
   <g id="weather"></g>
-  <rect id="dusk" width="1600" height="900" fill="#3b2a5a" opacity="0" pointer-events="none"/>
+  <rect width="1600" height="900" fill="url(#vignette)"/>
+  <rect class="paintfx" width="1600" height="900" filter="url(#paperGrain)" style="mix-blend-mode:multiply"/>
+  <rect id="dusk" width="1600" height="900" fill="#3b2a5a" opacity="0"/>
 </svg>`;
 
 const WALLS = ['#fffaf0', '#fdf1e0', '#fbe6dc', '#eef3f7'];
@@ -321,10 +326,20 @@ export function buildScene(host) {
   host.innerHTML = MARKUP;
   const $ = id => host.querySelector('#' + id);
   drawAwning($('awning'));
+  let lastDay = -1, lastWin = '', lastGlow = '';
+  // sprite kabını sahnenin "slice" eşlemesiyle hizala (svg ile aynı ölçek ve kaydırma)
+  const sprites = $('sprites');
+  const fit = () => {
+    const W = host.clientWidth, H = host.clientHeight, k = Math.max(W / 1600, H / 900);
+    sprites.style.transform = `translate(${((W - 1600 * k) / 2).toFixed(1)}px, ${((H - 900 * k) / 2).toFixed(1)}px) scale(${k.toFixed(4)})`;
+  };
+  new ResizeObserver(fit).observe(host);
+  fit();
   drawLights($('lights'));
   return {
     svg: host.querySelector('svg'),
     people: $('people'),
+    sprites,
     ambientBack: $('ambientBack'),
     ambientFront: $('ambientFront'),
     fx: $('fx'),
@@ -345,8 +360,7 @@ export function buildScene(host) {
     },
     // hava: yağmur çizgileri, bulut gölgesi, rüzgârda hızlanan bulutlar
     setWeather(key) {
-      const svg = host.querySelector('svg');
-      svg.classList.toggle('windy', key === 'ruzgarli');
+      host.classList.toggle('windy', key === 'ruzgarli');
       let html = '';
       if (key === 'yagmurlu' || key === 'bulutlu') html += `<rect width="1600" height="900" fill="#5a6b80" opacity="${key === 'yagmurlu' ? .22 : .1}"/>`;
       if (key === 'yagmurlu') {
@@ -409,10 +423,13 @@ export function buildScene(host) {
     },
     // akşam alacası: 0 gündüz, 1 kapanış
     // boyanmış doku açık/kapalı (telefonda performans için kapatılabilir)
-    setPaintFx(on) { host.querySelector('svg').classList.toggle('nopaint', !on); },
+    setPaintFx(on) { host.classList.toggle('nopaint', !on); },
     setDusk(k) { $('dusk').setAttribute('opacity', (k * .28).toFixed(3)); },
     // gün ışığı: sabah pembe, öğleden sonra altın, akşam mor; akşam pencereler ve ışık zinciri yanar
     setDaylight(t) {
+      t = Math.round(t * 200) / 200;
+      if (t === lastDay) return;
+      lastDay = t;
       const d = $('dusk'), svg = host.querySelector('svg');
       let color = '#3b2a5a', op = 0;
       if (t < 0.15) { color = '#ff9fb8'; op = 0.07 * (1 - t / 0.15); }
@@ -421,8 +438,9 @@ export function buildScene(host) {
       d.setAttribute('fill', color);
       d.setAttribute('opacity', op.toFixed(3));
       const night = Math.max(0, (t - 0.78) / 0.22);
-      svg.style.setProperty('--win', night > 0.3 ? '#ffe08a' : '#9cc7e0');
-      svg.style.setProperty('--glow', (0.05 + night * 0.45).toFixed(2));
+      const win = night > 0.3 ? '#ffe08a' : '#9cc7e0', glow = (0.05 + night * 0.45).toFixed(2);
+      if (win !== lastWin) { svg.style.setProperty('--win', win); lastWin = win; host.classList.toggle('lit', night > 0.3); }
+      if (glow !== lastGlow) { svg.style.setProperty('--glow', glow); lastGlow = glow; }
     },
   };
 }

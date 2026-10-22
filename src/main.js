@@ -48,7 +48,15 @@ const saveGame = PREVIEW ? () => {} : persistGame;
 const scene = buildScene(document.getElementById('scene'));
 let speed = 1;
 
-const crowd = createCrowd(scene.people, scene.fx, {
+// sahne koordinatını (1600×900) çerçeve içi orana çevirir; sahne kırpılsa da (dikey ekran) doğru yeri verir
+function toFrame(x, y) {
+  const svg = scene.svg, pt = svg.createSVGPoint(), fr = document.getElementById('frame').getBoundingClientRect();
+  pt.x = x; pt.y = y;
+  const sp = pt.matrixTransform(svg.getScreenCTM());
+  return { xf: (sp.x - fr.left) / fr.width, yf: (sp.y - fr.top) / fr.height };
+}
+
+const crowd = createCrowd(scene.sprites, scene.fx, {
   browse(c) {
     const r = resolveCustomer(S, c);
     if (r.bought.length) { scene.setStock(S); tap(); sfx('coin'); }
@@ -67,16 +75,12 @@ const crowd = createCrowd(scene.people, scene.fx, {
       // müşterinin karşılığı: konuşma kartı (kalp ya da bahşiş bilgisiyle)
       const line = c.reg && r.grade === 'perfect' ? REGULARS[c.reg].thanks : replyFor(S, c, r, id);
       const note = r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.grade === 'perfect' ? `Bahşiş ₺${r.tip}` : r.grade === 'good' ? `Bahşiş ₺${r.tip}` : '';
-      if (!(r.friend?.gift || r.friend?.coins)) ui.speech(c, line, r.grade, note);
+      const a = crowd.anchor(c);
+      if (!(r.friend?.gift || r.friend?.coins)) ui.speech(c, line, r.grade, note, a && toFrame(a.x, a.y));
     }, settings.hints !== false);
   },
   timeout: c => recommend(S, c, null),
-  paid: x => {
-    const svg = scene.svg, pt = svg.createSVGPoint(), fr = document.getElementById('frame').getBoundingClientRect();
-    pt.x = x; pt.y = 540;
-    const sp = pt.matrixTransform(svg.getScreenCTM());
-    ui.flyCoin((sp.x - fr.left) / fr.width, (sp.y - fr.top) / fr.height);
-  },
+  paid: x => { const at = toFrame(x, 540); ui.flyCoin(at.xf, at.yf); },
 });
 const ambient = createAmbient(scene.ambientBack, scene.ambientFront);
 // karavana dokununca içi açılır
@@ -233,7 +237,7 @@ if (PREVIEW) {
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
-  if (panel === 'konus') { const c = makeCustomer(S); c.arch = 'balikci'; c.style = ARCHETYPES.balikci.style; c.ask = { tags: ['deniz'] }; ui.speech(c, replyFor(S, c, { grade: 'perfect' }, 'yasliadam'), 'perfect', 'Bahşiş ₺5'); }
+  if (panel === 'konus') { const c = makeCustomer(S); c.arch = 'balikci'; c.style = ARCHETYPES.balikci.style; c.ask = { tags: ['deniz'] }; ui.speech(c, replyFor(S, c, { grade: 'perfect' }, 'yasliadam'), 'perfect', 'Bahşiş ₺5', toFrame(1210, 470)); }
   if (panel === 'ic') { S.coins = 999; ['roman','siir','fantastik'].forEach(g => buyBox(S, g)); S.featured = Object.keys(S.shelf).slice(2, 4); S.rare[Object.keys(S.shelf)[6]] = 1; ui.interiorPanel(S); }
   // ?insanlar: farklı tiplerden on kişilik dizi (yürüyen, okuyan, sevinen)
   if (q.has('insanlar')) {

@@ -90,12 +90,18 @@ export function createUI(root, act) {
   const closePanel = () => $('veil').classList.remove('open');
   const isOpen = () => $('veil').classList.contains('open');
 
+  const hudMemo = {};
+  const put = (id, v, prop = 'textContent') => {
+    if (hudMemo[id + prop] === v) return;
+    hudMemo[id + prop] = v;
+    if (prop === 'width') $(id).style.width = v; else $(id)[prop] = v;
+  };
   function hud(S, speed) {
-    $('where').textContent = `${WEATHER[weatherOf(S.day)].icon} ${TOWNS[S.town].name} · ${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün · 📰`;
-    $('time').textContent = hhmm(Math.round(S.clock));
-    $('bar').style.width = ((S.clock - BAL.dayStart) / (BAL.dayEnd - BAL.dayStart) * 100).toFixed(1) + '%';
-    $('coins').textContent = S.coins;
-    $('shelf').textContent = `${shelfCount(S)}/${shelfCap(S)}`;
+    put('where', `${WEATHER[weatherOf(S.day)].icon} ${TOWNS[S.town].name} · ${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün · 📰`);
+    put('time', hhmm(Math.round(S.clock)));
+    put('bar', ((S.clock - BAL.dayStart) / (BAL.dayEnd - BAL.dayStart) * 100).toFixed(0) + '%', 'width');
+    put('coins', String(S.coins));
+    put('shelf', `${shelfCount(S)}/${shelfCap(S)}`);
     const b = $('bottom');
     const want = S.phase + speed + S.spot;
     if (b.dataset.k === want) return;
@@ -502,16 +508,23 @@ export function createUI(root, act) {
 
   // Müşterinin karşılığı: küçük portreli konuşma kartı, birkaç saniye sonra kaybolur
   let speechTimer = 0;
-  function speech(c, text, grade, note = '') {
+  function speech(c, text, grade, note = '', at = null) {
     let box = $('speech');
     if (!box) { box = document.createElement('div'); box.id = 'speech'; box.className = 'speech'; root.appendChild(box); }
     const R = c.reg && REGULARS[c.reg];
     const name = R ? R.name : nameOf(c.look, ARCHETYPES[c.arch]?.names);
-    box.className = 'speech show ' + (grade || '');
-    box.innerHTML = `<div class="portrait mini"><svg viewBox="${portraitBox(c)}">${personSVG(c.look, c.style)}</svg></div>
-      <div><div class="name">${name}</div><p>“${text}”</p>${note ? `<small>${note}</small>` : ''}</div>`;
+    box.className = 'speech ' + (grade || '');
+    box.innerHTML = `<div class="name">${name}${note ? ` · <small>${note}</small>` : ''}</div><p>“${text}”</p>`;
+    const xf = at ? at.xf : 0.5, yf = at ? at.yf : 0.45;
+    // ekran kenarına taşmasın; kuyruk yine de kişiyi göstersin
+    const fw = root.clientWidth, bw = box.offsetWidth, want = xf * fw;
+    const left = Math.min(fw - bw / 2 - 8, Math.max(bw / 2 + 8, want));
+    box.style.left = left.toFixed(0) + 'px';
+    box.style.top = (Math.max(0.2, yf) * 100).toFixed(1) + '%';
+    box.style.setProperty('--tail', Math.min(88, Math.max(12, (want - left) / bw * 100 + 50)).toFixed(0) + '%');
+    box.classList.add('show');
     clearTimeout(speechTimer);
-    speechTimer = setTimeout(() => box.classList.remove('show'), 3800);
+    speechTimer = setTimeout(() => box.classList.remove('show'), 3200);
   }
 
   // Gün içi olay kartı: seçenekler, sonra sonuç
