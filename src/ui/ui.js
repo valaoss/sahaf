@@ -567,11 +567,11 @@ export function createUI(root, act) {
 
   // Ayarlar: müzik, ses efektleri, kaydı sıfırlama (iki adımlı onay)
   function settingsPanel(set, S = null) {
-    const row = (k, label) => `<div class="dcard"><div class="dicon">${k === 'music' ? '🎵' : k === 'hints' ? '🔍' : k === 'paint' ? '🖌️' : '🔔'}</div><div class="gname">${label}</div>
+    const row = (k, label) => `<div class="dcard"><div class="dicon">${k === 'music' ? '🎵' : k === 'hints' ? '🔍' : k === 'paint' ? '🖌️' : k === 'simple' ? '🎞️' : '🔔'}</div><div class="gname">${label}</div>
       <button class="btn sm toggle ${set[k] ? 'hl' : ''}" data-toggle="${k}">${set[k] ? 'Açık' : 'Kapalı'}</button></div>`;
     const p = openPanel(`
       <h2>⚙️ Ayarlar</h2>
-      <div class="dgrid one">${row('music', 'Müzik')}${row('sfx', 'Ses efektleri ve yağmur')}${row('hints', 'Öneri ipuçları (cümledeki anahtar kelimeler)')}${row('paint', 'Boyanmış doku (kapatırsan telefon daha az yorulur)')}</div>
+      <div class="dgrid one">${row('music', 'Müzik')}${row('sfx', 'Ses efektleri ve yağmur')}${row('hints', 'Öneri ipuçları (cümledeki anahtar kelimeler)')}${row('paint', 'Boyanmış doku (kapatırsan telefon daha az yorulur)')}${row('simple', 'Basit görünüm (eski çizim; oyun yeniden açılır)')}</div>
       <h3>🔠 Yazı boyutu</h3><div class="swatches">${[[1, 'Normal'], [1.15, 'Büyük'], [1.3, 'Çok büyük']].map(([v, n]) => `<button class="swatch ${set.textScale === v ? 'is-on' : ''}" data-scale="${v}"><span style="font-size:${v}em">Aa</span><small>${n}</small></button>`).join('')}</div>
       ${S?.upgrades.includes('plak') ? `<h3>📻 Plak çalar</h3><div class="swatches">${Object.keys(THEMES).map(k => `<button class="swatch ${set.theme === k ? 'is-on' : ''}" data-theme="${k}"><span>${THEMES[k].name}</span><small>${set.theme === k ? '✓ çalıyor' : 'Çal'}</small></button>`).join('')}</div>` : ''}
       <h3>Kayıt</h3>

@@ -13,6 +13,15 @@ html, body { margin: 0; height: 100%; background: #2b2320; color: var(--ink); fo
 #scene svg { will-change: transform; }
 #scene .layer { pointer-events: none; }
 #scene .people-layer #people > g { pointer-events: auto; }
+/* yeni motor: SVG sahne gizli kaynak olarak kalır, animasyonları kapalı; görüntü canvas'ta */
+#scene .stage2 { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#scene.motor2 > svg, #scene.motor2 #sprites { visibility: hidden; will-change: auto; }
+#scene .over2, #scene .over2 i { position: absolute; inset: 0; pointer-events: none; display: block; }
+#scene .over2 .tint { opacity: 0; }
+#scene .over2 .vig { background: radial-gradient(75% 75% at 50% 45%, rgba(0,0,0,0) 65%, rgba(61,43,36,.16)); }
+#scene .over2 .grain { background-repeat: repeat; }
+#scene .glow2 { pointer-events: none; }
+#scene.motor2 * { animation: none !important; transition: none !important; }
 #sprites { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; transform-origin: 0 0; pointer-events: none; }
 #scene .sprite { position: absolute; inset: auto; left: -130px; top: 440px; width: 260px; height: 390px; overflow: visible; pointer-events: none; }
 #scene .sprite .hit, #scene .sprite .bubble { pointer-events: auto; }

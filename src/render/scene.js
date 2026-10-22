@@ -1,4 +1,5 @@
 // Kasaba sahnesi: tek SVG (1600×900). Statik parçalar burada, değişenler (evler, raflar, renkler) fonksiyonlarla.
+// Derinlik bantları (bandSky, bandF, bandH, bandG): canvas motoru (render2) bunları ayrı ayrı resme pişirir.
 import { el } from '../core/svg.js';
 import { seeded } from '../core/rng.js';
 import { GENRES, GENRE_KEYS } from '../data/genres.js';
@@ -8,6 +9,7 @@ import { PAINTS } from '../data/decor.js';
 import { shelfCap, genreCounts } from '../game/state.js';
 import { DECOR_ART } from './decor-art.js';
 import { spotArt, GROUND, SHOW_HOUSES } from './spot-art.js';
+import { svgView } from './people.js';
 
 // Çay köşesi: tabure, demlik, iki ince belli bardak, buhar
 const TEA_ART = `<ellipse cx="0" cy="4" rx="34" ry="7" fill="#c9a676" opacity=".6"/>
@@ -25,7 +27,7 @@ const GRAMO_ART = `<rect x="-26" y="-14" width="52" height="16" rx="3" fill="#8a
   <text x="44" y="-74" font-size="16" class="twinkle">♪</text>`;
 
 // Mevsim görünümleri: a/b ağaç yaprakları, bits uçuşan parçacık renkleri, tint serin/ılık ton
-const SEASON_LOOK = {
+export const SEASON_LOOK = {
   'İlkbahar': { a: '#9cb67f', b: '#b5cb94', bits: ['#f6a5c0', '#fbd0dc', '#fff'] },
   'Yaz':      { a: '#86b85f', b: '#a9d27e' },
   'Sonbahar': { a: '#d39a52', b: '#e6b86c', bits: ['#e08a3c', '#c96f3a', '#e8b04a'] },
@@ -79,12 +81,14 @@ const MARKUP = `
     </filter>
   </defs>
 
+  <g id="bandSky">
   <rect width="1600" height="900" fill="url(#sky)"/>
   <rect class="paintfx" width="1600" height="560" filter="url(#wash)"/>
   <circle cx="1290" cy="170" r="190" fill="url(#sunGlow)"/>
   <circle cx="1290" cy="170" r="62" fill="#fff0bd"/>
   ${cloud(-20, false, 120, 1)}${cloud(-60, true, 220, 1.2)}${cloud(-45, false, 80, .7)}
-
+  </g>
+  <g id="bandF">
   <!-- uzak tepe + deniz feneri -->
   <path class="paintable" d="M1080 360 C1200 270 1320 250 1420 265 C1500 278 1560 300 1600 320 L1600 380 L1080 380Z" fill="#c4dc9b"/>
   <path d="M1180 360 C1260 310 1360 300 1450 312 C1520 322 1570 340 1600 352 L1600 380 L1180 380Z" fill="#acd08a"/>
@@ -112,13 +116,17 @@ const MARKUP = `
     <line x1="45" y1="20" x2="45" y2="-38" stroke="#8a5a3c" stroke-width="4"/>
     <path d="M48 -34 L84 14 L48 14Z" fill="#fff4e0"/><path d="M42 -26 L14 14 L42 14Z" fill="#f08a7e"/>
   </g></g>
+  </g>
 
+  <g id="bandH">
   <g id="houses" class="paintable"></g>
   <g id="spotBack"></g>
   <rect x="0" y="330" width="1600" height="232" fill="url(#haze)" pointer-events="none"/>
   <g id="festival"></g>
   <g id="ambientBack"></g>
+  </g>
 
+  <g id="bandG">
   <!-- zemin -->
   <rect id="ground" x="0" y="560" width="1600" height="340" fill="url(#cobble)"/>
   <rect id="curb" x="0" y="556" width="1600" height="10" fill="#e3c597"/>
@@ -199,6 +207,7 @@ const MARKUP = `
   <g id="slotGround" transform="translate(1510 780)"></g>
   <g id="ambientFront"></g>
   <g id="slotTea" transform="translate(64 660) scale(1.3)"></g>
+  </g>
 
 </svg>
 <div id="sprites"></div>
@@ -311,14 +320,22 @@ function mix(a, b, k) {
   return `rgb(${c(16)},${c(8)},${c(0)})`;
 }
 
-function drawLights(g) {
-  const lc = ['#ffd56b', '#ff9e8a', '#9fe0d0', '#fff1b8'];
+// karavanın ışık zinciri: tentenin altındaki sarkık ipte 11 ampul (karavan koordinatında)
+export const LIGHT_COLORS = ['#ffd56b', '#ff9e8a', '#9fe0d0', '#fff1b8'];
+export function lightPoints() {
+  const pts = [];
   for (let i = 1; i < 12; i++) {
     const t = i / 12, mt = 1 - t;
     const px = mt ** 3 * 30 + 3 * mt * mt * t * 120 + 3 * mt * t * t * 330 + t ** 3 * 420;
     const py = mt ** 3 * 104 + 3 * mt * mt * t * 150 + 3 * mt * t * t * 150 + t ** 3 * 104;
-    el('circle', { cx: px, cy: py + 8, r: 20, fill: lc[i % 4], class: 'glow' }, g);
-    el('circle', { cx: px, cy: py + 8, r: 7, fill: lc[i % 4], class: 'bulb', style: `animation-delay:${(i * .37) % 1.8}s` }, g);
+    pts.push({ x: px, y: py + 8, c: LIGHT_COLORS[i % 4], delay: (i * .37) % 1.8 });
+  }
+  return pts;
+}
+function drawLights(g) {
+  for (const p of lightPoints()) {
+    el('circle', { cx: p.x, cy: p.y, r: 20, fill: p.c, class: 'glow' }, g);
+    el('circle', { cx: p.x, cy: p.y, r: 7, fill: p.c, class: 'bulb', style: `animation-delay:${p.delay}s` }, g);
   }
 }
 
@@ -336,8 +353,14 @@ export function buildScene(host) {
   new ResizeObserver(fit).observe(host);
   fit();
   drawLights($('lights'));
+  const svg = host.querySelector('svg');
   return {
-    svg: host.querySelector('svg'),
+    svg,
+    // sahne koordinatı (1600×900) → ekran pikseli
+    toClient(x, y) { const pt = svg.createSVGPoint(); pt.x = x; pt.y = y; const s = pt.matrixTransform(svg.getScreenCTM()); return { x: s.x, y: s.y }; },
+    onCart(fn) { $('cartHit').addEventListener('click', fn); },
+    // insanlar için görünüm (render/people.js svgView)
+    crowdView() { return svgView(sprites, $('fx')); },
     people: $('people'),
     sprites,
     ambientBack: $('ambientBack'),

@@ -27,6 +27,7 @@ import { STAMPS } from './data/stamps.js';
 import { PAGES } from './data/story.js';
 import { tap } from './core/native.js';
 import { buildScene } from './render/scene.js';
+import { buildScene2 } from './render2/scene2.js';
 import { createCrowd, personSVG, figureMeta } from './render/people.js';
 import { ARCHETYPES } from './data/archetypes.js';
 import { createAmbient } from './render/ambient.js';
@@ -45,18 +46,19 @@ if (PREVIEW) {
   if (day > 0) S.day = day;
 }
 const saveGame = PREVIEW ? () => {} : persistGame;
-const scene = buildScene(document.getElementById('scene'));
+// çizim motoru: varsayılan yeni canvas motoru; ⚙️ "Basit görünüm" ya da ?motor=1 eski SVG motorunu seçer
+const MOTOR_Q = new URLSearchParams(location.search).get('motor');
+const MOTOR2 = MOTOR_Q ? MOTOR_Q === '2' : !settings.simple;
+const scene = (MOTOR2 ? buildScene2 : buildScene)(document.getElementById('scene'));
 let speed = 1;
 
 // sahne koordinatını (1600×900) çerçeve içi orana çevirir; sahne kırpılsa da (dikey ekran) doğru yeri verir
 function toFrame(x, y) {
-  const svg = scene.svg, pt = svg.createSVGPoint(), fr = document.getElementById('frame').getBoundingClientRect();
-  pt.x = x; pt.y = y;
-  const sp = pt.matrixTransform(svg.getScreenCTM());
+  const sp = scene.toClient(x, y), fr = document.getElementById('frame').getBoundingClientRect();
   return { xf: (sp.x - fr.left) / fr.width, yf: (sp.y - fr.top) / fr.height };
 }
 
-const crowd = createCrowd(scene.sprites, scene.fx, {
+const crowd = createCrowd(scene.crowdView(), {
   browse(c) {
     const r = resolveCustomer(S, c);
     if (r.bought.length) { scene.setStock(S); tap(); sfx('coin'); }
@@ -82,9 +84,10 @@ const crowd = createCrowd(scene.sprites, scene.fx, {
   timeout: c => recommend(S, c, null),
   paid: x => { const at = toFrame(x, 540); ui.flyCoin(at.xf, at.yf); },
 });
-const ambient = createAmbient(scene.ambientBack, scene.ambientFront);
+// canlı arka plan: yeni motorda sahnenin içinde
+const ambient = MOTOR2 ? null : createAmbient(scene.ambientBack, scene.ambientFront);
 // karavana dokununca içi açılır
-scene.svg.querySelector('#cartHit').addEventListener('click', () => { if (!ui.isOpen()) { sfx('page'); ui.interiorPanel(S); } });
+scene.onCart(() => { if (!ui.isOpen()) { sfx('page'); ui.interiorPanel(S); } });
 
 // sabah alışverişinden sonra pul kontrolü
 function stampCheck() {
@@ -119,6 +122,7 @@ const act = (a, arg) => {
 scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[arg].icon} ${UPGRADES[arg].name} karavana eklendi`); stampCheck(); }
     ui.decorPanel(S);
   }
+  else if (a === 'toggle' && arg === 'simple') { settings.simple = !settings.simple; applySettings(); location.reload(); }
   else if (a === 'toggle') { settings[arg] = !settings[arg]; applySettings(); scene.setPaintFx(settings.paint !== false); ui.settingsPanel(settings, S); }
   else if (a === 'reset') { clearGame(); location.reload(); }
   else if (a === 'spot') {
@@ -243,16 +247,9 @@ if (PREVIEW) {
   if (q.has('insanlar')) {
     const kinds = ['ogrenci', 'emekli', 'balikci', 'turist', 'anne', 'cocuk', 'sevgili', 'yazar', 'teyze', 'sorfcu'];
     const seed = +q.get('insanlar') || 1;
-    kinds.forEach((k, i) => {
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      const st = ['walking', 'reading', '', 'cheer'][i % 4];
-      g.setAttribute('class', 'age-' + figureMeta(i * 7919 + seed, ARCHETYPES[k].style).age + (st ? ' ' + st : ''));
-      g.setAttribute('transform', `translate(${110 + i * 152} 0)`);
-      const tasi = q.get('tasi') || '';
-      if (tasi.includes('semsiye') && i % 4 !== 3) g.classList.add('holding');
-      g.innerHTML = personSVG(i * 7919 + seed, ARCHETYPES[k].style, { umbrella: tasi.includes('semsiye') && i % 4 !== 3, lantern: tasi.includes('fener') && i % 2 === 0 });
-      scene.people.appendChild(g);
-    });
+    const tasi = q.get('tasi') || '';
+    crowd.setContext({ rain: tasi.includes('semsiye'), dark: tasi.includes('fener') });
+    crowd.preview(kinds.map((k, i) => ({ c: { look: i * 7919 + seed, style: ARCHETYPES[k].style }, x: 110 + i * 152, state: ['walking', 'reading', '', 'cheer'][i % 4] })));
   }
   if (panel === 'istatistik') {
     Object.assign(S.soldBooks, { kurk: 9, hobbit: 7, garip: 6, defne: 5, nutuk: 4, yasliadam: 3 });
@@ -281,7 +278,8 @@ if (PREVIEW) {
   if (panel === 'rec') ui.recPanel(S, makeRegular(S, q.get('kim') || 'hasan'), () => {});
   if (panel === 'gift') ui.giftPanel({ id: 'hasan', hearts: 5, gift: 'zeytin' });
 }
-document.fonts.ready.then(() => setTimeout(() => document.getElementById('fade').classList.remove('boot'), 50));
+// perde: yazı tipleri ve (yeni motorda) ilk pişirme hazır olunca kalkar
+Promise.all([document.fonts.ready, scene.ready]).then(() => setTimeout(() => document.getElementById('fade').classList.remove('boot'), 50));
 if (S.phase === 'evening' && S.lastDay) { scene.setDaylight(1); ui.summaryPanel(S, S.lastDay); }
 // hikâyenin ilk sayfası (teyzenin mektubu) oyunun başında açılır
 if (!PREVIEW && checkStory(S)) { saveGame(S); ui.bookPanel(S); }
@@ -333,7 +331,8 @@ function frame(now) {
       ui.summaryPanel(S, T);
     }
   }
-  ambient.update(dt, { season: seasonOf(S.day), weather: weatherOf(S.day) });
+  ambient?.update(dt, { season: seasonOf(S.day), weather: weatherOf(S.day) });
+  scene.tick?.(dt);
   ui.hud(S, speed);
   const st = tutorialStep(S);
   ui.coach(st && st.on === S.phase && !(ui.isOpen() && st.on !== 'evening') ? st : null);
@@ -343,3 +342,4 @@ requestAnimationFrame(frame);
 
 // geliştirme sırasında konsoldan bakmak için
 window.__sahaf = S;
+if (import.meta.env.DEV) Object.assign(window, { __scene: scene, __crowd: crowd });
