@@ -15,6 +15,7 @@ export function saveSettings() {
 
 let ctx = null, master, musicBus, sfxBus, ambBus, noiseBuf, verb;
 let season = 'İlkbahar', rainOn = false, rainNode = null;
+let mood = { town: null, lively: false, night: false };
 let nextBarTime = 0, bar = 0, timer = 0;
 
 function makeNoise() {
@@ -66,6 +67,8 @@ export function applySettings() {
 }
 
 export function setSeason(s) { season = s; }
+// kasaba motifi, festival canlılığı, akşam yumuşaklığı
+export function setMood(m) { Object.assign(mood, m); }
 
 // --- çalgılar ---
 function env(g, t, a, peak, d, end = 0.0001) {
@@ -122,10 +125,10 @@ const INST = { pluck, bass, pad, bell };
 // Müzik zamanlayıcı: yarım saniye ileriyi planlar
 function schedule() {
   if (!ctx || ctx.state !== 'running') return;
-  const beat = 60 / TEMPO[season];
+  const beat = 60 / (TEMPO[season] + (mood.lively ? 6 : 0) - (mood.night ? 4 : 0));
   while (nextBarTime < ctx.currentTime + 0.5) {
     if (settings.music) {
-      for (const n of composeBar(bar, season)) INST[n.inst](musicBus, midiToHz(n.midi), nextBarTime + n.t * beat, n.dur * beat, n.vel);
+      for (const n of composeBar(bar, season, mood)) INST[n.inst](musicBus, midiToHz(n.midi), nextBarTime + n.t * beat, n.dur * beat, n.vel);
     }
     nextBarTime += BEATS_PER_BAR * beat;
     bar++;
@@ -151,6 +154,8 @@ const SFX = {
   page: t => { const f = noiseBurst(sfxBus, t, 0.28, 2500, 0.8, 0.25); f.frequency.exponentialRampToValueAtTime(5000, t + 0.25); },
   box: t => { noiseBurst(sfxBus, t, 0.12, 300, 1.2, 0.5); bass(sfxBus, 70, t, 0.15, 0.8); },
   bell: t => [79, 84].forEach((m, i) => bell(sfxBus, midiToHz(m), t + i * 0.18, 1.4, 1)),
+  letter: t => [72, 76, 79, 84, 88].forEach((m, i) => bell(sfxBus, midiToHz(m), t + i * 0.08, 1.1, 0.7)),
+  hap: t => { pluck(sfxBus, midiToHz(79), t, 0.3, 0.7); pluck(sfxBus, midiToHz(86), t + 0.12, 0.5, 0.7); },
   whoosh: t => { const f = noiseBurst(sfxBus, t, 0.7, 400, 0.6, 0.35); f.frequency.exponentialRampToValueAtTime(1800, t + 0.6); },
 };
 

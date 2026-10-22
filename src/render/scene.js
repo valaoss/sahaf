@@ -83,6 +83,7 @@ const MARKUP = `
   <g id="houses"></g>
   <g id="spotBack"></g>
   <g id="festival"></g>
+  <g id="ambientBack"></g>
 
   <!-- zemin -->
   <rect id="ground" x="0" y="560" width="1600" height="340" fill="url(#cobble)"/>
@@ -157,6 +158,7 @@ const MARKUP = `
   </g>
 
   <g id="slotGround" transform="translate(1510 780)"></g>
+  <g id="ambientFront"></g>
 
   <g id="people"></g>
   <g id="fx"></g>
@@ -182,7 +184,7 @@ function drawHouses(g, seed) {
     const dc = pick(DOORS);
     el('rect', { x: x + w / 2 - 15, y: base - 54, width: 30, height: 54, rx: 14, fill: dc }, hg);
     for (const wx of [x + 18, x + w - 44]) {
-      el('rect', { x: wx, y: base - h + 26, width: 26, height: 30, rx: 12, fill: '#9cc7e0' }, hg);
+      el('rect', { x: wx, y: base - h + 26, width: 26, height: 30, rx: 12, fill: '#9cc7e0', class: 'win' }, hg);
       el('rect', { x: wx - 4, y: base - h + 56, width: 34, height: 6, rx: 3, fill: dc }, hg);
     }
     if (r() > .45) { // begonvil
@@ -255,12 +257,20 @@ function drawAwning(g) {
   el('rect', { x: ax - 6, y: 90, width: aw + 12, height: 10, rx: 5, fill: '#e57f73' }, g);
 }
 
+// iki renk arası karışım (k: 0..1)
+function mix(a, b, k) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const c = s => Math.round(((pa >> s) & 255) * (1 - k) + ((pb >> s) & 255) * k);
+  return `rgb(${c(16)},${c(8)},${c(0)})`;
+}
+
 function drawLights(g) {
   const lc = ['#ffd56b', '#ff9e8a', '#9fe0d0', '#fff1b8'];
   for (let i = 1; i < 12; i++) {
     const t = i / 12, mt = 1 - t;
     const px = mt ** 3 * 30 + 3 * mt * mt * t * 120 + 3 * mt * t * t * 330 + t ** 3 * 420;
     const py = mt ** 3 * 104 + 3 * mt * mt * t * 150 + 3 * mt * t * t * 150 + t ** 3 * 104;
+    el('circle', { cx: px, cy: py + 8, r: 20, fill: lc[i % 4], class: 'glow' }, g);
     el('circle', { cx: px, cy: py + 8, r: 7, fill: lc[i % 4], class: 'bulb', style: `animation-delay:${(i * .37) % 1.8}s` }, g);
   }
 }
@@ -273,6 +283,8 @@ export function buildScene(host) {
   return {
     svg: host.querySelector('svg'),
     people: $('people'),
+    ambientBack: $('ambientBack'),
+    ambientFront: $('ambientFront'),
     fx: $('fx'),
     setTown(key) {
       const t = TOWNS[key];
@@ -350,5 +362,18 @@ export function buildScene(host) {
     },
     // akşam alacası: 0 gündüz, 1 kapanış
     setDusk(k) { $('dusk').setAttribute('opacity', (k * .28).toFixed(3)); },
+    // gün ışığı: sabah pembe, öğleden sonra altın, akşam mor; akşam pencereler ve ışık zinciri yanar
+    setDaylight(t) {
+      const d = $('dusk'), svg = host.querySelector('svg');
+      let color = '#3b2a5a', op = 0;
+      if (t < 0.15) { color = '#ff9fb8'; op = 0.07 * (1 - t / 0.15); }
+      else if (t > 0.55 && t <= 0.82) { color = '#ffb347'; op = 0.12 * (t - 0.55) / 0.27; }
+      else if (t > 0.82) { const k = (t - 0.82) / 0.18; color = mix('#ffb347', '#3b2a5a', k); op = 0.12 + 0.18 * k; }
+      d.setAttribute('fill', color);
+      d.setAttribute('opacity', op.toFixed(3));
+      const night = Math.max(0, (t - 0.78) / 0.22);
+      svg.style.setProperty('--win', night > 0.3 ? '#ffe08a' : '#9cc7e0');
+      svg.style.setProperty('--glow', (0.05 + night * 0.45).toFixed(2));
+    },
   };
 }

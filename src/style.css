@@ -219,3 +219,28 @@ svg.map { width: 100%; height: auto; display: block; border-radius: 1em; margin:
 .letterbox { background: #fff7f2; border: .12em dashed #efb9a8; border-radius: .9em; padding: .5em .9em; margin: .4em 0 .7em; }
 .letterbox p { margin: .2em 0; }
 .maillist { max-height: 22em; overflow: auto; }
+
+/* gün ışığı */
+svg.scene .win { fill: var(--win, #9cc7e0); }
+svg.scene .glow { opacity: var(--glow, .05); }
+
+/* canlı arka plan */
+.amb-move { animation: amb-move linear forwards; transform-box: view-box; }
+@keyframes amb-move { from { transform: translate(var(--from), var(--y)); } to { transform: translate(var(--to), var(--y)); } }
+.amb-flap { animation: flap .5s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(-.6); } }
+.amb-wander { animation: wander ease-in-out forwards; transform-box: view-box; }
+@keyframes wander {
+  0% { transform: translate(var(--x), var(--y)); opacity: 0; } 10% { opacity: 1; }
+  30% { transform: translate(calc(var(--x) - 60px), calc(var(--y) - 50px)); }
+  55% { transform: translate(calc(var(--x) + 40px), calc(var(--y) - 90px)); }
+  80% { transform: translate(calc(var(--x) - 30px), calc(var(--y) - 30px)); opacity: 1; }
+  100% { transform: translate(calc(var(--x) + 80px), calc(var(--y) - 160px)); opacity: 0; } }
+.amb-wings { animation: wings .18s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes wings { from { transform: scaleX(1); } to { transform: scaleX(.3); } }
+/* oyun hissi */
+.coinfly { position: absolute; font-size: 1.8em; transition: transform .65s cubic-bezier(.5, -0.4, .7, 1), opacity .65s; pointer-events: none; z-index: 6; }
+.confetto { position: absolute; top: -2%; width: .7em; height: 1em; border-radius: .15em; z-index: 7; pointer-events: none; animation: confetti 1.9s ease-in forwards; }
+@keyframes confetti { to { transform: translate(var(--drift), 115vh) rotate(var(--spin)); } }
+.pagebody { animation: pageturn .45s ease-out; transform-origin: left center; }
+@keyframes pageturn { from { transform: perspective(600px) rotateY(-14deg); opacity: .4; } to { transform: none; opacity: 1; } }

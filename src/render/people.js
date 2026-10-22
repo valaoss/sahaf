@@ -116,6 +116,7 @@ export function createCrowd(layer, fx, handlers) {
     p.res = r;
     if (r.grade) say(p, r.grade === 'perfect' ? '🤩' : r.grade === 'good' ? '🙂' : '😕');
     else say(p, r.happy ? '💛' : r.bought.length ? '🙂' : '😕');
+    if (r.paid) handlers.paid?.(p.x);
     if (r.paid) floatText(p.x, `+₺${r.paid}${r.rare ? ' ✨' : ''}`, r.rare ? '#d9961a' : '#c7802b');
     else if (!r.grade) floatText(p.x, GENRES[p.c.wants].icon + '✕', '#a07d6c');
     if (r.grade === 'perfect') hearts(p.x);

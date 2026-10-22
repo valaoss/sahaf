@@ -14,7 +14,7 @@ import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
 import { loadGame, saveGame as persistGame, clearGame } from './core/save.js';
-import { unlock, sfx, settings, applySettings, setSeason, setRain } from './audio/audio.js';
+import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood } from './audio/audio.js';
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
 import { checkStory } from './game/story.js';
@@ -26,6 +26,7 @@ import { PAGES } from './data/story.js';
 import { tap } from './core/native.js';
 import { buildScene } from './render/scene.js';
 import { createCrowd } from './render/people.js';
+import { createAmbient } from './render/ambient.js';
 import { createUI } from './ui/ui.js';
 
 const MIN_PER_SEC = (BAL.dayEnd - BAL.dayStart) / 120;   // normal hızda bir gün ≈ 2 dakika
@@ -58,7 +59,7 @@ const crowd = createCrowd(scene.people, scene.fx, {
       if (r.bought.length) { scene.setStock(S); tap(r.grade === 'perfect' ? 'MEDIUM' : 'LIGHT'); }
       crowd.answer(c, r);
       sfx(r.grade === 'perfect' || r.friend ? 'heart' : r.grade === 'good' ? 'coin' : 'sad');
-      if (r.friend?.gift || r.friend?.coins) { saveGame(S); ui.giftPanel(r.friend); }
+      if (r.friend?.gift || r.friend?.coins) { saveGame(S); ui.confetti(); ui.giftPanel(r.friend); }
       else if (r.friend) ui.toast(`💛 ${REGULARS[c.reg].name} ile aranız ısınıyor (${r.friend.hearts}/${HEARTS_MAX})`);
       else if (r.grade === 'perfect') ui.toast(`Tam isabet! Bahşiş ₺${r.tip}`);
       else if (r.grade === 'good') ui.toast('Fena değil, ama tam aradığı bu değildi.');
@@ -66,7 +67,9 @@ const crowd = createCrowd(scene.people, scene.fx, {
     });
   },
   timeout: c => recommend(S, c, null),
+  paid: x => ui.flyCoin(x / 1600, 0.6),
 });
+const ambient = createAmbient(scene.ambientBack, scene.ambientFront);
 
 // sabah alışverişinden sonra pul kontrolü
 function stampCheck() {
@@ -75,6 +78,7 @@ function stampCheck() {
   saveGame(S);
   sfx('heart');
   const st = STAMPS.find(x => x.id === won[0]);
+  ui.confetti();
   setTimeout(() => ui.toast(`🏅 Yeni pul: ${st.icon} ${st.name}`), 600);
 }
 
@@ -145,20 +149,22 @@ const act = (a, arg) => {
     const gift = rescue(S);
     if (gift) ui.toast(`Belediyeden ₺${gift} destek: kasa boştu, bir koli alabilirsin.`);
     speed = 1;
-    scene.setDusk(0);
+    scene.setDaylight(0);
     refreshDay();
     saveGame(S);
+    if (S.post?.letter) sfx('letter');
     ui.paperPanel(S);
   }
 };
 const ui = createUI(document.getElementById('ui'), act);
 
 function refreshDay() {
+  const m = dayMods(S.day, S.town);
   scene.setSeason(seasonOf(S.day));
   scene.setWeather(weatherOf(S.day));
   setSeason(seasonOf(S.day));
   setRain(weatherOf(S.day) === 'yagmurlu');
-  const m = dayMods(S.day, S.town);
+  setMood({ town: S.town, lively: !!(m.event || m.special), night: false });
   scene.setFestival(!!(m.event || m.special));
 }
 
@@ -177,6 +183,7 @@ function changeTown(done) {
 scene.setTown(S.town);
 scene.setSpot(spotOf(S).scene, S.town);
 refreshDay();
+scene.setDaylight(0);
 scene.setStock(S);
 scene.setDecor(S.decor.on);
 scene.setPaint(PAINTS[S.paint] ? S.paint : 'nane');
@@ -191,6 +198,7 @@ if (PREVIEW) {
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
+  if (q.has('aksam')) setTimeout(() => scene.setDaylight(+q.get('aksam') || 0.95), 100);
   if (panel === 'olay') ui.hapPanel(HAP[q.get('olay') || 'eskici'], i => chooseHappening(S, q.get('olay') || 'eskici', i));
   if (panel === 'posta') {
     S.recHistory.push({ day: 1, town: 'ayvalik', spot: 'iskele', book: 'yasliadam', arch: 'balikci', look: 3 });
@@ -208,7 +216,7 @@ if (PREVIEW) {
   if (panel === 'gift') ui.giftPanel({ id: 'hasan', hearts: 5, gift: 'zeytin' });
 }
 document.fonts.ready.then(() => setTimeout(() => document.getElementById('fade').classList.remove('boot'), 50));
-if (S.phase === 'evening' && S.lastDay) { scene.setDusk(1); ui.summaryPanel(S, S.lastDay); }
+if (S.phase === 'evening' && S.lastDay) { scene.setDaylight(1); ui.summaryPanel(S, S.lastDay); }
 // hikâyenin ilk sayfası (teyzenin mektubu) oyunun başında açılır
 if (!PREVIEW && checkStory(S)) { saveGame(S); ui.bookPanel(S); }
 if (S.totals.days === 0 && S.phase === 'morning') {
@@ -228,7 +236,7 @@ function frame(now) {
   if (S.phase === 'open' && !ui.isOpen()) {
     const h = dueHappening(S);
     if (h) {
-      sfx('page');
+      sfx('hap');
       ui.hapPanel(HAP[h], idx => {
         const r = chooseHappening(S, h, idx);
         scene.setStock(S);
@@ -242,14 +250,18 @@ function frame(now) {
   if (S.phase === 'open' && !ui.isOpen()) {
     for (const c of advanceClock(S, dt * MIN_PER_SEC * speed)) crowd.add(c);
     crowd.update(dt, speed, BAL.patience * effects(S).patience);
-    scene.setDusk(Math.max(0, (S.clock - (BAL.dayEnd - 120)) / 120));
+    const dayT = (S.clock - BAL.dayStart) / (BAL.dayEnd - BAL.dayStart);
+    scene.setDaylight(dayT);
+    setMood({ night: dayT > 0.82 });
     if (closingTime(S) && crowd.busy === 0) {
       const T = closeShop(S);
       saveGame(S);
       sfx(T.page ? 'heart' : 'bell');
+      if (T.page || (T.stamps || []).length || T.quest?.done) ui.confetti();
       ui.summaryPanel(S, T);
     }
   }
+  ambient.update(dt, { season: seasonOf(S.day), weather: weatherOf(S.day) });
   ui.hud(S, speed);
   requestAnimationFrame(frame);
 }

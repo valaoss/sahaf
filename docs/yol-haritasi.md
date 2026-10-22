@@ -68,7 +68,12 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - İlanlar: 10 tür çok günlü görev (belirli kitap / etiketli n kitap / türden n kitap, kasabada ya da her yerde)
 - Özel günler: 23 Nisan, Hıdırellez, Kitap Fuarı (ilk baskı ×3), Okullar açıldı, Yılbaşı
 - Defterde Mektuplar sekmesi; gazetede mektup, ilan, özel gün; gün sonunda yaşananlar ve ilan sonucu; 4 yeni pul
-- Sıradaki: Faz D (gün ışığı, canlı arka plan, oyun hissi, müzik motifleri)
+### Faz D — görsel ve ses cilası ✅
+- Gün ışığı: sabah pembe, öğleden sonra altın, akşam mor; akşamüstü pencereler sarı yanar, ışık zinciri parlar
+- Canlı arka plan (render/ambient.js): martılar, ufukta geçen tekneler, ilkbahar/yaz kelebekleri
+- Oyun hissi: satışta para kasaya uçar, pul/hediye/sayfa/ilan teslimde konfeti, defter sayfası çevrilir
+- Müzik: her kasabanın 4 notalık motifi, festival/özel günde daha canlı, akşamüstü yumuşak; mektup ve olay jingleları
+- Sıradaki: Faz C (yeni kasabalar, müdavimler, 2. bölüm, karavan büyümesi)
 
 ## Faz 2 başlangıcı ✅
 - Sabah gazetesi (Ege Postası): günün havası, bugünün ve yarının etkinliği, kasabadan haber; her sabah açılır,

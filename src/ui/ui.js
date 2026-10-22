@@ -473,5 +473,37 @@ export function createUI(root, act) {
     p.querySelector('[data-go]').onclick = () => { closePanel(); onContinue(); };
   }
 
-  return { hud, toast, hapPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  // Para kasaya uçar: (xf, yf) sahne içi oran, hedef üstteki para hapı
+  function flyCoin(xf, yf) {
+    const c = document.createElement('div');
+    c.className = 'coinfly';
+    c.textContent = '🪙';
+    c.style.left = (xf * 100) + '%';
+    c.style.top = (yf * 100) + '%';
+    root.appendChild(c);
+    const a = root.getBoundingClientRect(), b = $('coins').getBoundingClientRect();
+    requestAnimationFrame(() => {
+      c.style.transform = `translate(${b.left - a.left - c.offsetLeft}px, ${b.top - a.top - c.offsetTop}px) scale(.6)`;
+      c.style.opacity = '0.2';
+    });
+    setTimeout(() => c.remove(), 750);
+  }
+
+  // Konfeti: yeni pul, hediye, defter sayfası
+  function confetti() {
+    const cols = ['#f08a7e', '#f2c45a', '#5b8bd0', '#8bc49a', '#b98ad6', '#f6a5c0'];
+    for (let i = 0; i < 46; i++) {
+      const d = document.createElement('i');
+      d.className = 'confetto';
+      d.style.left = (Math.random() * 100) + '%';
+      d.style.background = cols[i % cols.length];
+      d.style.animationDelay = (Math.random() * 0.4).toFixed(2) + 's';
+      d.style.setProperty('--drift', ((Math.random() - 0.5) * 160).toFixed(0) + 'px');
+      d.style.setProperty('--spin', (360 + Math.random() * 540).toFixed(0) + 'deg');
+      root.appendChild(d);
+      setTimeout(() => d.remove(), 2400);
+    }
+  }
+
+  return { hud, toast, flyCoin, confetti, hapPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

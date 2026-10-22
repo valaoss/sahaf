@@ -16,7 +16,7 @@ import { offerQuest, settleQuest, questText } from '../src/game/mail.js';
 import { TOWN_KEYS } from '../src/data/towns.js';
 import { WEATHER, EVENTS, EVENT_CHANCE, SEASON } from '../src/data/calendar.js';
 import { PAGES, FINALE_REWARD } from '../src/data/story.js';
-import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR } from '../src/audio/compose.js';
+import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, MOTIFS } from '../src/audio/compose.js';
 import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
 import { checkStamps, stampProgress } from '../src/game/stamps.js';
 import { checkStory, nextPage, progressOf } from '../src/game/story.js';
@@ -663,6 +663,22 @@ test('özel günler: doğru günde, bütün kasabalarda; fuar ilk baskıyı art�
     return r;
   };
   assert.ok(rareRate(day('Yaz', 4)) > rareRate(day('Yaz', 3)) * 2, 'fuarda ilk baskı');
+});
+
+test('müzik: kasaba motifi sekiz ölçüde bir, akşam çan yok, festivalde daha dolu', () => {
+  for (const town of TOWN_KEYS) {
+    const bells = composeBar(7, 'Yaz', { town }).filter(n => n.inst === 'bell');
+    assert.equal(bells.length, MOTIFS[town].length, town);
+  }
+  assert.notDeepEqual(composeBar(7, 'Yaz', { town: 'ayvalik' }).filter(n => n.inst === 'bell').map(n => n.midi),
+    composeBar(7, 'Yaz', { town: 'cunda' }).filter(n => n.inst === 'bell').map(n => n.midi), 'kasabalar farklı');
+  let calm = 0, lively = 0;
+  for (let b = 0; b < 64; b++) {
+    assert.equal(composeBar(b, 'Kış', { night: true }).filter(n => n.inst === 'bell').length, 0, 'akşam çan yok');
+    calm += composeBar(b, 'Yaz').filter(n => n.inst === 'pluck').length;
+    lively += composeBar(b, 'Yaz', { lively: true }).filter(n => n.inst === 'pluck').length;
+  }
+  assert.ok(lively > calm * 1.1, `festival ${lively} > ${calm}`);
 });
 
 test('müdavim hikâyeleri: her kalp için bir satır', () => {
