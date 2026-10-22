@@ -7,7 +7,7 @@ import { GENRES } from '../data/genres.js';
 import { personSVG, figureMeta } from './figure.js';
 
 // Karavanın önündeki duraklar; side: hangi kenardan gelip gider
-const SPOTS = [{ x: 1250, side: 1 }, { x: 1370, side: 1 }, { x: 470, side: -1 }, { x: 320, side: -1 }];
+const SPOTS = [{ x: 1210, side: 1 }, { x: 1310, side: 1 }, { x: 480, side: -1 }, { x: 370, side: -1 }];
 const WALK = 300;      // birim/sn
 const BROWSE = 1.9;    // sn
 

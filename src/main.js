@@ -71,7 +71,12 @@ const crowd = createCrowd(scene.people, scene.fx, {
     }, settings.hints !== false);
   },
   timeout: c => recommend(S, c, null),
-  paid: x => ui.flyCoin(x / 1600, 0.6),
+  paid: x => {
+    const svg = scene.svg, pt = svg.createSVGPoint(), fr = document.getElementById('frame').getBoundingClientRect();
+    pt.x = x; pt.y = 540;
+    const sp = pt.matrixTransform(svg.getScreenCTM());
+    ui.flyCoin((sp.x - fr.left) / fr.width, (sp.y - fr.top) / fr.height);
+  },
 });
 const ambient = createAmbient(scene.ambientBack, scene.ambientFront);
 // karavana dokununca içi açılır

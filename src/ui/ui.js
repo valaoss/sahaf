@@ -273,8 +273,9 @@ export function createUI(root, act) {
       <p class="hint">Yol ₺${BAL.travelCost} · günde bir kez, sabahları. Yeni gittiğin kasabada karavanı merak eden ${BAL.newTownTraffic} kişi daha uğrar.</p>
       <svg class="map map3d" viewBox="0 0 1600 900">${mapSVG(S, { eventTown: ev ? EVENTS[ev].town : null, paint: PAINTS[S.paint] })}</svg>
       <p class="hint" id="blurb">${TOWNS[S.town].blurb}</p>
-      <div class="row end"><button class="btn" data-close>Kapat</button></div>`, 'wide');
+      <div class="row end"><span class="hint grow">🔍 İki parmakla ya da tekerlekle yakınlaştır, sürükleyerek gez.</span><button class="btn" data-close>Kapat</button></div>`, 'wide');
     p.querySelector('[data-close]').onclick = closePanel;
+    zoomable(p.querySelector('svg.map3d'));
     p.querySelectorAll('[data-town]').forEach(g => {
       const blurb = k => S.unlocked.includes(k) ? TOWNS[k].blurb : 'Haritada sisli bir köşe… Defterde ilerledikçe buranın yolunu öğreneceksin.';
       g.onmouseenter = () => { p.querySelector('#blurb').textContent = blurb(g.dataset.town); };
@@ -284,6 +285,43 @@ export function createUI(root, act) {
         driveVan(p.querySelector('#van'), proj(TOWNS[S.town].map.x, TOWNS[S.town].map.y), proj(TOWNS[k].map.x, TOWNS[k].map.y), () => act('travel', k));
       };
     });
+  }
+
+  // Harita yakınlaştırma: viewBox kaydırılır. İki parmak kıstırma, tekerlek, çift dokunuş; tek parmakla sürükleme.
+  // Sürükleme ya da kıstırmadan sonra gelen tıklama kasaba seçmez.
+  function zoomable(svg, W = 1600, H = 900) {
+    let vb = { x: 0, y: 0, w: W, h: H }, moved = 0;
+    const pts = new Map();
+    const clamp = v => ({ ...v, x: Math.max(0, Math.min(W - v.w, v.x)), y: Math.max(0, Math.min(H - v.h, v.y)) });
+    const apply = () => { svg.setAttribute('viewBox', `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); svg.classList.toggle('zoomed', vb.w < W - 1); };
+    const toSvg = (cx, cy) => { const r = svg.getBoundingClientRect(); return { x: vb.x + (cx - r.left) / r.width * vb.w, y: vb.y + (cy - r.top) / r.height * vb.h }; };
+    function zoomAt(cx, cy, k) {
+      const p = toSvg(cx, cy), w = Math.min(W, Math.max(W / 4, vb.w / k)), s = w / vb.w;
+      vb = clamp({ x: p.x - (p.x - vb.x) * s, y: p.y - (p.y - vb.y) * s, w, h: w * H / W });
+      apply();
+    }
+    svg.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 1 / 1.15); }, { passive: false });
+    svg.addEventListener('pointerdown', e => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 1) moved = 0; });
+    svg.addEventListener('pointermove', e => {
+      const prev = pts.get(e.pointerId);
+      if (!prev) return;
+      const cur = { x: e.clientX, y: e.clientY }, r = svg.getBoundingClientRect();
+      if (pts.size === 1) {
+        const dx = cur.x - prev.x, dy = cur.y - prev.y;
+        moved += Math.abs(dx) + Math.abs(dy);
+        if (vb.w < W) { vb = clamp({ ...vb, x: vb.x - dx / r.width * vb.w, y: vb.y - dy / r.height * vb.h }); apply(); }
+      } else {
+        const o = [...pts].find(([id]) => id !== e.pointerId)[1];
+        const d0 = Math.hypot(prev.x - o.x, prev.y - o.y), d1 = Math.hypot(cur.x - o.x, cur.y - o.y);
+        if (d0 > 0) zoomAt((cur.x + o.x) / 2, (cur.y + o.y) / 2, d1 / d0);
+        moved += 20;
+      }
+      pts.set(e.pointerId, cur);
+    });
+    const up = e => pts.delete(e.pointerId);
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => svg.addEventListener(n, up));
+    svg.addEventListener('click', e => { if (moved > 8) { e.stopPropagation(); e.preventDefault(); } }, true);
+    svg.addEventListener('dblclick', e => zoomAt(e.clientX, e.clientY, vb.w < W - 1 ? vb.w / W : 2));
   }
 
   // Karavan haritada bir kasabadan ötekine sekerek gider (ekran koordinatlarında)
