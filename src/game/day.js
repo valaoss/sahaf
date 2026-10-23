@@ -11,6 +11,7 @@ import { checkStamps } from './stamps.js';
 import { morningLetter, offerQuest, settleQuest } from './mail.js';
 import { scheduleHappenings, dueHappening, chooseHappening, buffFor, HAP } from './happenings.js';
 import { tidiness, placeAll } from './shelving.js';
+import { checkCountries } from './travel.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
@@ -73,6 +74,7 @@ export function closeShop(S) {
   T.quest = settleQuest(S, T);
   T.page = checkStory(S, T);
   T.unlocked = checkUnlocks(S);
+  T.countries = checkCountries(S);
   T.stamps = checkStamps(S);
   S.lastDay = T;
   S.prevTown = S.town;

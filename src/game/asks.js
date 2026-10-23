@@ -27,6 +27,8 @@ export function buildAsk(S, tags, ctx = {}) {
     parts.push(fill(pick(ctx.rare ? RARE_REQ : [...table.any, ...(table[voice] || [])]), says));
     if (!ctx.bare && rnd(S) < 0.35) parts.push(pick(CLOSE[voice]));
     text = parts.join(' ');
+    // yabancı ülkede çoğu zaman o dilde selamla başlar (Kalimera! …)
+    if (ctx.greet && !ctx.bare && rnd(S) < 0.6) text = ctx.greet + (ctx.greet.endsWith('!') ? ' ' : '! ') + text;
     if (!seenRecently(S, 'text', text)) break;
   }
   remember(S, 'text', text);

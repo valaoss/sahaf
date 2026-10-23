@@ -6,7 +6,9 @@ import { TOWNS, TOWN_KEYS } from '../data/towns.js';
 import { BOOK, booksOf, TAGS } from '../data/books.js';
 import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
 import { THEMES } from '../audio/compose.js';
-import { mapSVG, proj } from '../render/map3d.js';
+import { worldSVG, routePath, townXY, flagSVG, WW, WH } from '../render/world.js';
+import { COUNTRIES, COUNTRY_KEYS } from '../data/countries.js';
+import { travelInfo } from '../game/travel.js';
 import { createShelfPanel } from './shelf-panel.js';
 import { createShelfStage } from './shelf-stage.js';
 import { KOSTAS } from '../data/kostas.js';
@@ -305,39 +307,83 @@ export function createUI(root, act) {
     });
   }
 
+  // Akdeniz haritası: tam ekran; bir şehre dokununca kartı açılır (yol türü, ücret, süre), "Yola çık" ile karavan gider
   function mapPanel(S) {
-    const ev = eventOf(S.day);
     const p = openPanel(`
-      <h2>🗺️ Nereye gidelim?</h2>
-      <p class="hint">Yol ₺${BAL.travelCost} · günde bir kez, sabahları. Yeni gittiğin kasabada karavanı merak eden ${BAL.newTownTraffic} kişi daha uğrar.</p>
-      <svg class="map map3d" viewBox="0 0 1600 900">${mapSVG(S, { eventTown: ev ? EVENTS[ev].town : null, paint: PAINTS[S.paint] })}</svg>
-      <p class="hint" id="blurb">${TOWNS[S.town].blurb}</p>
-      <div class="row end"><span class="hint grow">🔍 İki parmakla, tekerlekle ya da düğmelerle yakınlaştır; yakınken sürükleyerek gez.</span><span class="zoom2"><button class="btn sm" data-zin title="Yakınlaştır">＋</button><button class="btn sm" data-zout title="Uzaklaştır">－</button></span><button class="btn" data-close>Kapat</button></div>`, 'wide');
+      <div class="wmap">
+        <svg class="map3d world" viewBox="0 0 ${WW} ${WH}">${worldSVG(S)}</svg>
+        <div class="wbar"><b>🗺️ Akdeniz</b><span class="hint grow">Bir şehre dokun · iki parmakla yakınlaştır</span>
+          <span class="zoom2"><button class="btn sm" data-zin title="Yakınlaştır">＋</button><button class="btn sm" data-zout title="Uzaklaştır">－</button></span>
+          <button class="btn sm" data-close>✕ Kapat</button></div>
+        <div class="wcard" id="wcard"></div>
+      </div>`, 'mapfull');
+    const svg = p.querySelector('svg.world');
     p.querySelector('[data-close]').onclick = closePanel;
-    const zm = zoomable(p.querySelector('svg.map3d'));
+    // önce bulunduğun bölgeye yakın açılır
+    const [hx, hy] = townXY(S.town);
+    const zm = zoomable(svg, WW, WH, {
+      minW: 160, init: { x: hx - 330, y: hy - 160, w: 660, h: 660 * WH / WW },
+      onChange: (vb, sc) => { svg.style.setProperty('--ms', (1 / sc).toFixed(3)); svg.classList.toggle('far', vb.w > 1300); },
+    });
     p.querySelector('[data-zin]').onclick = () => zm.zoom(1.5);
     p.querySelector('[data-zout]').onclick = () => zm.zoom(1 / 1.5);
-    p.querySelectorAll('[data-town]').forEach(g => {
-      const blurb = k => S.unlocked.includes(k) ? TOWNS[k].blurb : 'Haritada sisli bir köşe… Defterde ilerledikçe buranın yolunu öğreneceksin.';
-      g.onmouseenter = () => { p.querySelector('#blurb').textContent = blurb(g.dataset.town); };
-      g.onclick = () => {
-        const k = g.dataset.town, why = canTravel(S, k);
-        if (why) { toast(why); p.querySelector('#blurb').textContent = blurb(k); return; }
-        driveVan(p.querySelector('#van'), proj(TOWNS[S.town].map.x, TOWNS[S.town].map.y), proj(TOWNS[k].map.x, TOWNS[k].map.y), () => act('travel', k));
-      };
-    });
+    const card = p.querySelector('#wcard');
+    const showTown = k => {
+      const T = TOWNS[k], c = T.country || 'tr', C = COUNTRIES[c], open = S.unlocked.includes(k), info = travelInfo(S, k), why = canTravel(S, k);
+      p.querySelectorAll('.city.sel').forEach(n => n.classList.remove('sel'));
+      p.querySelector(`.city[data-town="${k}"]`)?.classList.add('sel');
+      card.innerHTML = `<div class="wc-head">${flagSVG(C.flag)}<div><b>${open ? T.name : '???'}</b><small>${C.name}</small></div></div>
+        <p>${open ? T.blurb : 'Haritada sisli bir köşe… Defterde ilerledikçe buranın yolunu öğreneceksin.'}</p>
+        ${k === S.town ? '<p class="hint">📍 Buradasın.</p>' : open ? `<p class="wc-trip">${info.abroad ? `⛴️ Feribot · ₺${info.cost} · bir gün sürer${S.passport[c] ? '' : ' · 🛂 pasaporta damga'}` : `🚐 Karayolu · ₺${info.cost}`}</p>` : ''}
+        <div class="row end">${k !== S.town && open ? `<button class="btn hl" data-go ${why ? 'disabled' : ''}>${why || (info.abroad ? '⛴️ Feribota bin' : '🚐 Yola çık')}</button>` : ''}</div>`;
+      card.classList.add('show');
+      card.querySelector('[data-go]')?.addEventListener('click', () => {
+        card.classList.remove('show');
+        driveVan(svg, S.town, k, info.abroad, () => act('travel', k));
+      });
+    };
+    const showCountry = c => {
+      const C = COUNTRIES[c];
+      card.innerHTML = `<div class="wc-head">${flagSVG(C.flag)}<div><b>${C.name}</b><small>${S.countries.includes(c) ? 'Açık' : '🔒 Kapalı'}</small></div></div>
+        <p>${S.countries.includes(c) ? `"${C.greet}!" diye karşılarlar. Şehirleri haritada.` : C.hint}</p>`;
+      card.classList.add('show');
+    };
+    p.querySelectorAll('.city').forEach(g => g.addEventListener('click', () => showTown(g.dataset.town)));
+    p.querySelectorAll('.country').forEach(g => g.addEventListener('click', () => showCountry(g.dataset.country)));
+    showTown(S.town);
+  }
+
+  // Karavan rotada gider: karayolunda kahverengi kesik çizgi, feribotta mavi deniz yolu
+  function driveVan(svg, from, to, abroad, done) {
+    const r = routePath(from, to, abroad), van = svg.querySelector('#wvan');
+    svg.querySelector('#wroute').innerHTML = `<path d="${r.d}" fill="none" stroke="${abroad ? '#3f7fb0' : '#a07d5c'}" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round" opacity=".85"/>`;
+    van.style.display = '';
+    const start = performance.now(), dur = abroad ? 2200 : 1400;
+    (function step(now) {
+      const k = Math.min((now - start) / dur, 1), e = k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+      const [x, y] = r.at(e), bob = Math.abs(Math.sin(k * Math.PI * (abroad ? 4 : 7))) * 5;
+      van.style.transform = `translate(${x.toFixed(1)}px, ${(y - bob).toFixed(1)}px) scale(var(--ms, 1))`;
+      if (k < 1) requestAnimationFrame(step); else setTimeout(done, 250);
+    })(start);
   }
 
   // Harita yakınlaştırma: viewBox kaydırılır. İki parmak kıstırma, tekerlek, çift dokunuş; tek parmakla sürükleme.
   // Sürükleme ya da kıstırmadan sonra gelen tıklama kasaba seçmez.
-  function zoomable(svg, W = 1600, H = 900) {
-    let vb = { x: 0, y: 0, w: W, h: H }, moved = 0;
-    const pts = new Map();
+  // o: { minW (en yakın görünüm genişliği), init (başlangıç viewBox), onChange(vb, ekranPikseli/birim) }
+  function zoomable(svg, W = 1600, H = 900, o = {}) {
     const clamp = v => ({ ...v, x: Math.max(0, Math.min(W - v.w, v.x)), y: Math.max(0, Math.min(H - v.h, v.y)) });
-    const apply = () => { svg.setAttribute('viewBox', `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); svg.classList.toggle('zoomed', vb.w < W - 1); };
-    const toSvg = (cx, cy) => { const r = svg.getBoundingClientRect(); return { x: vb.x + (cx - r.left) / r.width * vb.w, y: vb.y + (cy - r.top) / r.height * vb.h }; };
+    let vb = o.init ? clamp(o.init) : { x: 0, y: 0, w: W, h: H }, moved = 0;
+    const pts = new Map();
+    // svg kutusu harita oranında değilse (tam ekran) "meet" yerleşimi: ölçek ve kenar boşluğu
+    const fit = () => { const r = svg.getBoundingClientRect(), sc = Math.min(r.width / vb.w, r.height / vb.h); return { r, sc, ox: (r.width - vb.w * sc) / 2, oy: (r.height - vb.h * sc) / 2 }; };
+    const apply = () => {
+      svg.setAttribute('viewBox', `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`);
+      svg.classList.toggle('zoomed', vb.w < W - 1);
+      o.onChange?.(vb, fit().sc || 1);
+    };
+    const toSvg = (cx, cy) => { const { r, sc, ox, oy } = fit(); return { x: vb.x + (cx - r.left - ox) / sc, y: vb.y + (cy - r.top - oy) / sc }; };
     function zoomAt(cx, cy, k) {
-      const p = toSvg(cx, cy), w = Math.min(W, Math.max(W / 4, vb.w / k)), s = w / vb.w;
+      const p = toSvg(cx, cy), w = Math.min(W, Math.max(o.minW || W / 4, vb.w / k)), s = w / vb.w;
       vb = clamp({ x: p.x - (p.x - vb.x) * s, y: p.y - (p.y - vb.y) * s, w, h: w * H / W });
       apply();
     }
@@ -350,7 +396,7 @@ export function createUI(root, act) {
       if (pts.size === 1) {
         const dx = cur.x - prev.x, dy = cur.y - prev.y;
         moved += Math.abs(dx) + Math.abs(dy);
-        if (vb.w < W) { vb = clamp({ ...vb, x: vb.x - dx / r.width * vb.w, y: vb.y - dy / r.height * vb.h }); apply(); }
+        if (vb.w < W) { const sc = fit().sc; vb = clamp({ ...vb, x: vb.x - dx / sc, y: vb.y - dy / sc }); apply(); }
       } else {
         const o = [...pts].find(([id]) => id !== e.pointerId)[1];
         const d0 = Math.hypot(prev.x - o.x, prev.y - o.y), d1 = Math.hypot(cur.x - o.x, cur.y - o.y);
@@ -363,20 +409,13 @@ export function createUI(root, act) {
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => svg.addEventListener(n, up));
     svg.addEventListener('click', e => { if (moved > 8) { e.stopPropagation(); e.preventDefault(); } }, true);
     svg.addEventListener('dblclick', e => zoomAt(e.clientX, e.clientY, vb.w < W - 1 ? vb.w / W : 2));
+    apply();
+    new ResizeObserver(apply).observe(svg);
     // düğmelerle: haritanın ortasına göre
     return { zoom(k) { const r = svg.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, k); } };
   }
 
-  // Karavan haritada bir kasabadan ötekine sekerek gider (ekran koordinatlarında)
-  function driveVan(van, a, b, done) {
-    const start = performance.now(), dur = 1400;
-    (function step(now) {
-      const k = Math.min((now - start) / dur, 1), e = k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
-      const x = a.x + (b.x - a.x) * e - 70, y = a.y + (b.y - a.y) * e + 10 - Math.abs(Math.sin(k * Math.PI * 6)) * 8;
-      van.setAttribute('transform', `translate(${x} ${y})`);
-      if (k < 1) requestAnimationFrame(step); else setTimeout(done, 200);
-    })(start);
-  }
+
 
 
   function summaryPanel(S, T) {
@@ -400,6 +439,7 @@ export function createUI(root, act) {
         <div><span>Toplam</span><b>🪙 ${S.coins}</b></div>
       </div>
       <p>${profitNote}${T.newTown ? ` Yeni kasabada karavanı merak edenler de uğradı.` : ''}</p>
+      ${(T.countries || []).length ? `<p class="tip page">🌍 Yeni bir ülke açıldı: <b>${T.countries.map(c => COUNTRIES[c].name).join(', ')}</b>! Haritadan feribotla gidebilirsin.</p>` : ''}
       ${(T.unlocked || []).length ? `<p class="tip page">🧭 Yeni bir yol açıldı: <b>${T.unlocked.map(k => TOWNS[k].name).join(', ')}</b> artık haritada!</p>` : ''}
       ${T.tea ? `<p class="hint">🫖 Çay köşesinden ${T.tea} çay satıldı.</p>` : ''}
       ${(T.haps || []).length ? `<p class="recline">Bugün yaşananlar: ${T.haps.map(id => HAP[id].icon + ' ' + HAP[id].title).join(' · ')}</p>` : ''}
@@ -456,12 +496,24 @@ export function createUI(root, act) {
   // Defter sekmeleri: hikâye, pul albümü, mektuplar
   function bookTabs(S, on) {
     const t = (k, label) => `<button class="tab ${on === k ? 'is-on' : ''}" data-tab="${k}">${label}</button>`;
-    return `<div class="tabs head">${t('book', '📜 Defter')}${t('album', `🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 Mektuplar (${S.letters.length})`)}${t('stats', '📊 İstatistik')}</div>`;
+    return `<div class="tabs head">${t('book', '📜 Defter')}${t('album', `🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 Mektuplar (${S.letters.length})`)}${t('stats', '📊 İstatistik')}${t('passport', `🛂 Pasaport (${Object.keys(S.passport).length})`)}</div>`;
   }
   function wireTabs(p, S, back) {
     p.querySelectorAll('[data-tab]').forEach(b => b.onclick = () =>
       b.dataset.tab === 'book' ? bookPanel(S, null, back) : b.dataset.tab === 'album' ? albumPanel(S, back)
-        : b.dataset.tab === 'stats' ? statsPanel(S, back) : mailPanel(S, back));
+        : b.dataset.tab === 'stats' ? statsPanel(S, back) : b.dataset.tab === 'passport' ? passportPanel(S, back) : mailPanel(S, back));
+  }
+  // Pasaport: ülke damgaları (ilk girilen gün), kapalı ülkelerin ipucu
+  function passportPanel(S, back = null) {
+    const cards = COUNTRY_KEYS.map(c => {
+      const C = COUNTRIES[c], d = S.passport[c];
+      return `<div class="visa ${d ? 'got' : ''}">${flagSVG(C.flag)}<b>${C.name}</b>
+        ${d ? `<span class="vstamp">${C.greet}!<small>${seasonOf(d)}, ${dayOfSeason(d)}. gün</small></span>` : `<small class="hint">${S.countries.includes(c) ? 'Feribot seni bekliyor.' : C.hint}</small>`}</div>`;
+    }).join('');
+    const p = openPanel(`${bookTabs(S, 'passport')}<div class="passport">${cards}</div>
+      <div class="row end"><button class="btn hl" data-close>${back ? 'Geri' : 'Kapat'}</button></div>`, 'wide');
+    wireTabs(p, S, back);
+    p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
   }
   function mailPanel(S, back = null) {
     const list = S.letters.slice().reverse().map(L => `<div class="letterbox"><div class="kicker">${L.from} · ${seasonOf(L.day)}, ${dayOfSeason(L.day)}. gün</div><p>“${L.text}”</p></div>`).join('')

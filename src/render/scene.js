@@ -10,6 +10,7 @@ import { shelfCap, genreCounts } from '../game/state.js';
 import { syncLayout, sectionCap } from '../game/shelving.js';
 import { DECOR_ART } from './decor-art.js';
 import { spotArt, GROUND, SHOW_HOUSES } from './spot-art.js';
+import { landmarkArt, ARCH } from './landmarks.js';
 import { svgView } from './people.js';
 
 // Çay köşesi: tabure, demlik, iki ince belli bardak, buhar
@@ -120,6 +121,7 @@ const MARKUP = `
   </g>
 
   <g id="bandH">
+  <g id="landmark" class="paintable"></g>
   <g id="houses" class="paintable"></g>
   <g id="spotBack"></g>
   <rect x="0" y="330" width="1600" height="232" fill="url(#haze)" pointer-events="none"/>
@@ -229,22 +231,35 @@ const DOORS = ['#4a7fb5', '#5aa3a3', '#e57f73', '#7f9c5a'];
 const ROOFS = ['#e07a5f', '#d9694f', '#e8906e'];
 const BLOOM = ['#f06fa4', '#f58bb6', '#e9579a'];
 
-function drawHouses(g, seed) {
+// Evler ülkenin mimarisinde (render/landmarks.js ARCH): beşik çatı, düz dam (+ mavi kubbe), mansart; Mısır'da palmiye
+function drawHouses(g, seed, country = 'tr') {
   g.innerHTML = '';
+  const A = ARCH[country] || ARCH.tr;
   const r = seeded(seed), pick = a => a[Math.floor(r() * a.length)];
   let x = -40;
   while (x < 1640) {
     const w = 120 + r() * 90, h = 110 + r() * 70, base = 562, hg = el('g', {}, g);
-    el('rect', { x, y: base - h, width: w, height: h, fill: pick(WALLS) }, hg);
+    el('rect', { x, y: base - h, width: w, height: h, fill: pick(A.walls) }, hg);
     el('rect', { x, y: base - h, width: w, height: 6, fill: '#000', opacity: .05 }, hg);
-    el('path', { d: `M${x - 10} ${base - h} L${x + w / 2} ${base - h - 46} L${x + w + 10} ${base - h}Z`, fill: pick(ROOFS) }, hg);
-    const dc = pick(DOORS);
+    const rc = pick(A.roofs), top = base - h;
+    if (A.roof === 'gable') el('path', { d: `M${x - 10} ${top} L${x + w / 2} ${top - 46} L${x + w + 10} ${top}Z`, fill: rc }, hg);
+    else if (A.roof === 'mansard') el('path', { d: `M${x - 6} ${top} L${x + 14} ${top - 34} L${x + w - 14} ${top - 34} L${x + w + 6} ${top}Z`, fill: rc }, hg);
+    else {
+      el('rect', { x: x - 4, y: top - 8, width: w + 8, height: 10, rx: 2, fill: shade(A.walls[0], .96) }, hg);
+      if (r() < A.dome) el('path', { d: `M${x + w / 2 - 34} ${top - 8} A34 34 0 0 1 ${x + w / 2 + 34} ${top - 8}Z`, fill: rc }, hg);
+    }
+    if (A.palm && r() < .5) {
+      const px = x + w + 4;
+      el('path', { d: `M${px} ${base} C${px + 4} ${base - 60} ${px - 4} ${base - 120} ${px + 6} ${base - 170}`, fill: 'none', stroke: '#8a6a4f', 'stroke-width': 7 }, hg);
+      for (const a of [-60, -20, 20, 60, 100]) el('ellipse', { cx: px + 6 + Math.cos(a * Math.PI / 180) * 30, cy: base - 170 + Math.sin(a * Math.PI / 180) * 14, rx: 34, ry: 9, fill: '#7f9c5a', transform: `rotate(${a} ${px + 6} ${base - 170})` }, hg);
+    }
+    const dc = pick(A.doors);
     el('rect', { x: x + w / 2 - 15, y: base - 54, width: 30, height: 54, rx: 14, fill: dc }, hg);
     for (const wx of [x + 18, x + w - 44]) {
       el('rect', { x: wx, y: base - h + 26, width: 26, height: 30, rx: 12, fill: '#9cc7e0', class: 'win' }, hg);
       el('rect', { x: wx - 4, y: base - h + 56, width: 34, height: 6, rx: 3, fill: dc }, hg);
     }
-    if (r() > .45) { // begonvil
+    if (A.bloom && r() > .45) { // begonvil
       const bx = x + (r() > .5 ? 8 : w - 30);
       for (let i = 0; i < 9; i++) el('circle', { cx: bx + r() * 34, cy: base - h + 10 + r() * 60, r: 9 + r() * 8, fill: pick(BLOOM) }, hg);
       for (let i = 0; i < 4; i++) el('circle', { cx: bx + r() * 34, cy: base - h + 30 + r() * 50, r: 5, fill: '#7fb36d' }, hg);
@@ -378,11 +393,12 @@ export function buildScene(host) {
       $('skyBot').setAttribute('stop-color', t.sky[1]);
       $('seaTop').setAttribute('stop-color', t.sea[0]);
       $('seaBot').setAttribute('stop-color', t.sea[1]);
-      drawHouses($('houses'), 7 + TOWN_KEYS.indexOf(key) * 101);
+      drawHouses($('houses'), 7 + TOWN_KEYS.indexOf(key) * 101, t.country || 'tr');
     },
     // kasaba içindeki mekân: arka plan, zemin, evlerin görünürlüğü
     setSpot(scene, town) {
       $('spotBack').innerHTML = spotArt(scene, town);
+      $('landmark').innerHTML = landmarkArt(town);
       $('ground').setAttribute('fill', GROUND[scene]);
       $('curb').setAttribute('fill', scene === 'sahil' ? '#ecd3a4' : scene === 'tepe' ? '#c9d38f' : '#e3c597');
       $('houses').style.display = SHOW_HOUSES[scene] ? '' : 'none';

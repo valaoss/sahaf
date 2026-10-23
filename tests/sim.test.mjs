@@ -2,11 +2,11 @@
 import assert from 'node:assert/strict';
 import { BAL, SEASONS } from '../src/data/balance.js';
 import { GENRES, GENRE_KEYS } from '../src/data/genres.js';
-import { TOWNS } from '../src/data/towns.js';
+import { TOWNS, START_TOWNS } from '../src/data/towns.js';
 import { BOOKS, BOOK, TAGS, booksOf } from '../src/data/books.js';
 import { DECOR, SHELF_LEVELS, PAINTS, UPGRADES } from '../src/data/decor.js';
 import { newGame, restore, shelfCount, shelfCap, genreCount, seasonOf } from '../src/game/state.js';
-import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot, toggleFeature } from '../src/game/shop.js';
+import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot, toggleFeature, canTravel } from '../src/game/shop.js';
 import { SPOTS } from '../src/data/spots.js';
 import { ARCHETYPES, ARCH_KEYS } from '../src/data/archetypes.js';
 import { HAPPENINGS } from '../src/data/happenings.js';
@@ -24,6 +24,8 @@ import { syncLayout, placeAll, shelve, unshelve, moveBook, setLabel, setPrice, t
 import { stallOf, buyStall, talkHint } from '../src/game/shop.js';
 import { roadEvent, chooseRoad, ROAD_BY_ID } from '../src/game/road.js';
 import { ROAD } from '../src/data/road.js';
+import { travelInfo, checkCountries, countryOf } from '../src/game/travel.js';
+import { COUNTRIES, COUNTRY_KEYS } from '../src/data/countries.js';
 import { replyFor } from '../src/game/replies.js';
 import { REPLIES } from '../src/data/replies.js';
 import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
@@ -1002,6 +1004,47 @@ test('yol karşılaşmaları: yolculukların yarısında, art arda aynısı değ
   S.coins = 1;
   out = chooseRoad(S, 'sahaf', 0);
   assert.equal(S.coins, 1, 'parası yetmezse ödeme yok');
+});
+
+test('ülkeler: Türkiye açık başlar, Yunanistan hikâyeyle, İtalya üç Yunan şehriyle açılır', () => {
+  const S = newGame(21);
+  assert.deepEqual(S.countries, ['tr']);
+  assert.ok(START_TOWNS.every(k => countryOf(k) === 'tr'), 'başlangıçta yalnız Türkiye');
+  assert.equal(canTravel(S, 'midilli'), 'Bu ülkeye feribot henüz yok.');
+  assert.deepEqual(checkCountries(S), []);
+  S.pages = PAGES.map(p => p.id);
+  assert.deepEqual(checkCountries(S), ['gr']);
+  for (const k of ['midilli', 'atina', 'selanik', 'santorini']) assert.ok(S.unlocked.includes(k), k);
+  S.visited.push('midilli', 'atina');
+  assert.deepEqual(checkCountries(S), []);
+  S.visited.push('selanik');
+  assert.ok(checkCountries(S).includes('it'));
+  for (const c of COUNTRY_KEYS) assert.ok(COUNTRIES[c].name && COUNTRIES[c].greet && (c === 'tr' || COUNTRIES[c].hint), c);
+});
+
+test('yolculuk: yurt içi mesafeye göre yakıt; feribot pahalı, bir gün sürer, pasaporta damga', () => {
+  const S = newGame(22); S.coins = 500;
+  assert.equal(travelInfo(S, 'foca').cost, BAL.travelCost);
+  assert.equal(travelInfo(S, 'foca').abroad, false);
+  S.pages = PAGES.map(p => p.id); checkCountries(S);
+  const info = travelInfo(S, 'midilli');
+  assert.ok(info.abroad && info.cost >= BAL.ferryMin && info.cost <= BAL.ferryMax);
+  assert.ok(travelInfo(S, 'atina').cost > info.cost, 'uzak liman daha pahalı');
+  const day = S.day, coins = S.coins;
+  assert.equal(travel(S, 'midilli'), null);
+  assert.equal(S.day, day + 1, 'feribot günü');
+  assert.equal(S.coins, coins - info.cost);
+  assert.equal(S.passport.gr, S.day);
+  assert.equal(S.lastTrip.stamp, 'gr');
+  S.travelled = false;
+  assert.equal(travel(S, 'atina'), null);
+  assert.equal(S.day, day + 1, 'aynı ülkede gün geçmez');
+  assert.equal(S.lastTrip.stamp, null);
+  // Yunan şehrinde müşteriler arada Yunanca selam verir
+  openShop(S);
+  let greek = 0;
+  for (let i = 0; i < 120; i++) { const c = makeCustomer(S); if (c.ask && c.ask.text.startsWith('Kalimera')) greek++; }
+  assert.ok(greek > 3, 'selam ' + greek);
 });
 
 test('karşılıklar: dereceye ve konuya uygun, yer tutucusuz, kısa aralıkla tekrar etmez', () => {

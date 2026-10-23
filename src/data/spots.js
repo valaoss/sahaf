@@ -58,6 +58,30 @@ export const SPOTS = {
     tapinak: { name: 'Tapınak tepesi', scene: 'tepe', traffic: 0.75, ask: 1.7, demand: { tarih: 1.5, siir: 1.3 }, tags: ['felsefe', 'savas'],
       desc: 'Aristoteles\'in yürüdüğü yamaç. Az kişi gelir, gelen de uzun konuşur.' },
   },
+  midilli: {
+    liman: { name: 'Mitilini limanı', scene: 'sahil', traffic: 1, ask: 1.2, demand: { siir: 1.3, tarih: 1.2 }, tags: ['deniz', 'yolculuk'],
+      desc: 'Ayvalık feribotunun yanaştığı rıhtım. Yolcular ve balıkçılar.' },
+    zeytinlik: { name: 'Zeytinlikler', scene: 'tepe', traffic: 0.85, ask: 1.5, demand: { roman: 1.3, siir: 1.3 }, tags: ['doga', 'aile'],
+      desc: 'Asırlık zeytin ağaçları arasında taş bir köy yolu.' },
+  },
+  atina: {
+    plaka: { name: 'Plaka', scene: 'carsi', traffic: 1.3, ask: 0.9, demand: { tarih: 1.3, polisiye: 1.2 }, tags: ['sehir', 'gizem'],
+      desc: 'Akropolis\'in eteğinde dar sokaklar, tavernalar, turist kalabalığı.' },
+    akropolis: { name: 'Akropolis eteği', scene: 'tepe', traffic: 0.9, ask: 1.6, demand: { tarih: 1.6, siir: 1.2 }, tags: ['felsefe', 'savas'],
+      desc: 'Parthenon tepede. Felsefe öğrencileri tartışmaya hazır.' },
+  },
+  selanik: {
+    kordon: { name: 'Beyaz Kule önü', scene: 'sahil', traffic: 1.1, ask: 1, demand: { roman: 1.3, siir: 1.2 }, tags: ['deniz', 'sehir'],
+      desc: 'Kordon boyunca yürüyenler, simitçiler, akşamüstü ışığı.' },
+    modiano: { name: 'Modiano çarşısı', scene: 'carsi', traffic: 1.25, ask: 0.9, demand: { polisiye: 1.3, cocuk: 1.2 }, tags: ['aile', 'komik'],
+      desc: 'Balık, peynir, baharat… ve bir köşede eski kitap tezgâhları.' },
+  },
+  santorini: {
+    oia: { name: 'Oia yamacı', scene: 'tepe', traffic: 1, ask: 1.4, demand: { siir: 1.5, fantastik: 1.2 }, tags: ['ask', 'deniz'],
+      desc: 'Uçurum kenarında beyaz evler. Gün batımını bekleyen herkes bir kitap ister.' },
+    fira: { name: 'Fira sokakları', scene: 'carsi', traffic: 1.2, ask: 1, demand: { fantastik: 1.3, roman: 1.2 }, tags: ['buyu', 'yolculuk'],
+      desc: 'Basamaklı sokaklar, eşek kervanları, gemiden inen yolcular.' },
+  },
 };
 
 export const firstSpot = town => Object.keys(SPOTS[town])[0];

@@ -77,6 +77,38 @@ export const REGULARS = {
     hello: 'Midilli\'ye günde iki sefer yaparım. Karşı kıyının hikâyesi bitmez.',
     thanks: 'Bu kitap beni güverteden Midilli\'ye kadar götürür.',
     gift: null, giftNote: 'Feribotun eski dümen çarkından bir parça ve ₺40. Rüzgârın bol olsun.' },
+  yorgos: { name: 'Sahaf Yorgos', town: 'midilli', look: 1033, genre: 'roman', likes: ['yolculuk', 'deniz', 'aile'],
+    hello: 'Kaptan Atlas\'ın bahsettiği sahaf sensin demek! Ben de karşı kıyının sahafıyım. Hoş geldin, meslektaş.',
+    thanks: 'Bunu rafıma değil, başucuma koyacağım. Meslek sırrı.',
+    gift: null, giftNote: 'Dükkânımın eski tabelası: "ΒΙΒΛΙΑ". Bir de ₺40, kıyılar arası ticaretin şerefine.' },
+  maria: { name: 'Zeytinci Maria', town: 'midilli', look: 1077, genre: 'siir', likes: ['doga', 'umut', 'huzun'],
+    hello: 'Hasat zamanı ağaçların altında şiir okurum. Zeytin sabırlı ağaçtır, şiir de öyle.',
+    thanks: 'Ağaçlarım bu şiirleri sevecek, eminim.',
+    gift: null, giftNote: 'Bu yılın ilk sıkım zeytinyağı ve ₺40. Ayvalık\'takilere de selam söyle.' },
+  nikos: { name: 'Öğrenci Nikos', town: 'atina', look: 1121, genre: 'tarih', likes: ['felsefe', 'savas', 'sehir'],
+    hello: 'Felsefe bölümündeyim. Hocam "Sokrates gibi sor" diyor, ben de sana soruyorum: hangi kitap?',
+    thanks: 'Bu kitabı derste tartışmaya açacağım. Hocam şaşıracak!',
+    gift: null, giftNote: 'Tezimin teşekkür sayfasının bir kopyası (adın orada) ve ₺40.' },
+  despina: { name: 'Tiyatrocu Despina', town: 'atina', look: 1169, genre: 'roman', likes: ['ask', 'huzun', 'komik'],
+    hello: 'Antik tiyatroda Antigone oynuyorum. Rol dışında da başka hayatlar okumak isterim.',
+    thanks: 'Bunu kuliste okuyacağım; perde arası tam bir bölüm.',
+    gift: null, giftNote: 'Galamıza iki bilet ve ₺40. Ön sıra senin.' },
+  aleko: { name: 'Rebetikocu Aleko', town: 'selanik', look: 1213, genre: 'siir', likes: ['huzun', 'yalniz', 'sehir'],
+    hello: 'Buzukim ve ben her gece bir tavernadayız. Şarkı sözlerim tükendi, bana şiir lazım.',
+    thanks: 'Bu dizelerden bir şarkı çıkar, sana ithaf ederim.',
+    gift: null, giftNote: 'Yeni şarkımın notaları; adı "Karavan". Bir de ₺40.' },
+  sofia: { name: 'Mimar Sofia', town: 'selanik', look: 1261, genre: 'polisiye', likes: ['gizem', 'sehir', 'savas'],
+    hello: 'Eski binaları restore ediyorum. Her duvarın içinden bir hikâye çıkıyor, bazen bir sır.',
+    thanks: 'Bunu şantiyede öğle arasında bitiririm.',
+    gift: null, giftNote: 'Restore ettiğimiz konağın bir tuğlası (hatıra!) ve ₺40.' },
+  ioanna: { name: 'Ressam Ioanna', town: 'santorini', look: 1305, genre: 'fantastik', likes: ['buyu', 'ask', 'deniz'],
+    hello: 'Her akşam aynı gün batımını boyuyorum ve hiç aynı olmuyor. Bana başka dünyalar anlatan bir kitap ver.',
+    thanks: 'Bu kitabın renklerini tuvale taşıyacağım.',
+    gift: null, giftNote: 'Karavanının gün batımındaki resmi ve ₺40. Kubbeler mavi, karavan nane yeşili.' },
+  pavlo: { name: 'Balıkçı Pavlo', town: 'santorini', look: 1349, genre: 'cocuk', likes: ['deniz', 'hayvan', 'macera'],
+    hello: 'Torunlarım adaya her yaz gelir. Akşamları onlara kitap okurum ama Yunanca kitaplar bitti!',
+    thanks: 'Türkçesini ben çeviririm, onlar resimlere bakar. Teşekkürler!',
+    gift: null, giftNote: 'Teknemde oyduğum küçük bir balık ve ₺40. Torunlar selam yolladı.' },
   eleni: { name: 'Eleni Hanım', town: 'assos', look: 977, genre: 'siir', likes: ['huzun', 'aile', 'yolculuk'],
     hello: 'Anneannem karşı kıyıdan gelmiş. Ben burada doğdum, iki dilde rüya görürüm.',
     thanks: 'Çok güzel. Bunu anneannemin sandığına, onun kitaplarının yanına koyacağım.',
@@ -211,6 +243,62 @@ STORIES.eleni = [
   'Gittim! Anneannemin köyünü buldum. Kilisenin yanında yaşlı bir kadın onun adını hatırladı.',
   'Oradan bir kitap getirdim, anneannemin köyünden. Senin rafında dursun; iki kıyı bir arada.',
 ];
+STORIES.yorgos = [
+  'Babam bu dükkânı 1960\'ta açtı. Rafların yarısı Türkçe kitaptı, karşı kıyıdan gelenler için.',
+  'Kostas Efendi\'yi tanırdım! Bir kış buraya gelip bir hafta kaldı. Kitaplarını sandıklarla taşıyordu.',
+  'Atlas\'la kurduğumuz feribot rafı doldu taştı. Şimdi bir de geri dönüş rafı lazım.',
+  'Kostas\'ın bıraktığı bir not buldum: "Bir gün biri gelip bu kitapları iki kıyıya birden dağıtacak." Sensin galiba.',
+  'İki kıyının sahafları olarak bir kulüp kurduk: "Ege Kitap Kardeşliği". İlk üye sen ol.',
+];
+STORIES.maria = [
+  'Babaannem zeytin toplarken türkü söylerdi. Hem Rumca hem Türkçe. Ben de iki dilde şiir okurum.',
+  'Bu yıl ağaçlar çok verdi. Fazlasıyla bir okuma köşesi yaptırdım köyün meydanına.',
+  'Köyün çocukları şiir ezberleme yarışması yaptı. Biri senin sattığın kitaptan okudu!',
+  'Ayvalık\'tan bir kadın zeytinliğime geldi. Ninelerimiz aynı köydenmiş. Ağladık, güldük.',
+  'Zeytinliğin en yaşlı ağacına bir isim verdik: "Okuyan Ağaç". Altında her pazar kitap okunuyor.',
+];
+STORIES.nikos = [
+  'Annem "felsefeyle ekmek yenmez" diyor. Ben de "Sokrates de ekmek yemiyordu herhalde" diyorum.',
+  'Akropolis\'te gece bekçiliği yapıyorum, okumak için en sessiz yer.',
+  'Hocam bir makalemi dergide yayınlattı. Konusu: "Bir kitap sizi seçer mi?"',
+  'Bursla bir dönem İstanbul\'a gideceğim. Orada da senin gibi bir sahaf bulur muyum?',
+  'Tezimi bitirdim! Teşekkür kısmında yazıyor: "Doğru kitabı doğru anda veren seyyar sahafa."',
+];
+STORIES.despina = [
+  'İlk rolüm bir ağaçtı. Bir cümlem bile yoktu. Şimdi Antigone\'yim, cümlelerim bitmiyor.',
+  'Seyirciden biri oyundan sonra kuliste ağladı. "Babamı anlattınız" dedi.',
+  'Bir oyun yazıyorum, bir sahaf ile bir aktrisin dostluğu üzerine. Tanıdık geldi mi?',
+  'Oyunu bir festivale kabul ettiler! Karavanı sahneye koyabilir miyiz?',
+  'Prömiyer olağanüstüydü. Sahnede senin karavanının maketi vardı; perde kapanınca alkış ona gitti.',
+];
+STORIES.aleko = [
+  'Dedem İzmirliymiş. Rebetiko onunla gelmiş buraya, bir de bir sandık plak.',
+  'Bu gece tavernada senin sattığın kitaptan bir şiiri bestelemeye çalıştım. Herkes sustu.',
+  'Bir İzmirli kadın şarkımı dinleyip "bunu ninem söylerdi" dedi. Aynı şarkıymış!',
+  'Kayıt yapıyoruz. Albümün adı "İki Liman". Kapak fotoğrafı için karavanını isteyeceğim.',
+  'Albüm çıktı. Arka kapakta küçük bir not var: "Şiirleri bulan sahafa."',
+];
+STORIES.sofia = [
+  'Restore ettiğim bir konağın duvarında 1912\'den kalma bir mektup bulduk.',
+  'Mektup bir Türk kadına yazılmış. Torununu arıyorum, bir romandan çıkmış gibi.',
+  'Bir ipucu buldum: kadın Ayvalık\'a göçmüş. Senin kasabanın oralara!',
+  'Torunu bulduk! Melis Öğretmen diye biri... Ayvalık\'ta öğretmenmiş, tanıyor musun?',
+  'Mektubu Melis Hanım\'a teslim ettik. Konağa da bir oda ayırdık: "Mektup Odası". Raflarını sen dolduracaksın.',
+];
+STORIES.ioanna = [
+  'Adaya bir yazlığına gelmiştim, yirmi yıl oldu. Gün batımı insanı bırakmıyor.',
+  'Turistler resimlerimi değil, onları boyarken beni fotoğraflıyor. Komik.',
+  'Bir galerici Paris\'te sergi teklif etti. Korkuyorum, burayı hiç bırakmadım.',
+  'Sergi için seçtiğim resimlerin her birinin yanına bir kitap koyacağım. Hepsi senden.',
+  'Paris\'teki sergi bitti, döndüm. En çok satan resim: "Kitap karavanı ve mavi kubbe".',
+];
+STORIES.pavlo = [
+  'Elli yıldır bu kalderada balık tutarım. Volkan uyuyor, ben de uyumam.',
+  'Torunum ilk balığını tuttu, sonra bıraktı. "Kitapta öyle yapıyorlardı" dedi.',
+  'Torunlarım için teknenin kamarasına bir raf yaptım. Yüzen kütüphane!',
+  'En küçük torunum Türkçe öğrenmeye başladı, senin kitaplarınla. "Merhaba dede" diyor.',
+  'Teknemin adını değiştirdim: "Sahaf". Limanda herkes soruyor, ben de anlatıyorum.',
+];
 for (const id in STORIES) REGULARS[id].story = STORIES[id];
 
 // Sabit görünüşler (render/people.js personSVG): kim olduklarına uysun
@@ -227,6 +315,14 @@ const STYLES = {
   inci:   { hair: '#2e2422', long: true, hat: 1, hatC: '#3d2b24', coat: '#fff1d6', skin: '#f6d2b4' },
   nine:   { hair: '#ececec', long: true, hat: 0, coat: '#c96f5a', skin: '#eec09c', glasses: true, tall: 0.9 },
   cem:    { hair: '#a0643c', glasses: true, hat: 2, hatC: '#c9a676', coat: '#c9a676', skin: '#d9a07a', long: false },
+  yorgos: { hair: '#c8c8c8', beard: true, glasses: true, hat: 0, coat: '#5a4a42', skin: '#e2b08a', long: false },
+  maria:  { hair: '#3d2b24', long: true, hat: 2, hatC: '#f2c45a', coat: '#7f9c5a', skin: '#c48a62' },
+  nikos:  { hair: '#2e2422', glasses: true, hat: 0, coat: '#5b8bd0', skin: '#e2b08a', long: false },
+  despina: { hair: '#6a4434', long: true, hat: 0, coat: '#b98ad6', skin: '#eec09c' },
+  aleko:  { hair: '#2e2422', beard: true, hat: 1, hatC: '#2e2422', coat: '#3e4a5e', skin: '#d9a07a', long: false },
+  sofia:  { hair: '#a0643c', long: true, glasses: true, hat: 0, coat: '#c96f5a', skin: '#f6d2b4' },
+  ioanna: { hair: '#c4572e', long: true, hat: 2, hatC: '#fff4e0', coat: '#6fb1d6', skin: '#eec09c' },
+  pavlo:  { hair: '#ececec', beard: true, hat: 1, hatC: '#4d5d82', coat: '#4d5d82', skin: '#c48a62', long: false },
   riza:   { hair: '#c8c8c8', hat: 1, hatC: '#3d2b24', coat: '#5a4a42', skin: '#eec09c', long: false },
   deniz:  { hair: '#e2b56a', long: true, hat: 2, hatC: '#e57f73', coat: '#e57f73', skin: '#c48a62' },
   leyla:  { hair: '#2e2422', long: true, hat: 0, coat: '#8bc49a', skin: '#e2b08a' },

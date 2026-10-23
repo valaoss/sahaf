@@ -5,6 +5,7 @@ import '@fontsource/fredoka/700.css';
 import './style.css';
 import { BAL } from './data/balance.js';
 import { TOWNS } from './data/towns.js';
+import { COUNTRIES } from './data/countries.js';
 import { GENRES } from './data/genres.js';
 import { BOOK } from './data/books.js';
 import { DECOR, PAINTS, UPGRADES } from './data/decor.js';
@@ -194,13 +195,18 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
   } else if (a === 'travel') {
     const why = travel(S, arg);
     if (why) return ui.toast(why);
-    // yolda arada bir küçük bir karşılaşma (varınca kartı açılır)
-    const road = roadEvent(S);
+    // yolda arada bir küçük bir karşılaşma (varınca kartı açılır); feribotta değil
+    const trip = S.lastTrip || {}, road = trip.abroad ? null : roadEvent(S);
     saveGame(S);
     sfx('whoosh');
     changeTown(() => {
       ui.closePanel();
-      ui.toast(`Hoş geldin: ${TOWNS[S.town].name}!`);
+      if (trip.abroad) {
+        const C = COUNTRIES[TOWNS[S.town].country];
+        ui.toast(trip.stamp ? `⛴️ Bir gün süren yolculuktan sonra: ${C.greet}, ${TOWNS[S.town].name}! 🛂 Pasaportuna ${C.name} damgası basıldı.` : `⛴️ Feribot yanaştı: ${C.greet}, ${TOWNS[S.town].name}!`);
+        if (trip.stamp) { sfx('letter'); ui.confetti(); }
+        refreshDay();
+      } else ui.toast(`Hoş geldin: ${TOWNS[S.town].name}!`);
       if (road) setTimeout(() => { sfx('hap'); ui.hapPanel(ROAD_BY_ID[road], i => {
         const r = chooseRoad(S, road, i);
         saveGame(S); scene.setStock(S);
@@ -307,7 +313,8 @@ if (PREVIEW) {
     ui.statsPanel(S);
   }
   if (q.has('gelistir')) { S.upgrades = ['cay', 'plak']; scene.setUpgrades(S.upgrades); }
-  if (panel === 'harita') { if (q.has('acik')) S.unlocked = Object.keys(TOWNS); ui.mapPanel(S); }
+  if (panel === 'harita') { if (q.has('acik')) { S.unlocked = Object.keys(TOWNS); S.countries = Object.keys(COUNTRIES); } ui.mapPanel(S); }
+  if (panel === 'pasaport') { S.countries = ['tr', 'gr']; S.passport = { tr: 1, gr: 12 }; ui.bookPanel(S); document.querySelector('[data-tab="passport"]')?.click(); }
   if (panel === 'kostas') { S.pages = PAGES.map(p => p.id); S.unlocked.push('bozcaada'); S.kostasFound = ['yasliadam', 'odysseia', 'korfez']; ui.kostasPanel(S); }
   if (q.has('hava')) scene.setWeather(q.get('hava'));
   if (q.has('aksam')) setTimeout(() => scene.setDaylight(+q.get('aksam') || 0.95), 100);

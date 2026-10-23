@@ -533,3 +533,35 @@ svg.map3d.zoomed { cursor: grab; touch-action: none; }
   /* raf modunda sahne bütün ekranı kaplar: karavan büyük görünür */
   #frame.staging #scene { top: 0; height: 100%; }
 }
+
+/* Akdeniz haritası: tam ekran */
+.panel.mapfull { width: 100%; height: 100%; max-height: 100%; border-radius: 0; border: 0; padding: 0; box-shadow: none; overflow: hidden; background: #8ccfd8; font-size: 1em; }
+.veil.open .panel.mapfull { transform: none; }
+.wmap { position: relative; width: 100%; height: 100%; }
+.wmap svg.world { position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; border-radius: 0; margin: 0; background: #8ccfd8; }
+svg.world .city { cursor: pointer; transform-box: view-box; }
+svg.world .city.sel .city-label rect { stroke: #f08a7e; stroke-width: 3; }
+svg.world.far .city:not(.here):not(.sel) .city-label { display: none; }
+svg.world .country { cursor: pointer; }
+svg.world #wvan { transform-box: view-box; }
+.wbar { position: absolute; left: 1em; right: 1em; top: calc(env(safe-area-inset-top) + .8em); display: flex; align-items: center; gap: .6em; background: var(--cream);
+  border: .16em solid var(--edge); border-radius: 999px; padding: .35em .5em .35em 1em; box-shadow: 0 .25em 0 var(--edge-d); font-size: 1.1em; }
+.wbar .grow { flex: 1; }
+.wcard { position: absolute; right: 1em; bottom: 1em; width: 21em; max-width: calc(100% - 2em); background: var(--cream); border: .18em solid var(--edge); border-radius: 1.2em;
+  padding: .8em 1em; box-shadow: 0 .3em 0 var(--edge-d); transform: translateY(1em); opacity: 0; transition: .25s; pointer-events: none; font-size: 1.1em; }
+.wcard.show { transform: none; opacity: 1; pointer-events: auto; }
+.wc-head { display: flex; gap: .6em; align-items: center; }
+.wc-head b { display: block; font-size: 1.25em; }
+.wc-head small { color: #8a7468; }
+.wc-trip { font-weight: 600; color: #3f7fb0; }
+.flag { border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); flex: none; }
+.passport { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7em; }
+.visa { background: #fff; border: .15em dashed var(--edge); border-radius: 1em; padding: .7em; display: flex; flex-direction: column; align-items: center; gap: .3em; text-align: center; min-height: 9em; }
+.visa.got { border-style: solid; }
+.vstamp { display: grid; place-items: center; width: 6em; height: 6em; border-radius: 50%; border: .25em double #c96f5a; color: #c96f5a; font-weight: 700; transform: rotate(-12deg); font-size: .9em; }
+.vstamp small { font-weight: 500; font-size: .75em; }
+@media (orientation: portrait) and (max-width: 820px) {
+  .wcard { left: 1em; right: 1em; width: auto; bottom: calc(env(safe-area-inset-bottom) + 1em); }
+  .wbar .hint { display: none; }
+  .passport { grid-template-columns: repeat(2, 1fr); }
+}

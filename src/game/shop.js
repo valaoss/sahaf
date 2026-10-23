@@ -16,6 +16,8 @@ import { buildAsk } from './asks.js';
 import { kostasDrop } from './story.js';
 import { remember, pickFresh, weightedFresh } from './memory.js';
 import { crateAdd, crateFree, takeCopy, chanceOf } from './shelving.js';
+import { countryOf, travelInfo, crossBorder } from './travel.js';
+import { COUNTRIES } from '../data/countries.js';
 import { TALK } from '../data/talk.js';
 import { seeded } from '../core/rng.js';
 export { askText } from './asks.js';
@@ -58,21 +60,26 @@ export function buyBox(S, g) {
 export function canTravel(S, key) {
   if (!TOWNS[key]) return 'Böyle bir kasaba yok.';
   if (S.phase !== 'morning') return 'Yola yalnızca sabah çıkılır.';
-  if (!S.unlocked.includes(key)) return 'Bu kasabanın yolunu henüz bilmiyorsun.';
+  if (!S.unlocked.includes(key)) return S.countries.includes(countryOf(key)) ? 'Bu kasabanın yolunu henüz bilmiyorsun.' : 'Bu ülkeye feribot henüz yok.';
   if (key === S.town) return 'Zaten buradasın.';
   if (S.travelled) return 'Bugün zaten yol yaptın.';
-  if (S.coins < BAL.travelCost) return 'Yakıt parası yok.';
+  const info = travelInfo(S, key);
+  if (S.coins < info.cost) return info.abroad ? 'Feribot biletine paran yetmiyor.' : 'Yakıt parası yok.';
   return null;
 }
 
+// Dönüş: hata metni ya da null. Başka ülkeye gidilince S.lastTrip.abroad ve yeni damga (S.lastTrip.stamp)
 export function travel(S, key) {
   const why = canTravel(S, key);
   if (why) return why;
-  S.coins -= BAL.travelCost;
-  S.totals.spent += BAL.travelCost;
+  const info = travelInfo(S, key);
+  S.coins -= info.cost;
+  S.totals.spent += info.cost;
   S.town = key;
   S.spot = firstSpot(key);
   S.travelled = true;
+  // feribot: yolculuk günü geçer, ilk girişte pasaport damgası
+  S.lastTrip = { cost: info.cost, abroad: info.abroad, stamp: info.abroad ? crossBorder(S, key) : null };
   return null;
 }
 
@@ -129,7 +136,7 @@ export const plainCopies = (S, id) => (S.shelf[id] || 0) - (S.rare[id] || 0);
 const plainOfGenre = (S, g) => Object.keys(S.shelf).reduce((n, id) => n + (BOOK[id].genre === g ? plainCopies(S, id) : 0), 0);
 
 // Günün havası, mevsimi ve mekânı: cümle bağlamı için
-const askCtx = (S, extra) => ({ weather: weatherOf(S.day), season: seasonOf(S.day), scene: spotOf(S).scene, ...extra });
+const askCtx = (S, extra) => ({ weather: weatherOf(S.day), season: seasonOf(S.day), scene: spotOf(S).scene, greet: countryOf(S.town) !== 'tr' ? COUNTRIES[countryOf(S.town)].greet : null, ...extra });
 
 function shuffled(S, arr) {
   const a = arr.slice();

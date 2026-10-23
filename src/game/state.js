@@ -73,6 +73,8 @@ export function newGame(seed = Date.now()) {
     townDays: {},              // istatistik: kasaba → dükkân açılan gün
     tut: 0,                    // ilk günlerin rehberi: hangi adımda (game/tutorial)
     crate: [],                 // koli: alınmış ama rafa dizilmemiş kitaplar [{ id, rare }]
+    countries: ['tr'],         // açılmış ülkeler (game/travel.js)
+    passport: { tr: 1 },       // pasaport damgaları: ülke → ilk girilen gün
     layout: null,              // raf düzeni: 6 bölüm, etiket ve sıra (game/shelving.js)
     nextId: 1,
     rng: 0,
@@ -110,6 +112,8 @@ export function restore(saved) {
   if (!SPOTS[S.town]?.[S.spot]) S.spot = firstSpot(S.town);
   S.regArrivals = S.regArrivals || [];
   S.crate = (S.crate || []).filter(e => e && BOOK[e.id]);
+  S.countries = S.countries || ['tr'];
+  S.passport = S.passport || { tr: 1 };
   // gün ortasında kapanan oyun o sabaha döner (sabah kaydı stok ve parayı zaten tutuyor)
   // rehber eklenmeden önce başlamış oyunlarda rehber gösterilmez
   if (saved.tut === undefined && S.totals.days > 0) S.tut = -1;

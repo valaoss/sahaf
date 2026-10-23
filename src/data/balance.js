@@ -21,7 +21,9 @@ export const BAL = {
   talkMinutes: 10,     // "Biraz daha anlat" sohbeti saati bu kadar ilerletir
   teaTip: 3,           // çay ikram edilen müşteri, alırsa bu kadar fazla bahşiş bırakır
   discount: 0.7,       // indirim: uymayan öneri yine de bu fiyat oranıyla satılır
-  travelCost: 6,       // kasabalar arası yakıt
+  travelCost: 6,       // kasabalar arası yakıt (en az)
+  roadPerDeg: 4,       // uzak şehirlere yakıt: kuş uçuşu her derece için
+  ferryMin: 30, ferryMax: 90, ferryPerDeg: 6,   // başka ülkeye feribot bileti
   newTownTraffic: 5,   // dün başka kasabadaydıysan: yeni karavanı merak eden ek ziyaretçi
   askChance: 0.2,      // müşterinin öneri isteme ihtimali
   askFromShelf: 0.6,   // isteğin raftaki bir kitaptan doğma ihtimali (kalanı tüm katalogdan)
