@@ -111,7 +111,7 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Tam ekran Akdeniz haritası (gerçek kıyılar, adalar, sınırlar); şehre dokununca yol kartı; karavan rotada gider
 - Ülkeler ve feribot: yurt içi mesafeye göre yakıt, başka ülkeye feribot (bir gün, ₺30–90), pasaport damgaları ve sekmesi
 - Ülkeler sırayla açılır: Yunanistan (hikâye sonu) → İtalya (3 Yunan şehri) → Fransa/İspanya (3 İtalyan şehri) → Mısır (5 damga)
-- 35 şehir: Türkiye 13 (Bodrum, Antalya, İstanbul, Kapadokya eklendi), Yunanistan 4, İtalya 4, Fransa 2, İspanya 3, Mısır 2;
+- 28 şehir: Türkiye 13 (Bodrum, Antalya, İstanbul, Kapadokya eklendi), Yunanistan 4, İtalya 4, Fransa 2, İspanya 3, Mısır 2;
   56 müdavim ve hikâyeleri, ülke festivalleri, şehir simgeleri, ülke mimarisi, yabancı selamlar
 
 Sırada: telefonda deneme ve geri bildirim, İngilizce, iOS paketleme (Mac).

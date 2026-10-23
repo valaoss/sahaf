@@ -182,7 +182,7 @@ scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[ar
     else { tap(); scene.setDecor(S.decor.on);
 scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR[arg].name} yerine kondu`); stampCheck(); }
     ui.decorPanel(S);
-  } else if (a === 'shelf') {
+  } else if (a === 'shelf-up') {
     const why = upgradeShelf(S);
     if (why) ui.toast(why);
     else { tap('MEDIUM'); sfx('box'); scene.setStock(S); saveGame(S); ui.toast(`Raflar büyüdü: ${shelfCap(S)} kitap`); stampCheck(); }

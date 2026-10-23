@@ -241,7 +241,7 @@ export function createUI(root, act) {
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-decor]').forEach(b => b.onclick = () => act('decor-on', b.dataset.decor));
     p.querySelectorAll('[data-paint]').forEach(b => b.onclick = () => act('paint', b.dataset.paint));
-    p.querySelector('[data-shelf]')?.addEventListener('click', () => act('shelf'));
+    p.querySelector('[data-shelf]')?.addEventListener('click', () => act('shelf-up'));
     p.querySelectorAll('[data-upgrade]').forEach(b => b.onclick = () => act('upgrade', b.dataset.upgrade));
     p.querySelector('[data-close]').onclick = closePanel;
     return p;
