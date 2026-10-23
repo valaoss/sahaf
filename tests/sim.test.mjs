@@ -212,7 +212,7 @@ test('tam gün: stok eksiye düşmez, defter tutarlı, para korunur', () => {
     assert.ok(Object.values(S.shelf).every(n => n > 0));
     const soldValue = Object.entries(T.sold).reduce((a, [g, n]) => a + n * GENRES[g].price, 0);
     assert.equal(T.revenue, soldValue + T.tips);
-    assert.equal(S.coins, before + T.revenue + T.stamps.length * STAMP_REWARD, 'satış + pul ödülü');
+    assert.equal(S.coins, before + T.revenue - T.costs.paid + T.stamps.length * STAMP_REWARD, 'satış − giderler + pul ödülü');
     assert.equal(shelfCount(S), stockBefore - T.soldCount);
     assert.ok(T.visitors >= TOWNS.ayvalik.traffic - BAL.trafficJitter);
     assert.equal(S.day, 2);
@@ -928,7 +928,7 @@ test('fiyat etiketi ve kitabın durumu satış fiyatını belirler; ucuz bölüm
   };
   const base = GENRES[BOOK.kurk.genre].price;
   assert.equal(sale('normal', 'iyi'), base);
-  assert.equal(sale('pahali', 'iyi'), Math.round(base * 1.3));
+  assert.equal(sale('pahali', 'iyi'), Math.round(base * BAL.priceTags.pahali.mul));
   assert.equal(sale('ucuz', 'yipranmis'), Math.max(1, Math.round(base * 0.8 * 0.7)));
   assert.equal(sale('normal', 'temiz'), Math.round(base * 1.3));
   // ucuz bölüm: aynı müşterilerden daha çok satış
@@ -1251,6 +1251,113 @@ test('sabah gazetesinin adı ülkeye ve şehre göre', () => {
   assert.equal(paperName('istanbul', 'tr'), 'Boğaz Postası');
   for (const k of TOWN_KEYS) assert.ok(paperName(k, TOWNS[k].country || 'tr').length > 3, k);
   assert.notEqual(paperName('roma', 'it'), paperName('atina', 'gr'));
+});
+
+
+// ---------- Faz 2: para ve kararlar ----------
+const SHOP2 = await import('../src/game/shop.js');
+const { refill } = await import('../src/game/shelving.js');
+const { buffFor } = await import('../src/game/happenings.js');
+
+// aynı rafa farklı etiketle 60 tohumda gelen 10'ar müşteri: satılan kitap
+function soldTo(arch, tag) {
+  let n = 0;
+  for (let seed = 1; seed <= 60; seed++) {
+    const S = newGame(seed); S.coins = 999; placeAll(S); syncLayout(S);
+    S.layout.sections.forEach((_, i) => setPrice(S, i, tag)); openShop(S);
+    for (let k = 0; k < 10; k++) n += resolveCustomer(S, { id: k, arch, wants: 'roman', look: k }).bought.length;
+  }
+  return n;
+}
+
+test('fiyat etiketi müşterinin cebine göre: öğrenci ucuzu, turist pahalıyı sever', () => {
+  const st = { ucuz: soldTo('ogrenci', 'ucuz'), normal: soldTo('ogrenci', 'normal'), pahali: soldTo('ogrenci', 'pahali') };
+  assert.ok(st.ucuz > st.normal && st.normal > st.pahali * 1.5, JSON.stringify(st));
+  const tu = { ucuz: soldTo('turist', 'ucuz'), pahali: soldTo('turist', 'pahali') };
+  assert.ok(tu.pahali > tu.ucuz, JSON.stringify(tu));
+  for (const k of ARCH_KEYS) assert.ok(['tight', 'mid', 'loose', undefined].includes(ARCHETYPES[k].thrift), k);
+});
+
+test('tür doygunluğu: çok satılan tür o kasabada daha az aranır, sabahları toparlanır, başka kasabayı etkilemez', () => {
+  const S = newGame(3);
+  const share = (town = S.town) => { const d = demandOf(S, town); return d.roman / Object.values(d).reduce((a, b) => a + b, 0); };
+  const fresh = share(), foca = share('foca');
+  S.sat = { ayvalik: { roman: 40 } };
+  assert.ok(share() < fresh * 0.5, 'doymuş tür');
+  assert.ok(Math.abs(share('foca') - foca) < 1e-9, 'başka kasaba etkilenmez');
+  for (let i = 0; i < 6; i++) SHOP2.decaySat(S);
+  assert.ok(share() > fresh * 0.75, 'birkaç sabahta toparlanır');
+  // satış doygunluğu artırır
+  const P = newGame(4); P.coins = 999; buyBox(P, 'roman'); placeAll(P); openShop(P);
+  for (let k = 0; k < 20; k++) resolveCustomer(P, { id: k, wants: 'roman', look: k });
+  assert.ok((P.sat.ayvalik?.roman || 0) > 3);
+});
+
+test('giderler: park ve bakım akşam ödenir, bağışlanan kasabada park ücretsiz, kasa eksiye düşmez', () => {
+  const S = newGame(5);
+  S.decor.owned.push('bayrak'); S.decor.on.roof = 'bayrak'; S.upgrades.push('cay');
+  const park = SHOP2.parkFee(S), up = SHOP2.upkeepOf(S);
+  assert.ok(park > 0);
+  assert.equal(up, Math.ceil(DECOR.bayrak.price / BAL.upkeepPer) + UPGRADES.cay.upkeep);
+  assert.ok(SHOP2.parkFee(S, 'carsi') > SHOP2.parkFee(S, 'iskele'), 'kalabalık mekân pahalı');
+  const before = S.coins; openShop(S); const T = closeShop(S);
+  assert.equal(T.costs.paid, park + up);
+  assert.equal(S.coins, before + T.revenue - park - up + T.stamps.length * STAMP_REWARD);
+  const B = newGame(6); B.coins = 0; B.shelf = {}; openShop(B); const TB = closeShop(B);
+  assert.equal(TB.costs.paid, 0, 'kasada para yoksa gider ödenmez');
+  assert.ok(B.coins >= 0, 'eksiye düşmez');
+  const D = newGame(7); D.coins = 300;
+  assert.equal(SHOP2.donate(D), null);
+  assert.equal(SHOP2.parkFee(D), 0);
+  assert.equal(SHOP2.donate(D), 'Bu kasabada zaten bir okuma köşen var.');
+  assert.equal(D.coins, 300 - BAL.donateCost);
+});
+
+test('okuma köşesi ve sponsorluk kalabalığı artırır; sponsorluk yalnız yolu açık festivale', () => {
+  const visits = mod => { let n = 0; for (let seed = 1; seed <= 30; seed++) { const S = newGame(seed); mod(S); openShop(S); n += S.arrivals.length; } return n; };
+  assert.ok(visits(S => { S.donated = ['ayvalik']; }) > visits(() => {}), 'bağış');
+  // yolu açık bir kasabada festivali olan ilk gün
+  let day = 1; while (!(eventOf(day) && START_TOWNS.includes(EVENTS[eventOf(day)].town))) day++;
+  const town = EVENTS[eventOf(day)].town;
+  const S = newGame(8); S.day = day; S.town = town; S.spot = Object.keys(SPOTS[town])[0]; S.coins = 200;
+  assert.ok(SHOP2.sponsorable(S).some(x => x.day === day));
+  assert.equal(SHOP2.sponsor(S, day), null);
+  assert.equal(S.coins, 200 - BAL.sponsorCost);
+  assert.ok(SHOP2.sponsoredToday(S));
+  assert.equal(SHOP2.sponsor(S, day), 'Zaten bir festivale sponsorsun.');
+  assert.ok(visits(P => { P.day = day; P.town = town; P.spot = S.spot; P.sponsor = { day, town }; }) > visits(P => { P.day = day; P.town = town; P.spot = S.spot; }), 'sponsorlu festival');
+  const N = newGame(9); N.day = 1; while (eventOf(N.day)) N.day++;
+  if (!eventOf(N.day + 1)) assert.equal(SHOP2.sponsor(N, N.day), 'Sponsor olunacak bir festival yok.');
+  // gün geçince sponsorluk düşer
+  openShop(S); closeShop(S); nextMorning(S); nextMorning(S);
+  assert.ok(!S.sponsor || S.sponsor.day >= S.day);
+});
+
+test('fiyat ünü: vazgeçenler ertesi gün yalnız o kasabanın kalabalığını azaltır', () => {
+  const S = newGame(10); S.coins = 999; buyBox(S, 'roman'); placeAll(S);
+  S.layout.sections.forEach((_, i) => setPrice(S, i, 'pahali'));
+  openShop(S);
+  for (let k = 0; k < 40; k++) resolveCustomer(S, { id: k, arch: 'ogrenci', wants: 'roman', look: k });
+  const T = closeShop(S); nextMorning(S);
+  assert.ok(T.priceLost > 0 && T.word < 1, JSON.stringify({ lost: T.priceLost, word: T.word }));
+  assert.ok(buffFor(S) < 1, 'aynı kasaba');
+  S.town = 'foca';
+  assert.equal(buffFor(S), 1, 'başka kasaba etkilenmez');
+});
+
+test('rafı tamamla: etiketli bölümlerdeki boşlukları kendi türünden kolilerle doldurur', () => {
+  const S = newGame(11); S.coins = 500; S.shelfLv = 1; syncLayout(S);
+  const got = SHOP2.refillShelves(S);
+  assert.ok(got.length >= 3, got.join());
+  assert.equal(S.crate.length, 0, 'hepsi dizildi');
+  for (const sec of S.layout.sections) if (sec.label) assert.ok(sectionCap(S) - sec.books.length < BAL.boxSize, sec.label);
+  assert.ok(tidiness(S) > 0.95);
+  // etiketsiz rafta bir şey almaz; parası yetmezse durur
+  const E = newGame(12); E.coins = 500; syncLayout(E); E.layout.sections.forEach(sec => { sec.label = null; });
+  assert.deepEqual(refill(E, g => buyBox(E, g)), []);
+  const P = newGame(13); P.coins = 12; syncLayout(P);
+  assert.ok(SHOP2.refillShelves(P).length <= 1);
+  assert.ok(P.coins >= 0);
 });
 
 

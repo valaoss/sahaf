@@ -35,7 +35,7 @@ export const DEFAULT_DECOR = { roof: 'kaktus', table: 'bos', ground: 'saksi' };
 
 // Karavan geliştirmeleri
 export const UPGRADES = {
-  cay:  { name: 'Çay köşesi', icon: '🫖', price: 120, desc: 'Bekleyenler daha sabırlı (×1.3); müşteriler arada bir çay alır (₺3).' },
+  cay:  { name: 'Çay köşesi', icon: '🫖', price: 120, upkeep: 2, desc: 'Bekleyenler daha sabırlı (×1.3); müşteriler arada bir çay alır (₺3).' },
   plak: { name: 'Plak çalar', icon: '📻', price: 90, desc: 'Müzik temaları açılır: Akustik, Caz, Ninni (⚙️ Ayarlar).' },
 };
 

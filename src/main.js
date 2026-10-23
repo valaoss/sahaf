@@ -10,7 +10,7 @@ import { GENRES } from './data/genres.js';
 import { BOOK } from './data/books.js';
 import { DECOR, PAINTS, UPGRADES } from './data/decor.js';
 import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
-import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature, buyStall, talkHint, teaLine } from './game/shop.js';
+import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature, buyStall, talkHint, teaLine, refillShelves, donate, sponsor } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, afterFerry } from './game/day.js';
@@ -166,6 +166,28 @@ scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[ar
     const why = buyStall(S, arg);
     if (why) ui.toast(why); else { tap(); sfx('page'); saveGame(S); ui.toast('🧺 Kitap koliye kondu'); }
     ui.stockPanel(S);
+  }
+  else if (a === 'refill') {
+    // rafı tamamla: etiketli bölümlerin boşluklarını kendi türünden kolilerle doldurup dizer
+    const got = refillShelves(S);
+    if (!got.length) ui.toast('Tamamlanacak boşluk yok ya da paran yetmiyor (etiketli bölümlere bak).');
+    else {
+      tap(); sfx('box'); tutorialEvent(S, 'buy'); tutorialEvent(S, 'shelve'); scene.setStock(S); saveGame(S);
+      ui.toast(`🔁 ${got.length} koli alındı ve dizildi: ${got.map(g => GENRES[g].icon).join(' ')}`);
+    }
+    ui.stockPanel(S);
+  }
+  else if (a === 'donate') {
+    const why = donate(S);
+    if (why) ui.toast(why);
+    else { sfx('heart'); ui.confetti(); saveGame(S); ui.toast(`📖 ${TOWNS[S.town].name} meydanına bir okuma köşesi kuruldu!`); stampCheck(); }
+    ui.spotPanel(S);
+  }
+  else if (a === 'sponsor') {
+    const why = sponsor(S, arg);
+    if (why) ui.toast(why);
+    else { sfx('bell'); saveGame(S); ui.toast('🎪 Sponsor oldun: o gün orada dükkân açarsan kalabalık daha büyük olur.'); }
+    ui.paperPanel(S);
   }
   else if (a === 'buy') {
     const why = buyBox(S, arg);

@@ -30,7 +30,7 @@ export function createShelfPanel({ openPanel, closePanel, act, toast }) {
     const sec = (s, i) => {
       const off = s.label ? s.books.filter(e => BOOK[e.id].genre !== s.label).length : 0;
       return `<div class="sec2 ${s.label ? '' : 'nolab'} ${sel && sel.startsWith('s:' + i + ':') ? 'from' : ''}" data-sec="${i}" style="--c:${s.label ? GENRES[s.label].color : '#c9b49a'}">
-        <button class="price2 p-${s.price}" data-price="${i}" title="Fiyat etiketi: ucuz daha çok satar, pahalı daha çok kazandırır">${PRICE_LABEL[s.price]}</button>
+        <button class="price2 p-${s.price}" data-price="${i}" title="Fiyat etiketi · ucuz: öğrenci, anne, teyze daha kolay alır, çoğu zaman iki kitap · pahalı: turist ve koleksiyoncu sever, cebine bakan vazgeçer (ve konuşur)">${PRICE_LABEL[s.price]}</button>
         <button class="lab2" data-lab="${i}">${s.label ? `${GENRES[s.label].icon} ${GENRES[s.label].name}` : '🏷️ Etiketsiz'}${off ? ` <b title="Etikete uymayan">· ${off} karışık</b>` : ''}</button>
         <div class="row2">${s.books.map((e, j) => spine(S, e, `s:${i}:${j}`)).join('')}${'<i class="slot2"></i>'.repeat(Math.max(0, cap - s.books.length))}</div>
       </div>`;

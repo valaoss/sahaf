@@ -570,6 +570,18 @@ svg.world #wvan { transform-box: view-box; }
 .wc-head b { display: block; font-size: 1.25em; }
 .wc-head small { color: #8a7468; }
 .wc-trip { font-weight: 600; color: #3f7fb0; }
+/* para: gün sonu defteri, raf ısısı, teşhis, sponsorluk */
+.ledger { display: flex; flex-wrap: wrap; gap: .4em 1.1em; align-items: baseline; background: #fff; border: .15em solid var(--edge); border-radius: .9em; padding: .45em .9em; margin: .5em 0; font-size: .95em; }
+.ledger .net { margin-left: auto; font-size: 1.1em; color: #3f7a52; }
+.heat { display: grid; grid-template-columns: repeat(6, 1fr); gap: .35em; margin: .4em 0; }
+.heat span { display: flex; flex-direction: column; align-items: center; border-radius: .6em; padding: .25em 0; background: color-mix(in srgb, var(--c) calc(var(--a) * 55%), #fff8ec); border: .12em solid color-mix(in srgb, var(--c) 40%, #fff); }
+.heat i { font-style: normal; }
+.heat small { color: #8a7468; font-size: .7em; }
+.diag { background: #fff4e0; border-radius: .8em; padding: .3em .8em; margin: .4em 0; }
+.diag p { margin: .3em 0; font-size: .92em; }
+.gmeta.sat { color: #b4574a; font-weight: 600; }
+.sponsor2 { display: flex; align-items: center; gap: .6em; background: #fff0d8; border: .15em dashed #efc56c; border-radius: .9em; padding: .4em .8em; margin: .4em 0; font-size: .92em; }
+.sponsor2 > span:first-child { flex: 1; }
 .flag { border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); flex: none; }
 .passport { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7em; }
 .visa { background: #fff; border: .15em dashed var(--edge); border-radius: 1em; padding: .7em; display: flex; flex-direction: column; align-items: center; gap: .3em; text-align: center; min-height: 9em; }

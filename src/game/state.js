@@ -77,6 +77,9 @@ export function newGame(seed = Date.now()) {
     countries: ['tr'],         // açılmış ülkeler (game/travel.js)
     passport: { tr: 1 },       // pasaport damgaları: ülke → ilk girilen gün
     layout: null,              // raf düzeni: 6 bölüm, etiket ve sıra (game/shelving.js)
+    sat: {},                   // tür doygunluğu: kasaba → tür → son günlerde satılan (game/shop.js demandOf)
+    donated: [],               // okuma köşesi bağışlanan kasabalar
+    sponsor: null,             // festival sponsorluğu { day, town }
     nextId: 1,
     rng: 0,
   };
@@ -133,6 +136,8 @@ export function restore(saved) {
   S.featured = [...new Set(S.featured.filter(id => BOOK[id]))].slice(0, 3);
   S.recHistory = S.recHistory.filter(e => isObj(e) && BOOK[e.book]);
   for (const id in S.soldBooks) if (!BOOK[id]) delete S.soldBooks[id];
+  S.donated = S.donated.filter(k => TOWNS[k]);
+  if (S.sponsor && !(isObj(S.sponsor) && TOWNS[S.sponsor.town])) S.sponsor = null;
   // ülkeler ve yollar: kaldırılan şehirler düşer; açık ülkelerin koşulsuz şehirleri (sonradan eklenenler dahil) yola açılır
   S.countries = S.countries.filter(c => COUNTRIES[c]);
   if (!S.countries.includes('tr')) S.countries.unshift('tr');

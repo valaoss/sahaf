@@ -8,12 +8,35 @@ export const BAL = {
   dayEnd: 18 * 60,     // 18:00
   buyChance: 0.85,     // aradığı tür raftaysa alma ihtimali
   extraChance: 0.2,    // aynı türden bir kitap daha alma ihtimali
+  cheapExtra: 3,       // ucuz etiketin çektiği müşteride (alma isteği arttıysa) bu ihtimal kaç katına çıkar
   altChance: 0.3,      // aradığını bulamayınca başka bir şey alma ihtimali
   trafficJitter: 3,    // günlük ziyaretçi sayısı ± bu kadar oynar
   crateCap: 10,        // koli: rafa dizilmeyi bekleyen en fazla kitap
   tidyBonus: 0.15,     // raf düzeni %100 iken kalabalık bu kadar artar
-  // raf bölümü fiyat etiketi: satış fiyatı çarpanı (mul) ve almaya karar verme çarpanı (chance)
-  priceTags: { ucuz: { mul: 0.8, chance: 1.15 }, normal: { mul: 1, chance: 1 }, pahali: { mul: 1.3, chance: 0.8 } },
+  // raf bölümü fiyat etiketi: satış fiyatı çarpanı (mul) ve müşterinin cebine göre almaya karar verme çarpanı (chance).
+  // tight: öğrenci, anne, çocuk, teyze, emekli (normal fiyatta bile tereddüt eder) · mid: çoğu
+  // loose: turist, koleksiyoncu (ucuz kitaba güvenmez, pahalıyı kaliteli sanar) · data/archetypes.js thrift
+  priceTags: {
+    ucuz: { mul: 0.8, chance: { tight: 1.25, mid: 1.1, loose: 0.85 } },
+    normal: { mul: 1, chance: { tight: 0.85, mid: 1, loose: 1 } },
+    pahali: { mul: 1.2, chance: { tight: 0.3, mid: 0.7, loose: 1.2 } },
+  },
+  // giderler (gün kapanınca ödenir): park = kasabanın kalabalığı × mekânın kalabalığı × parkRate;
+  // takılı her süsün bakımı fiyatının 1/upkeepPer'i (yukarı yuvarlanır); geliştirmelerin kendi gideri (data/decor.js UPGRADES.upkeep)
+  parkRate: 0.6,
+  upkeepPer: 30,
+  // tür doygunluğu: bir kasabada çok satılan türü arayan azalır, her sabah satilan × satDecay'e iner
+  satDecay: 0.7,
+  satScale: 10,        // talep çarpanı 1 / (1 + satılan / satScale)
+  // fiyat ünü: fiyatı yüzünden vazgeçen her müşteri ertesi gün o kasabanın kalabalığını bu kadar azaltır,
+  // ucuz etiketle ikna olan her müşteri artırır (sınırlar: wordMin–wordMax)
+  wordOfMouth: 0.03, wordMin: 0.75, wordMax: 1.15,
+  // kasabaya okuma köşesi bağışı: o kasabada park ücretsiz, kalabalık kalıcı olarak artar
+  donateCost: 250,
+  donateTraffic: 1.12,
+  // festival sponsorluğu: o gün o kasabada dükkân açarsan kalabalık artar
+  sponsorCost: 60,
+  sponsorTraffic: 1.6,
   // kitabın durumu: satış ve tezgâh alış çarpanı, tezgâhta çıkma ağırlığı
   conds: { yipranmis: { sell: 0.7, buy: 0.5, w: 3 }, iyi: { sell: 1, buy: 1, w: 5 }, temiz: { sell: 1.3, buy: 1.6, w: 2 } },
   stallSize: 9,        // pazar tezgâhında her sabah bu kadar kitap

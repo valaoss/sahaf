@@ -7,7 +7,7 @@ import { BOOK, BOOKS, booksOf } from '../data/books.js';
 import { SPOTS, firstSpot } from '../data/spots.js';
 import { REGULARS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../data/regulars.js';
 import { ARCHETYPES, ARCH_KEYS } from '../data/archetypes.js';
-import { DECOR } from '../data/decor.js';
+import { DECOR, UPGRADES } from '../data/decor.js';
 import { rnd, rndInt, rndPick, weighted } from '../core/rng.js';
 import { shelfCount, shelfCap, takeBook, seasonOf } from './state.js';
 import { effects } from './decor.js';
@@ -15,7 +15,9 @@ import { dayMods, weatherOf } from './calendar.js';
 import { buildAsk } from './asks.js';
 import { kostasDrop } from './story.js';
 import { remember, pickFresh, weightedFresh } from './memory.js';
-import { crateAdd, crateFree, takeCopy, chanceOf } from './shelving.js';
+import { crateAdd, crateFree, takeCopy, chanceOf, refill } from './shelving.js';
+import { EVENTS } from '../data/calendar.js';
+import { eventOf } from './calendar.js';
 import { countryOf, travelInfo, crossBorder } from './travel.js';
 import { COUNTRIES } from '../data/countries.js';
 import { TALK } from '../data/talk.js';
@@ -110,8 +112,66 @@ export function demandOf(S, townKey = S.town) {
   for (const g in today) d[g] *= today[g];
   for (const g in mul) d[g] *= mul[g];
   for (const id of S.featured) if (S.shelf[id]) d[BOOK[id].genre] *= 1 + BAL.featureDemand;
+  // doygunluk: bu kasabada son günlerde çok satılan türü arayan azalır
+  for (const g in d) d[g] *= satFactor(S, g, townKey);
   return d;
 }
+
+// Tür doygunluğu çarpanı (1: taze, 0'a doğru: çok satılmış)
+export const satFactor = (S, g, townKey = S.town) => 1 / (1 + (S.sat?.[townKey]?.[g] || 0) / BAL.satScale);
+
+// Her sabah: doygunluk geriler (kasabalar zamanla toparlanır)
+export function decaySat(S) {
+  for (const t in S.sat) {
+    for (const g in S.sat[t]) { S.sat[t][g] *= BAL.satDecay; if (S.sat[t][g] < 0.5) delete S.sat[t][g]; }
+    if (!Object.keys(S.sat[t]).length) delete S.sat[t];
+  }
+}
+
+// --- Giderler ---
+// Park ücreti: kalabalık yer pahalı; okuma köşesi bağışlanan kasabada ücretsiz
+export const parkFee = (S, spotKey = S.spot) => S.donated.includes(S.town) ? 0
+  : Math.round(BAL.parkRate * TOWNS[S.town].traffic * SPOTS[S.town][spotKey].traffic);
+// Bakım: takılı süsler (hediyeler bakımsız) ve geliştirmeler
+export function upkeepOf(S) {
+  let n = 0;
+  for (const slot in S.decor.on) { const d = DECOR[S.decor.on[slot]]; if (d && d.price > 0) n += Math.ceil(d.price / BAL.upkeepPer); }
+  for (const u of S.upgrades) n += UPGRADES[u]?.upkeep || 0;
+  return n;
+}
+
+// --- Para harcanacak yerler ---
+// Kasabaya okuma köşesi: bir kez; park ücretsiz, kalabalık kalıcı artar
+export function donate(S) {
+  if (S.phase !== 'morning') return 'Bağış sabah yapılır.';
+  if (S.donated.includes(S.town)) return 'Bu kasabada zaten bir okuma köşen var.';
+  if (S.coins < BAL.donateCost) return 'Paran yetmiyor.';
+  S.coins -= BAL.donateCost;
+  S.totals.spent += BAL.donateCost;
+  S.donated.push(S.town);
+  return null;
+}
+
+// Festival sponsorluğu: bugünün ya da yarının festivali (yolu açık kasabada). O gün oradaysan kalabalık artar.
+export function sponsorable(S) {
+  return [S.day, S.day + 1].map(day => ({ day, ev: eventOf(day) }))
+    .filter(x => x.ev && S.unlocked.includes(EVENTS[x.ev].town) && !(x.day === S.day && S.phase !== 'morning'))
+    .map(x => ({ day: x.day, ev: x.ev, town: EVENTS[x.ev].town }));
+}
+export function sponsor(S, day) {
+  const x = sponsorable(S).find(o => o.day === day);
+  if (!x) return 'Sponsor olunacak bir festival yok.';
+  if (S.sponsor && S.sponsor.day >= S.day) return 'Zaten bir festivale sponsorsun.';
+  if (S.coins < BAL.sponsorCost) return 'Paran yetmiyor.';
+  S.coins -= BAL.sponsorCost;
+  S.totals.spent += BAL.sponsorCost;
+  S.sponsor = { day: x.day, town: x.town };
+  return null;
+}
+export const sponsoredToday = S => !!S.sponsor && S.sponsor.day === S.day && S.sponsor.town === S.town;
+
+// Rafı tamamla (game/shelving.js refill): etiketli bölümleri kendi türünden kolilerle doldurur
+export const refillShelves = S => S.phase !== 'morning' ? [] : refill(S, g => buyBox(S, g));
 
 // Vitrin: sabah raftan en fazla üç kitap öne çıkarılır
 export function toggleFeature(S, id) {
@@ -234,6 +294,9 @@ function sell(S, id, res, rareCopy = false, mul = 1) {
   if (rareCopy || plainCopies(S, id) < 0) { S.rare[id]--; if (!S.rare[id]) delete S.rare[id]; }
   const g = BOOK[id].genre, T = S.today;
   S.soldBooks[id] = (S.soldBooks[id] || 0) + 1;
+  const sat = (S.sat[S.town] = S.sat[S.town] || {});
+  sat[g] = (sat[g] || 0) + 1;
+  if (cp.sec >= 0 && T.secSold) T.secSold[cp.sec]++;
   res.bought.push(id);
   res.paid += Math.max(1, Math.round(GENRES[g].price * BAL.priceTags[cp.price].mul * BAL.conds[cp.cond].sell * (rareCopy ? BAL.rareMul : 1) * mul));
   if (rareCopy) { res.rare = true; S.totals.rareSold++; T.rareSold = (T.rareSold || 0) + 1; }
@@ -251,15 +314,25 @@ function settle(S, res) {
 export function resolveCustomer(S, c) {
   const T = S.today;
   const res = { bought: [], paid: 0, happy: false };
-  if (plainOfGenre(S, c.wants) > 0 && rnd(S) < (BAL.buyChance + (featuredOf(S, c.wants).length ? BAL.featureBuy : 0)) * chanceOf(S, c.wants)) {
+  // almaya karar: temel istek × fiyat etiketinin bu müşterinin cebine etkisi. Etiketin payı gün sonu teşhisi için sayılır.
+  const base = BAL.buyChance + (featuredOf(S, c.wants).length ? BAL.featureBuy : 0);
+  const has = plainOfGenre(S, c.wants) > 0, r = has ? rnd(S) : 1, p = base * chanceOf(S, c.wants, ARCHETYPES[c.arch]?.thrift || 'mid');
+  if (has && r >= p && r < base) T.priceLost = (T.priceLost || 0) + 1;
+  if (has && r < p && r >= base) T.priceWon = (T.priceWon || 0) + 1;
+  if (has && r < p) {
     sell(S, pickBookOf(S, c.wants), res);
     res.happy = true;
-    if (plainOfGenre(S, c.wants) > 0 && rnd(S) < BAL.extraChance) sell(S, pickBookOf(S, c.wants), res);
+    // ucuz rafta cebine bakan müşteri bir kitap daha alır (hacim artar, tür de daha çabuk doyar)
+    if (plainOfGenre(S, c.wants) > 0 && rnd(S) < BAL.extraChance * (p > base * 1.05 ? BAL.cheapExtra : 1)) sell(S, pickBookOf(S, c.wants), res);
   } else {
     if (plainOfGenre(S, c.wants) === 0) T.missed[c.wants] = (T.missed[c.wants] || 0) + 1;
     const avail = {}, d = demandOf(S);
     for (const g of GENRE_KEYS) if (plainOfGenre(S, g) > 0) avail[g] = d[g];
-    if (Object.keys(avail).length && rnd(S) < BAL.altChance) sell(S, pickBookOf(S, weighted(S, avail)), res);
+    // başka bir türe göz atar: o türün fiyat etiketi ve kasabadaki doygunluğu da kararını etkiler
+    if (Object.keys(avail).length) {
+      const g2 = weighted(S, avail);
+      if (rnd(S) < BAL.altChance * satFactor(S, g2) * chanceOf(S, g2, ARCHETYPES[c.arch]?.thrift || 'mid')) sell(S, pickBookOf(S, g2), res);
+    }
   }
   if (S.upgrades.includes('cay') && rnd(S) < BAL.teaChance) { res.paid += BAL.teaPrice; res.tea = true; T.tea = (T.tea || 0) + 1; }
   return settle(S, res);

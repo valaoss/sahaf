@@ -1,15 +1,16 @@
 // Müşteri tipleri: kim olduğu; ne sevdiği, nasıl konuştuğu, nerede ve ne zaman sık görüldüğü.
 // genres: tür çarpanı (kasaba zevkiyle çarpılır) · likes: öneri isterken öne çıkan etiketler
 // voice: konuşma üslubu (data/asks.js) · ask: öneri isteme çarpanı · style: görünüş (render/people.js personSVG)
+// thrift: fiyata duyarlılık (data/balance.js priceTags): tight pahalıdan kaçar, loose fiyata bakmaz; yazılmayan mid
 // where: mekân sahnesine göre ağırlık · when: mevsime göre ağırlık
 export const ARCHETYPES = {
   ogrenci: {
-    name: 'Öğrenci', weight: 10, voice: 'genc', ask: 1.2,
+    name: 'Öğrenci', thrift: 'tight', weight: 10, voice: 'genc', ask: 1.2,
     genres: { roman: 1.3, fantastik: 1.4, siir: 1.2 }, likes: ['felsefe', 'ask', 'yalniz', 'buyu'],
     style: { hat: 0, age: 'adult' }, where: { carsi: 1.3 }, when: { 'Yaz': 0.6 },
   },
   emekli: {
-    name: 'Emekli öğretmen', weight: 8, voice: 'resmi', ask: 1.3,
+    name: 'Emekli öğretmen', thrift: 'tight', weight: 8, voice: 'resmi', ask: 1.3,
     genres: { tarih: 1.6, roman: 1.3 }, likes: ['savas', 'aile', 'felsefe', 'sehir'],
     style: { hair: '#dcdcdc', glasses: true }, where: { tepe: 1.4 }, when: { 'Kış': 1.4 },
   },
@@ -19,17 +20,17 @@ export const ARCHETYPES = {
     style: { hat: 1, hatC: '#5b8bd0', beard: true, coat: '#6fb1d6' }, where: { sahil: 2.2, carsi: 0.5 }, when: {},
   },
   turist: {
-    name: 'Turist', weight: 8, voice: 'turist', ask: 0.9,
+    name: 'Turist', thrift: 'loose', weight: 8, voice: 'turist', ask: 0.9,
     genres: { polisiye: 1.4, roman: 1.2 }, likes: ['yolculuk', 'sehir', 'komik', 'macera'],
     style: { hat: 2, hatC: '#f2c45a' }, where: { carsi: 1.5, sahil: 1.3 }, when: { 'Yaz': 2.5, 'Kış': 0.2 },
   },
   anne: {
-    name: 'Çocuklu anne', weight: 7, voice: 'samimi', ask: 1.1,
+    name: 'Çocuklu anne', thrift: 'tight', weight: 7, voice: 'samimi', ask: 1.1,
     genres: { cocuk: 2.6 }, likes: ['cocukluk', 'hayvan', 'komik', 'buyu', 'aile'],
     style: { long: true, age: 'adult' }, where: { sahil: 1.2, carsi: 1.2 }, when: { 'Yaz': 1.3 },
   },
   cocuk: {
-    name: 'Çocuk', weight: 5, voice: 'cocuk', ask: 0.9,
+    name: 'Çocuk', thrift: 'tight', weight: 5, voice: 'cocuk', ask: 0.9,
     genres: { cocuk: 2.2, fantastik: 1.5 }, likes: ['buyu', 'hayvan', 'komik', 'macera'],
     style: { tall: 0.82, hat: 0 }, where: { sahil: 1.3 }, when: { 'Yaz': 1.5 },
   },
@@ -44,12 +45,12 @@ export const ARCHETYPES = {
     style: { glasses: true, hat: 1, hatC: '#3d2b24' }, where: { tepe: 1.6 }, when: { 'Sonbahar': 1.5 },
   },
   koleksiyoncu: {
-    name: 'Kitap koleksiyoncusu', weight: 3, voice: 'resmi', ask: 1.8, collector: true,
+    name: 'Kitap koleksiyoncusu', thrift: 'loose', weight: 3, voice: 'resmi', ask: 1.8, collector: true,
     genres: { tarih: 1.3, roman: 1.3 }, likes: ['felsefe', 'savas', 'yolculuk', 'gizem'],
     style: { glasses: true, hat: 1, hatC: '#8a5a3c', coat: '#4d5d82' }, where: { carsi: 1.2 }, when: {},
   },
   teyze: {
-    name: 'Yaşlı teyze', weight: 6, voice: 'samimi', ask: 1.2,
+    name: 'Yaşlı teyze', thrift: 'tight', weight: 6, voice: 'samimi', ask: 1.2,
     genres: { roman: 1.4, siir: 1.2, cocuk: 1.2 }, likes: ['aile', 'ask', 'huzun', 'umut'],
     style: { hair: '#c8c8c8', long: true, hat: 0, coat: '#b98ad6' }, where: { carsi: 1.2 }, when: { 'Kış': 1.3 },
   },

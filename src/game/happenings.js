@@ -126,5 +126,6 @@ export function chooseHappening(S, id, idx) {
 // Bugün geçerli kalabalık çarpanı (dünkü olaylardan) ve eski kayıtların temizliği
 export function buffFor(S) {
   S.buffs = S.buffs.filter(b => b.day >= S.day);
-  return S.buffs.filter(b => b.day === S.day).reduce((m, b) => m * b.traffic, 1);
+  // town yazılı etkiler yalnız o kasabada geçerli (fiyat ünü)
+  return S.buffs.filter(b => b.day === S.day && (!b.town || b.town === S.town)).reduce((m, b) => m * b.traffic, 1);
 }

@@ -121,17 +121,33 @@ export function takeCopy(S, id, wantRare = false) {
     if (e.id !== id || e.rare !== wantRare) return;
     if (!best || rank[sec.price] < rank[best.sec.price]) best = { sec, si, i };
   }));
-  if (!best) return { price: 'normal', cond: 'iyi' };
+  if (!best) return { price: 'normal', cond: 'iyi', sec: -1 };
   const [e] = best.sec.books.splice(best.i, 1);
-  return { price: best.sec.price, cond: e.cond || 'iyi' };
+  return { price: best.sec.price, cond: e.cond || 'iyi', sec: best.si };
 }
 
-// bir türün raftaki kopyalarının ortalama "almaya karar verme" çarpanı (fiyat etiketine göre)
-export function chanceOf(S, g) {
+// bir türün raftaki kopyalarının ortalama "almaya karar verme" çarpanı: fiyat etiketine ve müşterinin cebine göre
+export function chanceOf(S, g, thrift = 'mid') {
   syncLayout(S);
   let sum = 0, n = 0;
-  for (const sec of S.layout.sections) for (const e of sec.books) if (BOOK[e.id].genre === g && !e.rare) { sum += BAL.priceTags[sec.price].chance; n++; }
+  for (const sec of S.layout.sections) for (const e of sec.books) if (BOOK[e.id].genre === g && !e.rare) { sum += BAL.priceTags[sec.price].chance[thrift] ?? 1; n++; }
   return n ? sum / n : 1;
+}
+
+// Rafı tamamla: etiketli bölümlerdeki boşluklar kendi türünden kolilerle doldurulur (en büyük boşluk önce), kitaplar dizilir.
+// buy(g): koli alma (game/shop.js buyBox; döngüsel içe aktarmayı önlemek için dışarıdan verilir). Dönüş: alınan türler
+export function refill(S, buy) {
+  const got = [];
+  for (let guard = 0; guard < 24; guard++) {
+    syncLayout(S);
+    const cap = sectionCap(S), free = {};
+    for (const sec of S.layout.sections) if (sec.label) free[sec.label] = (free[sec.label] || 0) + cap - sec.books.length;
+    const g = Object.keys(free).filter(k => free[k] >= BAL.boxSize).sort((a, b) => free[b] - free[a] || (a < b ? -1 : 1))[0];
+    if (!g || buy(g)) break;
+    placeAll(S);
+    got.push(g);
+  }
+  return got;
 }
 
 export function setLabel(S, sec, genre) {

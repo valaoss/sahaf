@@ -110,7 +110,23 @@ En çok oynanacak yer telefon; şu an ekranın yarısı boş.
 - Raf modunda kitap adı okunuyor.
 - Uzun oturumda kare süresi ve bellek sabit kalıyor (CDP ile ölçülür).
 
-## Faz 2: Para ve kararlar
+## Faz 2: Para ve kararlar ✅ (23 Ekim 2026)
+
+Yapıldı:
+- Giderler: park ücreti (kasabanın ve mekânın kalabalığına göre ₺8–25), süs bakımı (fiyatının 1/30'u), çay köşesi ₺2/gün. Gün sonunda satış, park, bakım ve net kâr.
+- Müşteriye göre fiyat etiketi: öğrenci, anne, çocuk, teyze ve emekli pahalıdan kaçar, ucuz rafta çoğu zaman iki kitap alır. Turist ve koleksiyoncu ucuza güvenmez, pahalıyı sever. Fiyatı yüzünden vazgeçenler ertesi gün o kasabada konuşur (kalabalık azalır), ikna olanlar artırır.
+- Tür doygunluğu: bir kasabada çok satılan türü arayan azalır, her sabah toparlanır; başka kasabaları etkilemez.
+- "Rafı tamamla": etiketli bölümlerin boşluklarını kendi türünden kolilerle tek dokunuşta doldurup dizer.
+- Para harcanacak yerler: kasabaya okuma köşesi bağışı (₺250; park ücretsiz, kalabalık kalıcı +%12, 3 bağışta pul), festival sponsorluğu (₺60; o gün orada kalabalık ×1,6).
+- Gün sonu teşhisi: bölüm başına satış ısısı ve etiketleri, fiyattan vazgeçen/ikna olan sayısı ve yarına etkisi, doymuş türler.
+
+Ölçülenler (denge simülasyonu, 60 gün, 30 oyun):
+- Fiyat etiketi: ortalamada pahalı ile normal başa baş (₺6.978 / ₺6.889), hepsi ucuz %18 geride. Bağlam belirleyici: yaz çarşısında ve kış tepesinde çocuk rafını ucuz bırakmak, bahar kalesinde normal fiyat en iyisi.
+- Tembel oyuncu (hep roman) akıllı oyuncudan %31 geride (önce %12). Hedef %35'ti; kalan farkın çoğu öneri bahşişi, çünkü öneriler raftaki kitaplardan doğuyor.
+- 60. günde kasa ₺6,9–8,5 bin (önce ₺11,7 bin). Hedef ₺4–6 bindi; tutmadı, ama artık bağış (28 kasaba × ₺250) ve sponsorluk gibi isteğe bağlı harcama yerleri var.
+- Sponsorluk ve bağış kendini aşağı yukarı ödüyor: kazandırmıyor ama kaybettirmiyor da; oyuncunun tercihi.
+- Yurt dışı ile Türkiye 30. günde yine başa baş (₺4,6 bin / ₺4,7 bin).
+
 
 Paranın her gün bir anlamı olsun; baskın stratejiler kırılsın.
 

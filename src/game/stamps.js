@@ -8,6 +8,7 @@ const VALUE = {
   perfect: S => S.totals.perfect,
   towns: S => S.visited.length,
   spots: S => S.spotsSeen.length,
+  donated: S => (S.donated || []).length,
   festivals: S => S.totals.festivals,
   festKinds: S => S.festKinds.length,
   rain: S => S.weathersSeen.includes('yagmurlu') ? 1 : 0,

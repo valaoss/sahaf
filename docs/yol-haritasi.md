@@ -125,7 +125,13 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Raf modu telefonda büyük: yatayda koli yanda; seçilen/sürüklenen kitabın adı okunur
 - Satışta yalnız kitap katmanı yeniden çizilir; panel açıkken sahne seyrek çizilir
 
-Sırada: v2 Faz 2 (para ve kararlar) — ayrıntı: docs/v2-plan.md.
+### v2 · Faz 2 ✅ (para ve kararlar)
+- Park ücreti ve süs bakımı; gün sonunda net kâr
+- Fiyat etiketi müşterinin cebine göre; vazgeçenler konuşur
+- Tür doygunluğu; "Rafı tamamla" düğmesi
+- Okuma köşesi bağışı ve festival sponsorluğu; gün sonu teşhisi
+
+Sırada: v2 Faz 3 (öneri bulmacası ve kitap bilgisi) — ayrıntı: docs/v2-plan.md.
 
 ## Faz 3 — içerik ve cila
 - Elle çizilmiş illüstrasyonlar (kod çizimlerinin yerine), müzik ve ses, Türkçe + İngilizce, 200+ kitap

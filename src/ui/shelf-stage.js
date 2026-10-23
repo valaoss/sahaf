@@ -53,7 +53,7 @@ export function createShelfStage(root, { act, map }) {
       </div>
       <div class="st-tags" style="left:${x + 2}px;top:${r.plank + .5}px">
         <button class="st-lab" data-lab="${i}" style="--c:${sec.label ? GENRES[sec.label].color : '#c9b49a'}">${sec.label ? GENRES[sec.label].icon + ' ' + GENRES[sec.label].name : '🏷️ etiket'}${off ? ` · ${off}≠` : ''}</button>
-        <button class="st-price p-${sec.price}" data-price="${i}">${PRICE_LABEL[sec.price]}</button>
+        <button class="st-price p-${sec.price}" data-price="${i}" title="Fiyat etiketi · ucuz: öğrenci, anne, teyze daha kolay alır, çoğu zaman iki kitap · pahalı: turist ve koleksiyoncu sever, cebine bakan vazgeçer (ve konuşur)">${PRICE_LABEL[sec.price]}</button>
       </div>`;
     });
     // ön tezgâh: vitrin (kapağı öne dönük üç kitap)

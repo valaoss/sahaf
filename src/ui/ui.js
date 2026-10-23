@@ -15,7 +15,7 @@ import { createShelfPanel } from './shelf-panel.js';
 import { createShelfStage } from './shelf-stage.js';
 import { KOSTAS } from '../data/kostas.js';
 import { shelfCount, shelfCap, genreCount, seasonOf, dayOfSeason } from '../game/state.js';
-import { boxCost, canBuyBox, canTravel, topDemand, stallOf, COND_NAME } from '../game/shop.js';
+import { boxCost, canBuyBox, canTravel, topDemand, stallOf, COND_NAME, satFactor, parkFee, upkeepOf, sponsorable } from '../game/shop.js';
 import { nextShelf } from '../game/decor.js';
 import { SPOTS } from '../data/spots.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX } from '../data/regulars.js';
@@ -140,6 +140,7 @@ export function createUI(root, act) {
         <div class="gicon">${G.icon}</div>
         <div class="gname">${G.name}</div>
         <div class="gmeta">Rafta <b>${genreCount(S, g)}</b> · Satış ₺${G.price}</div>
+        ${satFactor(S, g) < 0.75 ? '<div class="gmeta sat">📉 burada çok satıldı, ilgi düştü</div>' : ''}
         <button class="btn sm ${why ? 'off' : ''}" data-buy="${g}" title="${why || ''}">+ Koli (${BAL.boxSize}) · ₺${boxCost(g)}</button>
       </div>`;
     }).join('');
@@ -153,14 +154,16 @@ export function createUI(root, act) {
     }).join('');
     const p = openPanel(`
       <h2>📦 Toptancı <button class="btn sm" data-inside>📚 Raflar${S.crate.length ? ` · 📦 ${S.crate.length}` : ''}</button></h2>
-      <p class="hint">Bu kasabada çok aranan: <b>${hot}</b></p>${missed}
+      <p class="hint">Bu kasabada çok aranan: <b>${hot}</b> · Akşam ödenecek: 🅿️ park ${parkFee(S) ? '₺' + parkFee(S) : 'ücretsiz'} · 🪴 bakım ₺${upkeepOf(S)}</p>${missed}
       ${S.quest ? `<p class="hint">📌 İlan: ${questText(S.quest)} <b>(${questProgress(S).have}/${questProgress(S).n})</b></p>` : ''}
-      <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 Raflar <b>${shelfCount(S)}/${shelfCap(S)}</b></span></div>
+      <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 Raflar <b>${shelfCount(S)}/${shelfCap(S)}</b></span>
+        <button class="btn sm hl2" data-refill title="Etiketli bölümlerdeki boşlukları kendi türünden kolilerle doldurur ve dizer">🔁 Rafı tamamla</button></div>
       <div class="ggrid">${cards}</div>
       <h3>🧺 Bugün pazar tezgâhında <span class="hint">· tek tek seç; yıpranmış ucuz ama ucuza satılır, temiz pahalı ama iyi kazandırır</span></h3>
       <div class="stall2">${stall}</div>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => act('buy', b.dataset.buy));
+    p.querySelector('[data-refill]').onclick = () => act('refill');
     p.querySelectorAll('[data-stall]').forEach(b => b.onclick = () => act('stall', +b.dataset.stall));
     p.querySelector('[data-inside]').onclick = () => interiorPanel(S);
     p.querySelector('[data-close]').onclick = closePanel;
@@ -173,7 +176,7 @@ export function createUI(root, act) {
       const hot = Object.keys(sp.demand).map(g => GENRES[g].icon).join(' ');
       return `<div class="dcard spot ${here ? 'is-on' : ''}"><div class="dicon">${SCENE_ICON[sp.scene]}</div>
         <div><div class="gname">${sp.name}</div><div class="gmeta">${sp.desc}</div>
-        <div class="gmeta">👣 Kalabalık: <b>${level(sp.traffic, .9, 1.2)}</b> · 💬 Öneri: <b>${level(sp.ask, .9, 1.3)}</b> · Sevilen: ${hot}</div></div>
+        <div class="gmeta">👣 Kalabalık: <b>${level(sp.traffic, .9, 1.2)}</b> · 💬 Öneri: <b>${level(sp.ask, .9, 1.3)}</b> · 🅿️ ${parkFee(S, k) ? '₺' + parkFee(S, k) : 'ücretsiz'} · Sevilen: ${hot}</div></div>
         ${here ? '<span class="on">✓ Buradasın</span>' : `<button class="btn sm" data-spot="${k}">Burada kur</button>`}</div>`;
     }).join('');
     const regs = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town).map(id => {
@@ -184,10 +187,15 @@ export function createUI(root, act) {
       <h2>📍 Karavanı nereye kuralım?</h2>
       <p class="hint">${TOWNS[S.town].name} içinde yer değiştirmek ücretsiz. Kalabalık yerde satış, sakin yerde sohbet ve öneri çok olur.</p>
       <div class="dgrid one">${cards}</div>
+      <h3>Kasabaya katkı</h3>
+      <div class="dcard ${S.donated.includes(S.town) ? 'is-on' : ''}"><div class="dicon">📖</div><div><div class="gname">Okuma köşesi</div>
+        <div class="gmeta">Meydana kitaplık ve bank: burada park ücretsiz, kalabalık kalıcı olarak +%${Math.round((BAL.donateTraffic - 1) * 100)}.</div></div>
+        ${S.donated.includes(S.town) ? '<span class="on">✓ Var</span>' : `<button class="btn sm ${S.coins < BAL.donateCost ? 'off' : ''}" data-donate>₺${BAL.donateCost} · Bağışla</button>`}</div>
       <h3>Bu kasabanın müdavimleri</h3><div class="chips">${regs}</div>
       <p class="hint">Müdavimler 💌 balonuyla gelir. Zevklerine tam uyan her öneri bir kalp; 5 kalpte bir hediye bırakırlar.</p>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-spot]').forEach(b => b.onclick = () => act('spot', b.dataset.spot));
+    p.querySelector('[data-donate]')?.addEventListener('click', () => act('donate'));
     p.querySelector('[data-close]').onclick = closePanel;
   }
 
@@ -216,7 +224,7 @@ export function createUI(root, act) {
         const btn = on ? '<span class="on">✓ Takılı</span>'
           : `<button class="btn sm ${!owned && S.coins < d.price ? 'off' : ''}" data-decor="${k}">${owned ? 'Tak' : `₺${d.price} · Al`}</button>`;
         return `<div class="dcard ${on ? 'is-on' : ''}"><div class="dicon">${d.icon}</div>
-          <div><div class="gname">${d.name}</div><div class="gmeta">${d.desc}</div></div>${btn}</div>`;
+          <div><div class="gname">${d.name}</div><div class="gmeta">${d.desc}${d.price > 0 ? ` · 🪴 bakım ₺${Math.ceil(d.price / BAL.upkeepPer)}/gün` : ''}</div></div>${btn}</div>`;
       }).join('');
       return `<h3>${SLOTS[slot].name}</h3><div class="dgrid">${items}</div>`;
     }).join('');
@@ -237,7 +245,7 @@ export function createUI(root, act) {
       ${slots}
       <h3>Atölye</h3><div class="dgrid">${shelfCard}${Object.keys(UPGRADES).map(k => {
         const u = UPGRADES[k], has = S.upgrades.includes(k);
-        return `<div class="dcard ${has ? 'is-on' : ''}"><div class="dicon">${u.icon}</div><div><div class="gname">${u.name}</div><div class="gmeta">${u.desc}</div></div>${has ? '<span class="on">✓</span>' : `<button class="btn sm ${S.coins < u.price ? 'off' : ''}" data-upgrade="${k}">₺${u.price} · Al</button>`}</div>`;
+        return `<div class="dcard ${has ? 'is-on' : ''}"><div class="dicon">${u.icon}</div><div><div class="gname">${u.name}</div><div class="gmeta">${u.desc}${u.upkeep ? ` · 🪴 gider ₺${u.upkeep}/gün` : ''}</div></div>${has ? '<span class="on">✓</span>' : `<button class="btn sm ${S.coins < u.price ? 'off' : ''}" data-upgrade="${k}">₺${u.price} · Al</button>`}</div>`;
       }).join('')}</div>
       <h3>Karavan boyası</h3><div class="swatches">${paints}</div>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
@@ -464,6 +472,8 @@ export function createUI(root, act) {
     const missedTop = Object.keys(T.missed).sort((a, b) => T.missed[b] - T.missed[a])[0];
     if (R.miss > R.perfect && asked > 1) tip = 'Öneri isteyenlerin cümlesine dikkat: kitap kartlarındaki etiketler ipucu verir.';
     else if (missedTop) tip = `${GENRES[missedTop].icon} ${GENRES[missedTop].name} arayan ${T.missed[missedTop]} kişi eli boş döndü. Yarın bir koli almayı düşün.`;
+    else if ((T.priceLost || 0) > 3) tip = 'Fiyatı görüp vazgeçen çok oldu. Öğrenci, anne ve teyzelerin sevdiği türlerde (çocuk, şiir) etiketi ucuza çevirmeyi dene.';
+    else if ((T.saturated || []).length) tip = `${T.saturated.map(g => GENRES[g].name).join(' ve ')} burada doydu: birkaç gün başka türe ağırlık ver ya da başka kasabaya git.`;
     else if (shelfCount(S) < 8) tip = 'Raflar neredeyse boş. Sabah toptancıya uğra.';
     else tip = 'Herkes aradığını buldu. Böyle devam!';
     const p = openPanel(`
@@ -472,10 +482,13 @@ export function createUI(root, act) {
       <div class="stats">
         <div><span>Ziyaretçi</span><b>${T.visitors}</b></div>
         <div><span>Satılan</span><b>${T.soldCount}</b></div>
-        <div><span>Kasa</span><b class="gold">+₺${T.revenue}</b></div>
+        <div><span>${T.costs ? 'Net' : 'Kasa'}</span><b class="gold">${(T.net ?? T.revenue) >= 0 ? '+' : '−'}₺${Math.abs(T.net ?? T.revenue)}</b></div>
         <div><span>Toplam</span><b>🪙 ${S.coins}</b></div>
       </div>
+      ${T.costs ? `<div class="ledger"><span>Satış <b>+₺${T.revenue}</b></span><span>🅿️ Park <b>${T.costs.park ? '−₺' + T.costs.park : 'ücretsiz'}</b></span><span>🪴 Bakım <b>−₺${T.costs.upkeep}</b></span><span class="net">Net <b>${T.net >= 0 ? '+' : '−'}₺${Math.abs(T.net)}</b></span></div>` : ''}
       <p>${profitNote}${T.newTown ? ` Yeni kasabada karavanı merak edenler de uğradı.` : ''}</p>
+      ${T.secSold && S.layout ? `<div class="heat">${S.layout.sections.map((sec, i) => `<span style="--c:${sec.label ? GENRES[sec.label].color : '#c9b49a'};--a:${Math.min(1, T.secSold[i] / Math.max(1, ...T.secSold)).toFixed(2)}"><i>${sec.label ? GENRES[sec.label].icon : '🏷️'}</i><b>${T.secSold[i]}</b><small>${{ ucuz: '₺↓', normal: '₺', pahali: '₺↑' }[sec.price]}</small></span>`).join('')}</div>` : ''}
+      ${diagnose(S, T)}
       ${(T.countries || []).length ? `<p class="tip page">🌍 Yeni bir ülke açıldı: <b>${T.countries.map(c => COUNTRIES[c].name).join(', ')}</b>! Haritadan feribotla gidebilirsin.</p>` : ''}
       ${(T.unlocked || []).length ? `<p class="tip page">🧭 Yeni bir yol açıldı: <b>${T.unlocked.map(k => TOWNS[k].name).join(', ')}</b> artık haritada!</p>` : ''}
       ${T.tea ? `<p class="hint">🫖 Çay köşesinden ${T.tea} çay satıldı.</p>` : ''}
@@ -491,6 +504,16 @@ export function createUI(root, act) {
       <div class="row end">${T.page ? '<button class="btn" data-book>📜 Oku</button>' : ''}<button class="btn hl" data-next>☀️ Ertesi sabah</button></div>`);
     p.querySelector('[data-next]').onclick = () => { closePanel(); act('next'); };
     p.querySelector('[data-book]')?.addEventListener('click', () => bookPanel(S, T.page, () => summaryPanel(S, T)));
+  }
+
+  // Gün sonu teşhisi: fiyat etiketinin etkisi (ve ağızdan ağıza), doymuş türler, sponsorluk
+  function diagnose(S, T) {
+    const out = [];
+    if (T.priceLost) out.push(`🏷️ <b>${T.priceLost}</b> kişi fiyatı görüp vazgeçti${T.word < 1 ? ` — konuşacaklar: yarın burada kalabalık %${Math.round((1 - T.word) * 100)} az` : ''}.`);
+    if (T.priceWon) out.push(`🏷️ Ucuz etiket <b>${T.priceWon}</b> kişiyi ikna etti${T.word > 1 ? ` — yarın burada kalabalık %${Math.round((T.word - 1) * 100)} fazla` : ''}.`);
+    if ((T.saturated || []).length) out.push(`📉 ${T.saturated.map(g => GENRES[g].icon + ' ' + GENRES[g].name).join(', ')} bu kasabada çok satıldı; ilgi düştü, birkaç günde toparlanır.`);
+    if (T.sponsored) out.push(`🎪 Sponsor olduğun festival: kalabalık ×${BAL.sponsorTraffic}.`);
+    return out.length ? `<div class="diag">${out.map(x => `<p>${x}</p>`).join('')}</div>` : '';
   }
 
   // Sabah gazetesi: hava, bugünün ve yarının etkinliği, kasabadan bir haber
@@ -525,8 +548,14 @@ export function createUI(root, act) {
           </div>
         </div>
       </div>
+      ${S.phase === 'morning' ? sponsorable(S).map(x => {
+        const mine = S.sponsor && S.sponsor.day === x.day && S.sponsor.town === x.town;
+        return `<div class="sponsor2"><span>🎪 <b>${EVENTS[x.ev].name}</b> · ${TOWNS[x.town].name}, ${x.day === S.day ? 'bugün' : 'yarın'} — sponsor olursan o gün orada dükkân açınca kalabalık ×${BAL.sponsorTraffic}</span>
+          ${mine ? '<span class="on">✓ Sponsorsun</span>' : `<button class="btn sm ${S.coins < BAL.sponsorCost ? 'off' : ''}" data-sponsor="${x.day}">₺${BAL.sponsorCost} · Sponsor ol</button>`}</div>`;
+      }).join('') : ''}
       <div class="row end">${ev && EVENTS[ev].town !== S.town && S.phase === 'morning' ? '<button class="btn" data-go>🗺️ Haritayı aç</button>' : ''}<button class="btn hl" data-close>Günaydın!</button></div>`, 'wide');
     p.querySelector('[data-close]').onclick = closePanel;
+    p.querySelectorAll('[data-sponsor]').forEach(b => b.onclick = () => act('sponsor', +b.dataset.sponsor));
     p.querySelector('[data-go]')?.addEventListener('click', () => act('map'));
   }
 
