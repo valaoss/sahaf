@@ -1532,4 +1532,106 @@ test('ilanlar: tanışılan müdavimlerden ve yaklaşan festivallerden üretilir
 });
 
 
+// ---------- Faz 5: Akdeniz'in işleri ve final ----------
+const VY = await import('../src/game/voyage.js');
+const { VOYAGE, VOYAGE_KEYS, GRAND } = await import('../src/data/voyage.js');
+const abroadGame = (seed, town) => { const S = newGame(seed); S.countries = Object.keys(COUNTRIES); S.unlocked = Object.keys(TOWNS); S.town = town; S.spot = Object.keys(SPOTS[town])[0]; S.coins = 500; return S; };
+
+test('Yunanistan ada günü: kayık ücreti, adada toptancı yok, turist çok, ada günü sayılır', () => {
+  for (const t of ['midilli', 'atina', 'selanik', 'santorini']) assert.ok(SPOTS[t].ada?.island, t);
+  const S = abroadGame(51, 'atina');
+  assert.equal(chooseSpot(S, 'ada'), null);
+  assert.ok(VY.onIsland(S));
+  assert.equal(SHOP2.parkFee(S), BAL.islandFee);
+  assert.match(buyBox(S, 'roman'), /Adada toptancı yok/);
+  let tur = 0, tur0 = 0;
+  for (let i = 0; i < 300; i++) { if (makeCustomer(S).arch === 'turist') tur++; }
+  const P = abroadGame(51, 'atina');
+  for (let i = 0; i < 300; i++) { if (makeCustomer(P).arch === 'turist') tur0++; }
+  assert.ok(tur > tur0 * 1.3, JSON.stringify({ tur, tur0 }));
+  openShop(S); closeShop(S);
+  assert.equal(VY.stat(S, 'islandDays'), 1);
+});
+
+test('İtalya müzayede: yalnız raftaki ilk baskı, akşam 0.8–2.4 kat fiyatla satılır', () => {
+  const S = abroadGame(52, 'roma');
+  assert.match(VY.auctionLot(S, 'hobbit'), /ilk baskı/);
+  S.shelf.hobbit = 1; S.rare.hobbit = 1;
+  assert.equal(VY.auctionLot(S, 'hobbit'), null);
+  assert.ok(!S.shelf.hobbit && !S.rare.hobbit);
+  assert.equal(VY.auctionLot(S, 'hobbit'), 'Bugün zaten bir kitap müzayedede.');
+  const coins = S.coins; openShop(S); const T = closeShop(S);
+  const base = GENRES.fantastik.price * BAL.rareMul;
+  assert.ok(T.auction && T.auction.price >= base * 0.8 - 1 && T.auction.price <= base * 2.4 + 1);
+  assert.equal(VY.stat(S, 'auctions'), 1);
+  const P = abroadGame(53, 'atina'); P.shelf.hobbit = 1; P.rare.hobbit = 1;
+  assert.match(VY.auctionLot(P, 'hobbit'), /İtalya/);
+});
+
+test('Fransa bukinist kutusu: kiralanır, koliden doldurulur, her gece satar, süre bitince kalanlar döner', () => {
+  const S = abroadGame(54, 'marsilya');
+  assert.equal(VY.rentBq(S), null);
+  assert.equal(S.coins, 500 - BAL.bqRent);
+  S.crate = Array.from({ length: 10 }, (_, i) => ({ id: booksOf('roman')[i].id, rare: false, cond: 'iyi' }));
+  assert.equal(VY.fillBq(S), BAL.bqCap);
+  assert.equal(S.crate.length, 0);
+  let sold = 0;
+  for (let d = 0; d < BAL.bqDays + 1; d++) { openShop(S); closeShop(S); nextMorning(S); sold += S.post.bq ? S.post.bq.sold : 0; }
+  assert.equal(S.voyage.bq, null, 'süre bitti');
+  assert.equal(VY.stat(S, 'bqSold'), sold);
+  assert.ok(sold >= 2 * BAL.bqDays - 4 && sold <= BAL.bqCap);
+  assert.equal(S.crate.length + sold, BAL.bqCap, 'satılmayanlar koliye döndü');
+});
+
+test('İspanya gül ve kitap: gülle satış bahşiş getirir, güller akşam solar, Gül ve Kitap Günü kalabalık', () => {
+  const S = abroadGame(55, 'barselona'); buyBox(S, 'roman'); placeAll(S);
+  assert.equal(VY.buyRoses(S, 25), null);
+  assert.equal(S.voyage.roses, BAL.roseMax);
+  openShop(S);
+  let tips = 0; for (let k = 0; k < 20; k++) { const r = resolveCustomer(S, { id: k, wants: 'roman', look: k }); if (r.bought.length) tips++; }
+  assert.ok(VY.stat(S, 'roseSold') > 0 && S.today.roses === VY.stat(S, 'roseSold'));
+  const T = closeShop(S);
+  assert.equal(S.voyage.roses, 0, 'güller soldu');
+  assert.equal(T.rosesLeft + T.roses, BAL.roseMax);
+  const visits = day => { let n = 0; for (let seed = 1; seed <= 30; seed++) { const P = abroadGame(seed, 'barselona'); P.day = day; openShop(P); n += P.arrivals.length; } return n; };
+  assert.ok(visits(14) > visits(15), 'gül günü');
+  assert.match(VY.buyRoses(abroadGame(56, 'roma'), 5), /İspanya/);
+});
+
+test('Mısır onarımı: kopya temize çevrilir, günde sınırlı, satış fiyatı artar', () => {
+  const S = abroadGame(57, 'kahire');
+  S.crate = [{ id: 'garip', rare: false, cond: 'yipranmis' }, { id: 'kar', rare: false, cond: 'temiz' }];
+  assert.equal(VY.restoreCopy(S, 'c:0'), null);
+  assert.equal(S.crate[0].cond, 'temiz');
+  assert.equal(VY.restoreCopy(S, 'c:1'), 'Bu kopya zaten temiz.');
+  for (let i = 0; i < 6; i++) S.crate.push({ id: 'garip', rare: false, cond: 'iyi' });
+  let ok = 1; for (let i = 2; i < 8; i++) if (!VY.restoreCopy(S, `c:${i}`)) ok++;
+  assert.equal(ok, BAL.restorePerDay);
+  assert.match(VY.restoreCopy(abroadGame(58, 'roma'), 'c:0'), /Mısır/);
+});
+
+test('Akdeniz defteri: sayfalar sırayla açılır; beş hikâye ve ana hikâye bitince Cunda tepesinde tören', () => {
+  for (const c of VOYAGE_KEYS) { assert.ok(COUNTRIES[c] && VOYAGE[c].pages.length === 3 && VOYAGE[c].need.length === 3, c); for (const pg of VOYAGE[c].pages) assert.ok(pg.text.length > 120, pg.title); }
+  const S = abroadGame(59, 'roma');
+  assert.deepEqual(VY.checkVoyage(S), []);
+  S.visited.push('roma');
+  assert.deepEqual(VY.checkVoyage(S), [{ c: 'it', i: 0 }]);
+  assert.deepEqual(VY.checkVoyage(S), [], 'eşik tutmadan ikinci sayfa yok');
+  S.voyage.stats.auctions = 5;
+  assert.deepEqual(VY.checkVoyage(S), [{ c: 'it', i: 1 }], 'günde bir sayfa');
+  assert.deepEqual(VY.checkVoyage(S), [{ c: 'it', i: 2 }]);
+  for (const c of VOYAGE_KEYS) S.voyage.pages[c] = 3;
+  assert.ok(VY.voyageDone(S));
+  assert.equal(VY.checkGrand(S, { town: 'cunda', spot: 'tepe' }), false, 'ana hikâye bitmeden yok');
+  S.pages = PAGES.map(p => p.id);
+  assert.equal(VY.checkGrand(S, { town: 'foca', spot: 'kale' }), false);
+  const coins = S.coins;
+  assert.equal(VY.checkGrand(S, { town: 'cunda', spot: 'tepe' }), true);
+  assert.equal(S.coins, coins + GRAND.coins);
+  assert.equal(VY.checkGrand(S, { town: 'cunda', spot: 'tepe' }), false, 'bir kez');
+  const won = checkStamps(S);
+  assert.ok(won.includes('akdeniz') && won.includes('acilis'));
+});
+
+
 console.log(`\n${passed} test geçti`);

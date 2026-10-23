@@ -141,7 +141,12 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Kasaba itibarı (dört kademe); 6. sayfa görev oldu; haftalık festival takvimi
 - Müdavimlerden ve festivallerden üretilen ilanlar
 
-Sırada: v2 Faz 5 (Akdeniz'in derinliği ve oyun sonu) — ayrıntı: docs/v2-plan.md.
+### v2 · Faz 5 ✅ (Akdeniz ve final)
+- Ülke başına bir iş: ada günü, müzayede, bukinist kutusu, gül ve kitap, el yazması onarımı
+- Beş yan hikâye (15 sayfa), Akdeniz defteri sekmesi
+- Kütüphanenin açılış töreni ve serbest oyun
+
+Sırada: v2 Faz 6 (mimari, İngilizce, iOS) — ayrıntı: docs/v2-plan.md.
 
 ## Faz 3 — içerik ve cila
 - Elle çizilmiş illüstrasyonlar (kod çizimlerinin yerine), müzik ve ses, Türkçe + İngilizce, 200+ kitap

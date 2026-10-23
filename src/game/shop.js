@@ -21,6 +21,7 @@ import { eventOf } from './calendar.js';
 import { countryOf, travelInfo, crossBorder } from './travel.js';
 import { learn, learnOne, learnAll } from './knowledge.js';
 import { FAVOR_AT, favorOpen, makeFavor, addRep, repLevel } from './bonds.js';
+import { onIsland, roseWithSale, roseDay } from './voyage.js';
 import { COUNTRIES } from '../data/countries.js';
 import { TALK } from '../data/talk.js';
 import { seeded } from '../core/rng.js';
@@ -31,6 +32,7 @@ export const boxCost = g => GENRES[g].cost * BAL.boxSize;
 export function canBuyBox(S, g) {
   if (!GENRES[g]) return 'Böyle bir tür yok.';
   if (S.phase !== 'morning') return 'Koli yalnızca sabah alınır.';
+  if (onIsland(S)) return 'Adada toptancı yok: koliyi karşıda al, sonra kayıkla geç.';
   if (crateFree(S) < BAL.boxSize) return shelfCount(S) < shelfCap(S) ? 'Koli dolu: önce kitapları rafa diz.' : 'Karavanda yer yok.';
   if (S.coins < boxCost(g)) return 'Paran yetmiyor.';
   return null;
@@ -132,7 +134,7 @@ export function decaySat(S) {
 
 // --- Giderler ---
 // Park ücreti: kalabalık yer pahalı; okuma köşesi bağışlanan kasabada ücretsiz
-export const parkFee = (S, spotKey = S.spot) => S.donated.includes(S.town) || repLevel(S) >= 3 ? 0
+export const parkFee = (S, spotKey = S.spot) => SPOTS[S.town][spotKey]?.island ? BAL.islandFee : S.donated.includes(S.town) || repLevel(S) >= 3 ? 0
   : Math.round(BAL.parkRate * TOWNS[S.town].traffic * SPOTS[S.town][spotKey].traffic);
 // Bakım: takılı süsler (hediyeler bakımsız) ve geliştirmeler
 export function upkeepOf(S) {
@@ -213,6 +215,9 @@ export function makeCustomer(S) {
   const aw = {};
   const today = dayMods(S.day, S.town);
   for (const k of ARCH_KEYS) { const A = ARCHETYPES[k]; aw[k] = A.weight * (A.where[sp.scene] || 1) * (A.when[season] || 1) * (today.arch[k] || 1); }
+  // adada gezginler, Gül ve Kitap Günü'nde sevgililer
+  if (sp.island) aw.turist *= BAL.islandTourists;
+  if (roseDay(S)) aw.sevgili *= 3;
   const arch = weightedFresh(S, 'arch', aw, 0.4);
   remember(S, 'arch', arch);
   const A = ARCHETYPES[arch];
@@ -324,6 +329,9 @@ function sell(S, id, res, rareCopy = false, mul = 1) {
   sat[g] = (sat[g] || 0) + 1;
   if (cp.sec >= 0 && T.secSold) T.secSold[cp.sec]++;
   (T.soldIds = T.soldIds || []).push(id);
+  // İspanya: kitabın yanına bir gül
+  const rose = rareCopy ? 0 : roseWithSale(S);
+  if (rose) { res.paid += rose; T.roses = (T.roses || 0) + 1; }
   res.bought.push(id);
   res.paid += Math.max(1, Math.round(GENRES[g].price * BAL.priceTags[cp.price].mul * BAL.conds[cp.cond].sell * (rareCopy ? BAL.rareMul : 1) * mul));
   if (rareCopy) { res.rare = true; S.totals.rareSold++; T.rareSold = (T.rareSold || 0) + 1; }

@@ -88,6 +88,8 @@ export function newGame(seed = Date.now()) {
     favors: {},                // müdavim ricaları: müdavim → { book, day, done }
     orders: [],                // kitap siparişleri: [{ book, day }] ertesi sabah kolide
     keepsakes: [],             // müdavimlerin bıraktığı hatıralar (müdavim kimlikleri)
+    voyage: { stats: {}, pages: {}, auction: null, bq: null, roses: 0, restoredToday: 0 },   // Akdeniz'in işleri (game/voyage.js)
+    grandDone: false,          // kütüphanenin açılış töreni yapıldı mı
     nextId: 1,
     rng: 0,
   };
@@ -155,6 +157,12 @@ export function restore(saved) {
   for (const id in S.known) if (!BOOK[id] || !Array.isArray(S.known[id])) delete S.known[id]; else S.known[id] = S.known[id].filter(t => BOOK[id].tags.includes(t));
   S.donated = S.donated.filter(k => TOWNS[k]);
   S.orders = S.orders.filter(o => isObj(o) && BOOK[o.book]);
+  S.voyage = Object.assign(newGame(1).voyage, S.voyage);
+  if (!isObj(S.voyage.stats)) S.voyage.stats = {};
+  if (!isObj(S.voyage.pages)) S.voyage.pages = {};
+  if (S.voyage.auction && !BOOK[S.voyage.auction.book]) S.voyage.auction = null;
+  if (S.voyage.bq && !(isObj(S.voyage.bq) && Array.isArray(S.voyage.bq.books))) S.voyage.bq = null;
+  if (S.voyage.bq) S.voyage.bq.books = S.voyage.bq.books.filter(id => BOOK[id]);
   for (const id in S.favors) if (!isObj(S.favors[id]) || !BOOK[S.favors[id].book]) delete S.favors[id];
   // eski kayıt: dükkân açılan günler itibara sayılır; ₺40 bırakan dostların hatırası verilir
   if (!isObj(saved.rep)) for (const t in S.townDays) if (TOWNS[t]) S.rep[t] = S.townDays[t];

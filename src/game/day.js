@@ -14,6 +14,7 @@ import { tidiness, placeAll } from './shelving.js';
 import { checkCountries } from './travel.js';
 import { satFactor } from './shop.js';
 import { addRep, repLevel, receiveOrders, keepsakeTraffic } from './bonds.js';
+import { onIsland, resolveAuction, roseDay, checkVoyage, checkGrand, voyageMorning, stat } from './voyage.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
@@ -26,7 +27,8 @@ export function openShop(S) {
   const tidy = 1 + BAL.tidyBonus * tidiness(S);
   // okuma köşesi bağışlanan kasaba ve sponsor olunan festival daha kalabalık
   // en yüksek itibar (kasabanın sahafı) da kalabalığı artırır; hatıralar kendi kasabalarında birer ziyaretçi getirir
-  const civic = (S.donated.includes(S.town) ? BAL.donateTraffic : 1) * (sponsoredToday(S) ? BAL.sponsorTraffic : 1) * (repLevel(S) >= 3 ? 1.08 : 1);
+  const civic = (S.donated.includes(S.town) ? BAL.donateTraffic : 1) * (sponsoredToday(S) ? BAL.sponsorTraffic : 1) * (repLevel(S) >= 3 ? 1.08 : 1)
+    * (roseDay(S) ? BAL.roseDayTraffic : 1);
   const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic * buffFor(S) * tidy * civic) + effects(S).traffic + keepsakeTraffic(S) + (newTown ? BAL.newTownTraffic : 0);
   const n = Math.max(4, base + rndInt(S, BAL.trafficJitter * 2 + 1) - BAL.trafficJitter);
   const times = [];
@@ -50,7 +52,8 @@ export function openShop(S) {
     .map(id => ({ id, t: Math.round(BAL.dayStart + 30 + rnd(S) * (len - 90)) })).sort((a, b) => a.t - b.t);
   scheduleHappenings(S);
   S.today = { town: S.town, spot: S.spot, newTown, weather: weatherOf(S.day), event: mods.event, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 },
-    secSold: [0, 0, 0, 0, 0, 0], sponsored: sponsoredToday(S), costs: { park: parkFee(S), upkeep: upkeepOf(S) } };
+    secSold: [0, 0, 0, 0, 0, 0], sponsored: sponsoredToday(S), costs: { park: parkFee(S), upkeep: upkeepOf(S) },
+    island: onIsland(S), roseDay: roseDay(S) };
   return null;
 }
 
@@ -91,6 +94,11 @@ export function closeShop(S) {
     S.totals.festivals++;
     if (!S.festKinds.includes(T.event)) S.festKinds.push(T.event);
   }
+  // Akdeniz'in işleri: ada günü, müzayede, solan güller
+  if (T.island) S.voyage.stats.islandDays = stat(S, 'islandDays') + 1;
+  T.auction = resolveAuction(S);
+  T.rosesLeft = S.voyage.roses;
+  S.voyage.roses = 0;
   // itibar: dükkân açılan her gün bir puan
   const up = addRep(S, T.town, 1);
   if (up) T.repUp = up;
@@ -98,6 +106,8 @@ export function closeShop(S) {
   T.page = checkStory(S, T);
   T.unlocked = checkUnlocks(S);
   T.countries = checkCountries(S);
+  T.voyage = checkVoyage(S);
+  T.grand = checkGrand(S, T);
   T.stamps = checkStamps(S);
   S.lastDay = T;
   S.prevTown = S.town;
@@ -113,7 +123,7 @@ export function nextMorning(S) {
   S.travelled = false;
   S.clock = BAL.dayStart;
   // sabah postası: geçmiş önerilerden mektup, gazetede yeni ilan
-  S.post = { letter: morningLetter(S), quest: offerQuest(S), orders: receiveOrders(S) };
+  S.post = { letter: morningLetter(S), quest: offerQuest(S), orders: receiveOrders(S), bq: voyageMorning(S) };
   decaySat(S);
   if (S.sponsor && S.sponsor.day < S.day) S.sponsor = null;
   S.readsToday = 0;
@@ -123,7 +133,7 @@ export function nextMorning(S) {
 // Yolda kaçan günün "yarın kalabalık" etkisi varış gününe kayar. Dönüş: kasa boşsa belediye desteği (₺)
 export function afterFerry(S) {
   for (const b of S.buffs) if (b.day === S.day - 1) b.day = S.day;
-  S.post = { letter: morningLetter(S), quest: offerQuest(S), orders: receiveOrders(S) };
+  S.post = { letter: morningLetter(S), quest: offerQuest(S), orders: receiveOrders(S), bq: voyageMorning(S) };
   decaySat(S);
   if (S.sponsor && S.sponsor.day < S.day) S.sponsor = null;
   S.readsToday = 0;

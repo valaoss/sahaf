@@ -190,7 +190,19 @@ Yapıldı (game/bonds.js):
   - Festival sayfası için gazetede haftalık festival takvimi olsun, festival öngörülebilsin.
 - **İlanlar üretilsin:** 10 sabit ilan yerine müdavim zevklerinden ve festivallerden üretilen ilanlar.
 
-## Faz 5: Akdeniz'in derinliği ve oyun sonu
+## Faz 5: Akdeniz'in derinliği ve oyun sonu ✅ (23 Ekim 2026)
+
+Yapıldı (game/voyage.js, data/voyage.js):
+- Yunanistan · ada günü: her Yunan kasabasında kayıkla geçilen bir ada (kayık ₺18, turist çok, adada toptancı yok).
+- İtalya · müzayede: sabah raftaki bir ilk baskı müzayedeye verilir, akşam ilk baskı fiyatının 0,8–2,4 katına satılır.
+- Fransa · bukinist kutusu: 7 günlüğüne ₺35; koliden 10 kitap konur, sen nerede olursan ol her gece 2–4 tanesi satılır.
+- İspanya · gül ve kitap: sabah gül alınır (₺1), gülle satılan kitap +₺3; satılmayan güller akşam solar. Haftada bir Gül ve Kitap Günü (kalabalık ×1,3, sevgililer).
+- Mısır · el yazması onarımı: raf modunda seçilen kopya ₺5 ile temize çevrilir (günde 4).
+- Her ülkeye üç sayfalık yan hikâye (Midilli'deki matbaa, Venedik'teki iz, Marsilya'daki sandık, Barselona'daki defter, İskenderiye'nin rüyası); her hikâyenin sonunda kütüphanenin bir parçası. Defterde 🧭 Akdeniz defteri sekmesi.
+- Final: beş hikâye ve ana hikâye bitince Cunda tepesinde kütüphanenin açılış töreni (+₺500, iki yeni pul), sonra serbest oyun.
+
+Ölçülen: yurt dışı ile Türkiye 30. günde yine başa baş (₺4,6 bin); ülke işleri simülasyonda kullanılmıyor, oyuncuya ek gelir ve hikâye kapısı.
+
 
 Her ülke yeni bir şey oynatsın:
 

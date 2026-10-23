@@ -63,7 +63,14 @@ export const BAL = {
   featureBuy: 0.08,    // vitrinde aradığı türden kitap varsa alma ihtimaline eklenen
   featureDemand: 0.15, // vitrindeki her kitap kendi türüne olan ilgiyi bu kadar artırır
   patience: 14,        // öneri isteyen müşterinin bekleme süresi (sn, normal hızda)
-  keepsakeTraffic: 1,  // her hatıra kendi kasabasında bu kadar fazladan ziyaretçi
+  keepsakeTraffic: 1,
+  // Akdeniz'in işleri (game/voyage.js)
+  islandFee: 18,       // Yunanistan: adaya kayık (park ücreti yerine)
+  islandTourists: 5,   // adada turist ağırlığı bu kadar kat (yakın zamanda gelen tip daha az olası olduğundan payı ~1,5 kat artar)
+  auctionMin: 0.8, auctionSpread: 1.6,   // İtalya: müzayede, ilk baskı fiyatının 0.8–2.4 katı
+  bqRent: 35, bqDays: 7, bqCap: 10,      // Fransa: bukinist kutusu (haftalık kira, süre, kapasite)
+  rosePrice: 1, roseTip: 3, roseMax: 20, roseDayTraffic: 1.3,   // İspanya: gül ve kitap
+  restoreCost: 5, restorePerDay: 4,      // Mısır: el yazması onarımı  // her hatıra kendi kasabasında bu kadar fazladan ziyaretçi
   favorPay: 3,         // getirilen rica: kitabın satış fiyatının bu katı ödenir
   readsPerDay: 2,      // okuma köşesi: sabahları okunabilen kitap (okuma koltuğuyla bir fazla)
   learnOnSale: 0.35,   // satılan kitabın bir etiketini öğrenme ihtimali (müşteri giderken bir şey söyler)

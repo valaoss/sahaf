@@ -599,6 +599,11 @@ svg.world #wvan { transform-box: view-box; }
 .repbar { flex: 1; min-width: 6em; height: .6em; background: #f1e8da; border-radius: 999px; overflow: hidden; }
 .repbar i { display: block; height: 100%; background: linear-gradient(90deg, #efc56c, #e07a5f); }
 .rep2 small { color: #8a7468; }
+.vcard { background: #fff; border: .15em solid var(--edge); border-radius: .9em; padding: .45em .9em; }
+.vpages { display: grid; gap: .4em; margin-bottom: .6em; }
+.vpage { background: #fff; border: .15em solid var(--edge); border-radius: .8em; padding: .45em .8em; }
+.vpage.locked { color: #a08a72; border-style: dashed; background: #fbf5ea; }
+.vpage .say { margin: .3em 0 0; }
 .favor2 { background: #fff0d8; border: .15em dashed #efc56c; border-radius: .9em; padding: .35em .8em; margin: .3em 0; display: flex; flex-wrap: wrap; gap: .5em; align-items: center; }
 .flag { border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); flex: none; }
 .passport { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7em; }

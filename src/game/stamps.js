@@ -1,6 +1,8 @@
 // Pul albümü: koşulları tutan pulları verir. Gün kapanınca ve sabah alışverişlerinden sonra kontrol edilir.
 import { STAMPS, STAMP_REWARD } from '../data/stamps.js';
 import { repLevel } from './bonds.js';
+import { voyagePages } from './voyage.js';
+import { VOYAGE, VOYAGE_KEYS } from '../data/voyage.js';
 import { PAGES } from '../data/story.js';
 
 const VALUE = {
@@ -10,6 +12,8 @@ const VALUE = {
   towns: S => S.visited.length,
   spots: S => S.spotsSeen.length,
   donated: S => (S.donated || []).length,
+  voyage: S => VOYAGE_KEYS.filter(c => voyagePages(S, c) >= VOYAGE[c].pages.length).length,
+  grand: S => S.grandDone ? 1 : 0,
   repTop: S => Object.keys(S.rep || {}).filter(t => repLevel(S, t) >= 3).length,
   festivals: S => S.totals.festivals,
   festKinds: S => S.festKinds.length,

@@ -32,6 +32,7 @@ import { PAGES } from './data/story.js';
 import { tap } from './core/native.js';
 import { readBook } from './game/knowledge.js';
 import { orderBook, favorOpen, makeFavor } from './game/bonds.js';
+import { auctionLot, rentBq, fillBq, buyRoses, restoreCopy } from './game/voyage.js';
 import { deliverFavor } from './game/shop.js';
 import { TAGS } from './data/books.js';
 import { buildScene } from './render/scene.js';
@@ -184,6 +185,18 @@ scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[ar
     const why = buyStall(S, arg);
     if (why) ui.toast(why); else { tap(); sfx('page'); saveGame(S); ui.toast('🧺 Kitap koliye kondu'); }
     ui.stockPanel(S);
+  }
+  else if (a === 'auction' || a === 'bq-rent' || a === 'bq-fill' || a === 'roses' || a === 'restore') {
+    // Akdeniz'in işleri: müzayede, bukinist kutusu, gül, onarım
+    const why = a === 'auction' ? auctionLot(S, arg) : a === 'bq-rent' ? rentBq(S) : a === 'roses' ? buyRoses(S, arg) : a === 'restore' ? restoreCopy(S, arg)
+      : (fillBq(S) ? null : 'Koliye konacak kitap yok ya da kutu dolu.');
+    if (why) ui.toast(why);
+    else {
+      tap(); sfx(a === 'roses' ? 'tap' : 'page'); saveGame(S); scene.setStock(S);
+      ui.toast({ auction: '🔨 Kitap müzayedede: akşam açık artırmada satılacak.', 'bq-rent': '📦 Bukinist kutusu senin: koliden kitap koy, her gece satsın.', 'bq-fill': '📦 Kitaplar kutuya kondu.', roses: '🌹 Güller kovada: her satışın yanına bir gül.', restore: '🪶 Usta kopyayı onardı: artık temiz.' }[a]);
+    }
+    // onarım raf katmanından gelir, ötekiler mekân panelinden
+    (a === 'restore' ? ui.interiorPanel : ui.spotPanel)(S);
   }
   else if (a === 'order') {
     const why = orderBook(S, arg);
@@ -400,6 +413,16 @@ if (PREVIEW) {
     makeFavor(S, 'hasan'); S.coins = 300;
     ui[q.get('ac') || 'spotPanel'](S);
   }
+  // ?panel=akdeniz&ulke=it: o ülkenin şehrinde, işi dolu (müzayede için ilk baskı, kutu, gül); ?panel=tore: açılış töreni
+  if (panel === 'akdeniz') {
+    const town = { gr: 'atina', it: 'roma', fr: 'marsilya', es: 'barselona', eg: 'kahire' }[q.get('ulke') || 'it'];
+    Object.assign(S, { town, spot: Object.keys(SPOTS[town])[0], countries: Object.keys(COUNTRIES), coins: 300 });
+    S.unlocked = Object.keys(TOWNS); S.shelf.hobbit = 2; S.rare.hobbit = 1; S.voyage.pages = { gr: 3, it: 1, fr: 2, es: 1 }; S.voyage.stats = { islandDays: 3, auctions: 0, bqSold: 7 };
+    S.voyage.roses = 4; S.crate = [{ id: 'garip', rare: false, cond: 'yipranmis' }];
+    scene.setTown(town); scene.setSpot(spotOf(S).scene, town);
+    ui[q.get('ac') || 'spotPanel'](S);
+  }
+  if (panel === 'toren') { S.voyage.pages = { gr: 3, it: 3, fr: 3, es: 3, eg: 3 }; S.grandDone = true; S.friends = { hasan: 5, melis: 5 }; ui.grandPanel(S); }
   if (panel === 'gift') ui.giftPanel(q.has('hatira') ? { id: 'melis', hearts: 5, keepsake: 'melis' } : { id: 'hasan', hearts: 5, gift: 'zeytin' });
 }
 // perde: yazı tipleri ve (yeni motorda) ilk pişirme hazır olunca kalkar.

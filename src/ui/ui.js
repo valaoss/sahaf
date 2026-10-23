@@ -13,6 +13,8 @@ import { BLURBS } from '../data/blurbs.js';
 import { knownTags, knowsAll, knownCount, readsLeft } from '../game/knowledge.js';
 import { REP_LEVELS, repOf, repLevel, favorOpen, orderCost, ordered } from '../game/bonds.js';
 import { KEEPSAKES } from '../data/keepsakes.js';
+import { VOYAGE, VOYAGE_KEYS, GRAND } from '../data/voyage.js';
+import { voyagePages, stat as vstat, roseDay } from '../game/voyage.js';
 import { plainCopies } from '../game/shop.js';
 import { paperName } from '../data/countries.js';
 import { COUNTRIES, COUNTRY_KEYS } from '../data/countries.js';
@@ -185,6 +187,29 @@ export function createUI(root, act) {
     p.querySelector('[data-close]').onclick = closePanel;
   }
 
+  // Bu ülkenin işi (Yunanistan ada günü, İtalya müzayede, Fransa bukinist, İspanya gül, Mısır onarım) ve yan hikâyesinin durumu
+  function voyageCard(S) {
+    const c = TOWNS[S.town].country || 'tr', V = VOYAGE[c];
+    if (!V) return '';
+    const n = voyagePages(S, c), next = n < V.pages.length && n > 0 ? ` · sonraki sayfa: ${V.need[n]} ${V.unit} (şimdi ${vstat(S, V.stat)})` : n >= V.pages.length ? ' · hikâye tamam ✓' : '';
+    let body = '';
+    if (c === 'it') {
+      const lot = S.voyage.auction, rares = Object.keys(S.rare).filter(id => S.rare[id] > 0 && S.shelf[id] > 0);
+      body = lot ? `<p class="hint">🔨 Bu akşam müzayedede: <b>«${BOOK[lot.book].title}»</b></p>`
+        : rares.length ? `<div class="chips">${rares.map(id => `<button class="btn sm" data-auction="${id}">🔨 «${BOOK[id].title}»</button>`).join('')}</div>`
+        : '<p class="hint">Rafında ilk baskı yok. Kolilerden ve tezgâhtan ✨ ilk baskılar çıkar.</p>';
+    } else if (c === 'fr') {
+      const bq = S.voyage.bq;
+      body = !bq ? `<button class="btn sm ${S.coins < BAL.bqRent ? 'off' : ''}" data-bq-rent>₺${BAL.bqRent} · ${BAL.bqDays} günlüğüne kirala</button>`
+        : `<p class="hint">📦 Kutuda <b>${bq.books.length}/${BAL.bqCap}</b> kitap · ${bq.until - S.day + 1} gün kaldı</p>${S.crate.length && bq.books.length < BAL.bqCap ? `<button class="btn sm" data-bq-fill>Koliden kutuya koy (${S.crate.length})</button>` : ''}`;
+    } else if (c === 'es') {
+      body = `<p class="hint">🌹 Kovada <b>${S.voyage.roses}</b> gül${roseDay(S) ? ' · <b>bugün Gül ve Kitap Günü!</b>' : ` · Gül ve Kitap Günü: ${7 - (S.day % 7)} gün sonra`}</p>
+        <div class="chips">${[5, 10].map(k => `<button class="btn sm" data-roses="${k}">+${k} gül · ₺${k * BAL.rosePrice}</button>`).join('')}</div>`;
+    } else if (c === 'eg') body = `<p class="hint">🪶 Bugün ustanın onarabileceği: <b>${BAL.restorePerDay - S.voyage.restoredToday}</b> · kopya başı ₺${BAL.restoreCost}</p>`;
+    else if (c === 'gr') body = `<p class="hint">⛵ Ada günleri: <b>${vstat(S, 'islandDays')}</b></p>`;
+    return `<h3>${V.icon} ${V.mech} <span class="hint">· ${V.title} ${n}/${V.pages.length}${next}</span></h3><div class="vcard"><p class="hint">${V.how}</p>${body}</div>`;
+  }
+
   // Sipariş: ricası bekleyen ya da hikâyenin istediği, karavanda olmayan kitaplar (ertesi sabah kolide)
   function orderRows(S) {
     const want = [];
@@ -220,6 +245,7 @@ export function createUI(root, act) {
       <h2>📍 Karavanı nereye kuralım?</h2>
       <p class="hint">${TOWNS[S.town].name} içinde yer değiştirmek ücretsiz. Kalabalık yerde satış, sakin yerde sohbet ve öneri çok olur.</p>
       <div class="dgrid one">${cards}</div>
+      ${voyageCard(S)}
       <h3>İtibarın</h3>${rep}
       <h3>Kasabaya katkı</h3>
       <div class="dcard ${S.donated.includes(S.town) ? 'is-on' : ''}"><div class="dicon">📖</div><div><div class="gname">Okuma köşesi</div>
@@ -230,6 +256,10 @@ export function createUI(root, act) {
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-spot]').forEach(b => b.onclick = () => act('spot', b.dataset.spot));
     p.querySelector('[data-donate]')?.addEventListener('click', () => act('donate'));
+    p.querySelectorAll('[data-auction]').forEach(b => b.onclick = () => act('auction', b.dataset.auction));
+    p.querySelector('[data-bq-rent]')?.addEventListener('click', () => act('bq-rent'));
+    p.querySelector('[data-bq-fill]')?.addEventListener('click', () => act('bq-fill'));
+    p.querySelectorAll('[data-roses]').forEach(b => b.onclick = () => act('roses', +b.dataset.roses));
     p.querySelector('[data-close]').onclick = closePanel;
   }
 
@@ -540,9 +570,15 @@ export function createUI(root, act) {
       ${recLine}
       ${Object.keys(T.missed).length ? `<p class="hint">Aranıp bulunamayan:</p><div class="chips">${chips(T.missed, 'miss')}</div>` : ''}
       ${(T.stamps || []).length ? `<p class="tip page">🏅 Yeni pul: ${T.stamps.map(id => { const st = STAMPS.find(x => x.id === id); return `${st.icon} <b>${st.name}</b>`; }).join(', ')} (+₺${T.stamps.length * STAMP_REWARD})</p>` : ''}
+      ${T.auction ? `<p class="tip page">🔨 Müzayede: «${BOOK[T.auction.book].title}» <b class="gold">₺${T.auction.price}</b>'ye satıldı.</p>` : ''}
+      ${T.roses || T.rosesLeft ? `<p class="hint">🌹 Gülle ${T.roses || 0} kitap sattın (+₺${(T.roses || 0) * BAL.roseTip})${T.rosesLeft ? ` · ${T.rosesLeft} gül soldu` : ''}.</p>` : ''}
+      ${(T.voyage || []).map(v => `<p class="tip page">${VOYAGE[v.c].icon} Akdeniz defterine yeni sayfa: <b>${VOYAGE[v.c].pages[v.i].title}</b></p>`).join('')}
+      ${T.grand ? `<p class="tip page">🏛️ <b>${GRAND.title}!</b> Kütüphane Cunda tepesinde yeniden açıldı (+₺${GRAND.coins}).</p>` : ''}
       ${T.page ? `<p class="tip page">📜 Defterden yeni bir sayfa bulundu: <b>${PAGES.find(p => p.id === T.page).title}</b></p>` : ''}
       <p class="tip">💡 ${tip}</p>
-      <div class="row end">${T.page ? '<button class="btn" data-book>📜 Oku</button>' : ''}<button class="btn hl" data-next>☀️ Ertesi sabah</button></div>`);
+      <div class="row end">${T.grand ? '<button class="btn hl2" data-grand>🏛️ Tören</button>' : ''}${(T.voyage || []).length ? '<button class="btn" data-voy>🧭 Oku</button>' : ''}${T.page ? '<button class="btn" data-book>📜 Oku</button>' : ''}<button class="btn hl" data-next>☀️ Ertesi sabah</button></div>`);
+    p.querySelector('[data-grand]')?.addEventListener('click', () => grandPanel(S, () => summaryPanel(S, T)));
+    p.querySelector('[data-voy]')?.addEventListener('click', () => voyagePanel(S, () => summaryPanel(S, T)));
     p.querySelector('[data-next]').onclick = () => { closePanel(); act('next'); };
     p.querySelector('[data-book]')?.addEventListener('click', () => bookPanel(S, T.page, () => summaryPanel(S, T)));
   }
@@ -594,7 +630,7 @@ export function createUI(root, act) {
     const p = openPanel(`
       <div class="paper">
         <div class="masthead"><h2>📰 ${paperName(S.town, TOWNS[S.town].country || 'tr')}</h2><small>${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün · fiyatı bir gülümseme</small></div>
-        ${letter}${(S.post?.orders || []).length ? `<p class="hint">📦 Siparişin geldi, koliye kondu: ${S.post.orders.map(b => `«${BOOK[b].title}»`).join(', ')}</p>` : ''}
+        ${letter}${S.post?.bq?.sold ? `<p class="hint">📦 Bukinist kutun gece ${S.post.bq.sold} kitap sattı (+₺${S.post.bq.coins})${S.post.bq.ended ? '; kira bitti, kalanlar koliye döndü' : ''}.</p>` : ''}${roseDay(S) ? '<p class="hint">🌹 Bugün Gül ve Kitap Günü: sevgililer kitap ve gül arıyor, sokaklar kalabalık.</p>' : ''}${(S.post?.orders || []).length ? `<p class="hint">📦 Siparişin geldi, koliye kondu: ${S.post.orders.map(b => `«${BOOK[b].title}»`).join(', ')}</p>` : ''}
         <div class="news">
           <div>${special}${today}${ad}</div>
           <div class="col2">
@@ -620,14 +656,54 @@ export function createUI(root, act) {
   // Defter sekmeleri: hikâye, pul albümü, mektuplar
   function bookTabs(S, on) {
     const t = (k, label) => `<button class="tab ${on === k ? 'is-on' : ''}" data-tab="${k}">${label}</button>`;
-    return `<div class="tabs head">${t('book', '📜 Defter')}${t('album', `🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 Mektuplar (${S.letters.length})`)}${t('stats', '📊 İstatistik')}${t('passport', `🛂 Pasaport (${Object.keys(S.passport).length})`)}${t('know', `📚 Kitap bilgim (${knownCount(S)})`)}</div>`;
+    return `<div class="tabs head">${t('book', '📜 Defter')}${t('album', `🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 Mektuplar (${S.letters.length})`)}${t('stats', '📊 İstatistik')}${t('passport', `🛂 Pasaport (${Object.keys(S.passport).length})`)}${t('know', `📚 Kitap bilgim (${knownCount(S)})`)}${S.countries.length > 1 ? t('voy', `🧭 Akdeniz defteri (${VOYAGE_KEYS.reduce((n, c) => n + voyagePages(S, c), 0)}/15)`) : ''}</div>`;
   }
   function wireTabs(p, S, back) {
     p.querySelectorAll('[data-tab]').forEach(b => b.onclick = () =>
       b.dataset.tab === 'book' ? bookPanel(S, null, back) : b.dataset.tab === 'album' ? albumPanel(S, back)
         : b.dataset.tab === 'stats' ? statsPanel(S, back) : b.dataset.tab === 'passport' ? passportPanel(S, back)
-        : b.dataset.tab === 'know' ? knowPanel(S, back) : mailPanel(S, back));
+        : b.dataset.tab === 'know' ? knowPanel(S, back) : b.dataset.tab === 'voy' ? voyagePanel(S, back) : mailPanel(S, back));
   }
+  // Akdeniz defteri: ülke ülke yan hikâyeler; açılmayan sayfaların yerinde nasıl açılacağı
+  function voyagePanel(S, back = null) {
+    const parts = VOYAGE_KEYS.map(c => {
+      const V = VOYAGE[c], n = voyagePages(S, c), open = S.countries.includes(c);
+      const pages = V.pages.map((pg, i) => i < n ? `<div class="vpage"><b>${pg.title}</b><p class="say">${pg.text}</p></div>`
+        : `<div class="vpage locked">${i === n && open ? (i === 0 ? `${COUNTRIES[c].name}'nda ilk dükkânı aç.` : `${V.need[i]} ${V.unit} (şimdi ${vstat(S, V.stat)})`) : '???'}</div>`).join('');
+      return `<h3>${flagSVG(COUNTRIES[c].flag)} ${V.icon} ${V.title} <span class="hint">· ${V.mech} · ${n}/${V.pages.length}${n >= V.pages.length ? ` · 🧩 ${V.piece}` : ''}</span></h3>${open ? `<p class="hint">${V.how}</p>` : '<p class="hint">🔒 Bu ülkenin yolu henüz kapalı.</p>'}<div class="vpages">${pages}</div>`;
+    }).join('');
+    const p = openPanel(`
+      ${bookTabs(S, 'voy')}
+      <p class="hint">Her ülkenin kendine özgü bir işi ve üç sayfalık bir hikâyesi var. Beşi bitince kütüphanenin parçaları karavanında toplanır${S.grandDone ? ' ve kütüphane açıldı 🏛️.' : '; sonra Cunda\'da, Ada tepesinde dükkân aç: açılış töreni.'}</p>
+      ${parts}
+      <div class="row end">${S.grandDone ? '<button class="btn" data-grand>🏛️ Tören</button>' : ''}<button class="btn hl" data-close>Kapat</button></div>`, 'wide');
+    wireTabs(p, S, back);
+    p.querySelector('[data-grand]')?.addEventListener('click', () => grandPanel(S, () => voyagePanel(S, back)));
+    p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
+  }
+
+  // Açılış töreni: kütüphanenin beş parçası, dostlar, oyunun özeti; sonrası serbest oyun
+  function grandPanel(S, onContinue = null) {
+    const friends = Object.entries(S.friends).filter(([, h]) => h >= HEARTS_MAX).map(([id]) => REGULARS[id].name);
+    const p = openPanel(`
+      <div class="finale">
+        <div class="big-icon">🏛️📚🌊</div>
+        <h2>${GRAND.title}</h2>
+        <p class="say">${GRAND.text}</p>
+        <div class="chips">${VOYAGE_KEYS.map(c => `<span class="chip">${VOYAGE[c].icon} ${VOYAGE[c].piece}</span>`).join('')}</div>
+        <div class="stats">
+          <div><span>Gün</span><b>${S.totals.days}</b></div>
+          <div><span>Satılan kitap</span><b>${S.totals.sold}</b></div>
+          <div><span>Ülke</span><b>${S.countries.length}</b></div>
+          <div><span>Pul</span><b>${S.stamps.length}/${STAMPS.length}</b></div>
+        </div>
+        ${friends.length ? `<p class="hint">Törene gelen dostların: ${friends.join(', ')}</p>` : ''}
+        <p class="hint">Kütüphane açık; karavan yine yolda. Kalan pulları, dostlukları ve kasabaları dilediğin gibi gez.</p>
+      </div>
+      <div class="row end"><button class="btn hl" data-go>☀️ Yola devam</button></div>`, 'wide');
+    p.querySelector('[data-go]').onclick = () => onContinue ? onContinue() : closePanel();
+  }
+
   // Kitap bilgim: karşılaşılan kitaplar, tanıtımları ve bilinen etiketleri (türe göre)
   function knowPanel(S, back = null) {
     const met = id => S.known[id] || S.shelf[id] || S.soldBooks[id] || S.crate.some(e => e.id === id);
@@ -894,5 +970,5 @@ export function createUI(root, act) {
     }
   }
 
-  return { useStage, stageOn: () => !!stage?.on, stageTick: () => stage?.tick(), hud, toast, speech, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  return { grandPanel, voyagePanel, useStage, stageOn: () => !!stage?.on, stageTick: () => stage?.tick(), hud, toast, speech, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

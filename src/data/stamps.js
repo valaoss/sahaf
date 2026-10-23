@@ -19,6 +19,8 @@ export const STAMPS = [
   { id: 'gokkusagi', name: 'Gökkuşağı karavan', icon: '🌈', color: '#f3e2f7', need: { paints: 5 },     desc: 'Beş boyanın hepsini al.' },
   { id: 'bagis',     name: 'Okuma köşeleri',    icon: '📖', color: '#e6efd9', need: { donated: 3 },    desc: 'Üç kasabaya okuma köşesi bağışla.' },
   { id: 'sahafi',    name: 'Kasabanın sahafı', icon: '🏠', color: '#f7e6c8', need: { repTop: 1 },     desc: 'Bir kasabada en yüksek itibara ulaş.' },
+  { id: 'akdeniz',   name: 'Akdeniz defteri',   icon: '🧭', color: '#dcebf5', need: { voyage: 5 },     desc: 'Beş ülkenin hikâyesini tamamla.' },
+  { id: 'acilis',    name: 'Kütüphanenin açılışı', icon: '🏛️', color: '#f3e3c4', need: { grand: 1 },    desc: 'Kütüphaneyi Cunda tepesinde yeniden aç.' },
   { id: 'nadir',     name: 'İlk baskı',         icon: '✨', color: '#fff4c4', need: { rareSold: 1 },   desc: 'Bir koleksiyoncuya ilk baskı sat.' },
   { id: 'nadir5',    name: 'Nadir kitap avcısı', icon: '🗝️', color: '#f0e2c8', need: { rareSold: 5 },   desc: 'Beş ilk baskı sat.' },
   { id: 'mektup',    name: 'İlk mektup',        icon: '💌', color: '#fde2e8', need: { letters: 1 },    desc: 'Önerdiğin bir kitap için mektup al.' },

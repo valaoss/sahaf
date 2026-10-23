@@ -11,6 +11,7 @@ import { TAGS } from '../data/books.js';
 import { BLURBS } from '../data/blurbs.js';
 import { knownTags, knowsAll, readsLeft } from '../game/knowledge.js';
 import { settings } from '../audio/audio.js';
+import { TOWNS } from '../data/towns.js';
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const hash = str => [...str].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
@@ -81,12 +82,13 @@ export function createShelfStage(root, { act, map }) {
       ${pb ? `<span class="st-book"><i style="--c:${GENRES[pb.genre].color}"></i><b>${pick.rare ? '✨ ' : ''}${esc(pb.title)}</b><small>${esc(pb.author)} · ${COND[pick.cond] || 'İyi'}</small></span>
         <span class="st-hint">→ rafa, koliye ya da ⭐ vitrine dokun</span>
         <span class="st-about">${BLURBS[pb.id] ? `<em>${esc(BLURBS[pb.id])}</em>` : ''}
-          <span class="st-tags2">${(settings.allTags ? pb.tags : knownTags(S, pb.id)).map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(' · ') || ''}${!settings.allTags && !knowsAll(S, pb.id) ? ` <button class="btn sm" data-read ${readsLeft(S) ? '' : 'disabled'} title="Okursan bütün etiketlerini öğrenirsin">📖 Oku · ${readsLeft(S)}</button>` : ''}</span></span>`
+          <span class="st-tags2">${(settings.allTags ? pb.tags : knownTags(S, pb.id)).map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(' · ') || ''}${!settings.allTags && !knowsAll(S, pb.id) ? ` <button class="btn sm" data-read ${readsLeft(S) ? '' : 'disabled'} title="Okursan bütün etiketlerini öğrenirsin">📖 Oku · ${readsLeft(S)}</button>` : ''}${TOWNS[S.town].country === 'eg' && pick.cond !== 'temiz' ? ` <button class="btn sm" data-restore title="Kâğıt ustası bu kopyayı temize çevirir: daha pahalı satılır">🪶 Onar · ₺${BAL.restoreCost}</button>` : ''}</span></span>`
         : '<span class="st-hint">Kitabı sürükle ya da dokunup seç</span>'}
       <button class="btn sm" data-auto ${S.crate.length ? '' : 'disabled'}>✨ Hepsini diz</button>
       <button class="btn hl" data-done>Bitti ✓</button>`;
     bar.querySelector('[data-done]').onclick = close;
     bar.querySelector('[data-read]')?.addEventListener('click', () => act('read', pb.id));
+    bar.querySelector('[data-restore]')?.addEventListener('click', () => act('restore', sel));
     bar.classList.toggle('about', !!pb);
     const both = { act, S, sel: () => sel, setSel: v => { sel = v; }, rerender: () => render(S), onDrop: t => { if (t.to === 'sec') landed = `s:${t.sec}:${t.pos}`; } };
     wireShelf(el, both);
