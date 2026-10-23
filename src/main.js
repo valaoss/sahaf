@@ -88,6 +88,7 @@ const crowd = createCrowd(scene.crowdView(), {
 // canlı arka plan: yeni motorda sahnenin içinde
 const ambient = MOTOR2 ? null : createAmbient(scene.ambientBack, scene.ambientFront);
 // karavana dokununca içi açılır
+scene.setOpen(S.phase === 'open');
 scene.onCart(() => { if (!ui.isOpen()) { sfx('page'); ui.interiorPanel(S); } });
 
 // sabah alışverişinden sonra pul kontrolü
@@ -204,6 +205,7 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
     tap('MEDIUM');
     sfx('bell');
     tutorialEvent(S, 'open');
+    scene.setOpen(true);
     if (!shelfCount(S)) ui.toast('Raflar boş! Müşteriler eli boş dönecek.');
     else if (S.day === 1) ui.toast('❓ balonlu müşteriye dokun: senden kitap önerisi istiyor.');
   } else if (a === 'speed') speed = speed > 1 ? 1 : FAST;
@@ -329,7 +331,8 @@ function applyScale() { document.getElementById('frame').style.setProperty('--ts
 applyScale();
 
 ui.hud(S, speed);
-let last = performance.now();
+let last = performance.now(), lastFocus = null;
+const panelEl = document.getElementById('panel');
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
@@ -358,6 +361,7 @@ function frame(now) {
     setMood({ night: dayT > 0.82 });
     if (closingTime(S) && crowd.busy === 0) {
       const T = closeShop(S);
+      scene.setOpen(false);
       saveGame(S);
       sfx(T.page ? 'heart' : 'bell');
       if (T.page || (T.stamps || []).length || T.quest?.done) ui.confetti();
@@ -365,6 +369,9 @@ function frame(now) {
     }
   }
   ambient?.update(dt, { season: seasonOf(S.day), weather: weatherOf(S.day) });
+  // raflar açıkken kamera karavana yaklaşır
+  const fc = ui.isOpen() && panelEl.classList.contains('shelf2') ? 'cart' : null;
+  if (fc !== lastFocus) { scene.focus(fc); lastFocus = fc; }
   scene.tick?.(dt);
   ui.hud(S, speed);
   const st = tutorialStep(S);

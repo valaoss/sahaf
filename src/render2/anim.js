@@ -48,12 +48,14 @@ export function pose(a, t, opts) {
     P.alpha = f < .4 ? .7 * f / .4 : .7 * (1 - (f - .4) / .6);
     P.ty = 4 - 18 * f;
   } else if (has('awning')) {
-    // rüzgârda tente dalgalanır, sakin havada durur
+    // rüzgârda tente dalgalanır, sakin havada durur; dükkân kapalıyken sarılı (opts.awn)
     P.o = at(bb, .5, 0);
+    const awn = opts.awn ?? 1;
+    P.sy = .14 + .86 * awn;
     if (opts.windy) {
       const f = frac(t / 2.6), g = f < .5 ? f * 2 : 2 - f * 2;
       P.kx = deg(g < .4 ? -3 * g / .4 : -3 + 5 * (g - .4) / .6);
-      P.sy = g < .4 ? 1 - .06 * g / .4 : .94 + .09 * (g - .4) / .6;
+      P.sy *= g < .4 ? 1 - .06 * g / .4 : .94 + .09 * (g - .4) / .6;
     }
   }
   return P;

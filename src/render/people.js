@@ -7,6 +7,7 @@
 import { el } from '../core/svg.js';
 import { seeded } from '../core/rng.js';
 import { GENRES } from '../data/genres.js';
+import { BOOK } from '../data/books.js';
 import { personSVG, figureMeta } from './figure.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -123,7 +124,8 @@ export function createCrowd(view, handlers) {
     mood(p, r.happy ? 'cheer' : r.bought.length ? null : 'sad');
     if (r.grade) say(p, r.grade === 'perfect' ? '🤩' : r.grade === 'good' ? '🙂' : '😕');
     else say(p, r.happy ? '💛' : r.bought.length ? '🙂' : '😕');
-    if (r.paid) handlers.paid?.(p.x);
+    if (r.paid) { handlers.paid?.(p.x); view.pay?.(p); }
+    for (const id of r.bought || []) view.bookFly?.(p.x, GENRES[BOOK[id].genre].color);
     if (r.paid) view.floatText(p.x, `+₺${r.paid}${r.rare ? ' ✨' : ''}`, r.rare ? '#d9961a' : '#c7802b');
     else if (!r.grade) view.floatText(p.x, GENRES[p.c.wants].icon + '✕', '#a07d6c');
     if (r.grade === 'perfect') view.hearts(p.x);

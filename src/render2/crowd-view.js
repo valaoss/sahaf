@@ -27,6 +27,9 @@ export function canvasCrowdView(getScale) {
     hush(p) { p.v.bubOn = false; },
     remove(p) { const i = list.indexOf(p); if (i >= 0) list.splice(i, 1); },
     floatText(x, text, color) { fx.push({ x, y: 560, text, color, size: 34, bold: true, t0: now, dur: 1.5 }); },
+    pay(p) { p.v.payAt = now; },
+    // satılan kitap raftan müşterinin eline süzülür
+    bookFly(x, color) { fx.push({ book: true, x0: 760 + Math.random() * 140, y0: 600, x1: x, y1: 690, color, t0: now, dur: .55 }); },
     hearts(x) { for (let i = 0; i < 4; i++) fx.push({ x: x - 30 + i * 20, y: 520, text: '💛', size: 28, t0: now + i * .12, dur: 1.5 }); },
 
     // dokunma: öneri bekleyen kişiye isabet
@@ -50,6 +53,14 @@ export function canvasCrowdView(getScale) {
         const f = fx[i], u = (t - f.t0) / f.dur;
         if (u >= 1) { fx.splice(i, 1); continue; }
         if (u < 0) continue;
+        if (f.book) {
+          const e = u * u * (3 - 2 * u), x = f.x0 + (f.x1 - f.x0) * e, y = f.y0 + (f.y1 - f.y0) * e - 120 * Math.sin(Math.PI * u);
+          ctx.save(); ctx.translate(x, y); ctx.rotate(u * 5);
+          ctx.fillStyle = f.color; ctx.fillRect(-9, -12, 18, 24);
+          ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(-6, -9, 12, 3);
+          ctx.restore();
+          continue;
+        }
         // style.css "float": 0–%20 belirip büyür, sonra yavaşlayarak yükselip söner
         const w = (u - .2) / .8;
         const alpha = u < .2 ? u / .2 : 1 - w;
@@ -91,19 +102,25 @@ export function canvasCrowdView(getScale) {
     const items = walking ? r.side : r.front;
     // poz
     const A = {};
-    let upY = 0, headR = 0, headY = 0, blink = false;
+    let upY = 0, headR = 0, headY = 0, blink = false, squash = 1;
     if (walking) {
       const period = age === 'child' ? .8 : age === 'elder' ? 1.6 : 1.04;
       const ph = TAU * (t - (v.since?.walking || 0)) / period;
       const leg = age === 'elder' ? 12 : 24, arm = age === 'elder' ? 8 : 22;
       A.legF = deg(leg * Math.sin(ph)); A.legB = -A.legF;
       A.armF = st.has('holding') ? deg(-6 + 2.5 * Math.sin(ph)) : deg(-arm * Math.sin(ph)); A.armB = deg(arm * Math.sin(ph));
-      upY = -4 * (0.5 - 0.5 * Math.cos(2 * ph));
+      upY = -(age === 'child' ? 9 : 4) * (0.5 - 0.5 * Math.cos(2 * ph));
     } else {
       upY = -1.5 * wave(lt / 3.6);
       const cheerAt = v.since?.cheer;
-      if (st.has('cheer') && cheerAt !== undefined && t - cheerAt < 1) upY = -14 * Math.abs(Math.sin(Math.PI * (t - cheerAt) / .5));
-      A.armR = ease(v, 'armR', st.has('holding') ? deg(-6) : st.has('reading') ? deg(22) : 0, 6, dt);
+      // sevinç: önce hafifçe çöker, sonra iki kez sıçrar (ezilip esneyerek)
+      if (st.has('cheer') && cheerAt !== undefined && t - cheerAt < 1.1) {
+        const u = t - cheerAt;
+        if (u < .12) squash = 1 - .08 * (u / .12);
+        else { const j = Math.abs(Math.sin(Math.PI * (u - .12) / .5)); upY = -16 * j; squash = .95 + .1 * j; }
+      }
+      const paying = v.payAt !== undefined && t - v.payAt < .7;
+      A.armR = ease(v, 'armR', paying ? deg(-65) : st.has('holding') ? deg(-6) : st.has('reading') ? deg(22) : 0, paying ? 12 : 6, dt);
       A.armL = ease(v, 'armL', st.has('cheer') ? deg(-150) : 0, 10, dt);
       A.legL = 0; A.legR = 0;
       // baş: okurken eğik, üzgünken düşük, yoksa ara sıra bakınır
@@ -120,6 +137,7 @@ export function canvasCrowdView(getScale) {
       if (it.type === 'up') {
         ctx.save();
         ctx.translate(0, upY);
+        if (squash !== 1) { ctx.translate(0, -82); ctx.scale(2 - squash, squash); ctx.translate(0, 82); }
         if (it.hunch) { const [a, cx, cy] = it.hunch; ctx.translate(cx, cy); ctx.rotate(deg(a)); ctx.translate(-cx, -cy); }
       } else if (it.type === 'down') ctx.restore();
       else if (it.type === 'seg') drawCell(ctx, r, it.cell);

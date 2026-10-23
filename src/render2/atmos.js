@@ -160,5 +160,19 @@ export function createAtmos() {
     ctx.restore();
   }
 
-  return { sky, sun, sunPos, seaFar, seaNear, cloudShadows, shadowLean, rainGround, windLeaves, lightPools };
+  // ay: akşam doğu ufkundan yükselir
+  function moon(ctx, night) {
+    const a = smooth(.4, .9, night), x = 610, y = 225 - 85 * a;
+    ctx.save();
+    ctx.globalAlpha = a;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 120);
+    g.addColorStop(0, 'rgba(255,248,220,.35)'); g.addColorStop(1, 'rgba(255,248,220,0)');
+    ctx.fillStyle = g; ctx.fillRect(x - 120, y - 120, 240, 240);
+    ctx.fillStyle = '#fff8e2'; ctx.beginPath(); ctx.arc(x, y, 30, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(220,210,190,.5)';
+    for (const [dx, dy, r] of [[-9, -6, 6], [8, 8, 4], [10, -10, 3]]) { ctx.beginPath(); ctx.arc(x + dx, y + dy, r, 0, TAU); ctx.fill(); }
+    ctx.restore();
+  }
+
+  return { sky, sun, moon, sunPos, seaFar, seaNear, cloudShadows, shadowLean, rainGround, windLeaves, lightPools };
 }

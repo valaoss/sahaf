@@ -361,6 +361,8 @@ export function buildScene(host) {
     // sahne koordinatı (1600×900) → ekran pikseli
     toClient(x, y) { const pt = svg.createSVGPoint(); pt.x = x; pt.y = y; const s = pt.matrixTransform(svg.getScreenCTM()); return { x: s.x, y: s.y }; },
     onCart(fn) { $('cartHit').addEventListener('click', fn); },
+    setOpen() {},
+    focus() {},
     // insanlar için görünüm (render/people.js svgView)
     crowdView() { return svgView(sprites, $('fx')); },
     people: $('people'),

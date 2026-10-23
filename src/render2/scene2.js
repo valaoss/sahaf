@@ -64,7 +64,11 @@ export function buildScene2(host) {
   let W = 1, H = 1, dpr = 1, k = 1, ox = 0, oy = 0, bakeScale = 1;
   const bands = {}, dirty = new Set(Object.keys(BANDS));
   let baking = false, ready = null, t = 0;
-  const st = { windy: false, weather: 'gunesli', season: 'İlkbahar', day: 0, paint: true, festival: false, town: 'ayvalik', scene: 'sahil' };
+  const st = { windy: false, weather: 'gunesli', season: 'İlkbahar', day: 0, paint: true, festival: false, town: 'ayvalik', scene: 'sahil', open: false, openAt: -9 };
+  // kamera: z yakınlık, (fx, fy) odak; hedefe doğru yumuşakça akar
+  const cam = { z: 1, fx: 830, fy: 600, tz: 1, tfx: 830, tfy: 600 };
+  const view = () => { const s = k * cam.z; return { s, tx: ox + (1 - cam.z) * cam.fx * k, ty: oy + (1 - cam.z) * cam.fy * k }; };
+  const toScene = (cx, cy) => { const r = canvas.getBoundingClientRect(), v = view(); return { x: (cx - r.left - v.tx) / v.s, y: (cy - r.top - v.ty) / v.s }; };
   const atmos = createAtmos();
   const crowd = canvasCrowdView(() => bakeScale);
   const life = createLife();
@@ -117,13 +121,13 @@ export function buildScene2(host) {
   // dokunma: önce öneri bekleyen kişi, sonra karavan
   let cartFn = null;
   canvas.addEventListener('click', e => {
-    const r = canvas.getBoundingClientRect(), x = (e.clientX - r.left - ox) / k, y = (e.clientY - r.top - oy) / k;
+    const { x, y } = toScene(e.clientX, e.clientY);
     const tap = crowd.hit(x, y);
     if (tap) return tap();
     if (cartFn && x > CART.x && x < CART.x + CART.w && y > CART.y && y < CART.y + CART.h) cartFn(e);
   });
   canvas.addEventListener('pointermove', e => {
-    const r = canvas.getBoundingClientRect(), x = (e.clientX - r.left - ox) / k, y = (e.clientY - r.top - oy) / k;
+    const { x, y } = toScene(e.clientX, e.clientY);
     canvas.style.cursor = crowd.hit(x, y) || (x > CART.x && x < CART.x + CART.w && y > CART.y && y < CART.y + CART.h) ? 'pointer' : '';
   });
 
@@ -153,12 +157,19 @@ export function buildScene2(host) {
     t += dt;
     life.update(dt, st);
     const L = light(st.day);
-    const opts = { windy: st.windy, night: Math.min(1, Math.max(0, (L.night - .2) / .25)) };
-    ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * ox, dpr * oy);
+    // tente: dükkân açılınca yaylanarak açılır, kapanınca sarılır (0 sarılı, 1 açık)
+    const since = t - st.openAt, spring = u => 1 - Math.exp(-6 * u) * Math.cos(9 * u);
+    const awn = st.open ? Math.min(1, Math.max(0, spring(Math.max(0, since)))) : Math.max(0, 1 - since / .6);
+    const opts = { windy: st.windy, night: Math.min(1, Math.max(0, (L.night - .2) / .25)), awn };
+    const ease = Math.min(1, dt * 3);
+    cam.z += (cam.tz - cam.z) * ease; cam.fx += (cam.tfx - cam.fx) * ease; cam.fy += (cam.tfy - cam.fy) * ease;
+    const v = view();
+    ctx.setTransform(dpr * v.s, 0, 0, dpr * v.s, dpr * v.tx, dpr * v.ty);
 
     const rainy = st.weather === 'yagmurlu';
     atmos.sky(ctx, TOWNS[st.town], st.day, L.night, t);
     if (L.night < .95 && !rainy) atmos.sun(ctx, st.day);
+    if (L.night > .4) atmos.moon(ctx, L.night);
     drawBand('bandSky', opts);
     drawBand('bandF', opts);
     atmos.seaFar(ctx, t, L.night);
@@ -171,7 +182,9 @@ export function buildScene2(host) {
     // karavanın ışık zinciri: gündüz sönük, akşam yanıp söner
     ctx.save(); ctx.translate(610, 420);
     for (const p of lights) {
-      ctx.globalAlpha = opts.night > .3 ? .15 + .85 * (0.5 - 0.5 * Math.cos(2 * Math.PI * (t - p.delay) / 1.8)) : .55;
+      // kapalıyken sönük; açılınca soldan sağa sırayla yanar
+      const on = st.open ? Math.min(1, Math.max(0, (since - .3 - p.x / 600) * 5)) : Math.max(0, 1 - since * 2);
+      ctx.globalAlpha = .18 + on * (opts.night > .3 ? .85 * (0.5 - 0.5 * Math.cos(2 * Math.PI * (t - p.delay) / 1.8)) : .4);
       ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore(); ctx.globalAlpha = 1;
@@ -192,7 +205,7 @@ export function buildScene2(host) {
       glowOn = true;
       gctx.setTransform(1, 0, 0, 1, 0, 0);
       gctx.clearRect(0, 0, glowCanvas.width, glowCanvas.height);
-      gctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * ox, dpr * oy);
+      gctx.setTransform(dpr * v.s, 0, 0, dpr * v.s, dpr * v.tx, dpr * v.ty);
       gctx.globalCompositeOperation = 'lighter';
       atmos.lightPools(gctx, L.night, crowd.lamps());
       gctx.translate(610, 420);
@@ -215,7 +228,15 @@ export function buildScene2(host) {
     ...base,
     get ready() { return ready; },
     tick: frame,
-    toClient(x, y) { const r = canvas.getBoundingClientRect(); return { x: r.left + ox + x * k, y: r.top + oy + y * k }; },
+    toClient(x, y) { const r = canvas.getBoundingClientRect(), v = view(); return { x: r.left + v.tx + x * v.s, y: r.top + v.ty + y * v.s }; },
+    // dükkân açık/kapalı: tente ve ışıklar canlanır; ilk çağrıda (yükleme) animasyonsuz
+    setOpen(open) {
+      if (open === st.open) return;
+      st.open = open; st.openAt = t > .5 ? t : -9;
+      if (open && t > .5) { cam.z = 1.05; cam.tz = 1; }
+    },
+    // kamera odağı: 'cart' karavana yakınlaşır (raflar açıkken), null geri döner
+    focus(kind) { if (kind === 'cart') Object.assign(cam, { tz: 1.32, tfx: 835, tfy: 560 }); else Object.assign(cam, { tz: 1, tfx: 830, tfy: 600 }); },
     onCart(fn) { cartFn = fn; },
     crowdView: () => crowd,
     setTown(key) { base.setTown(key); st.town = key; rebake('bandSky', 'bandF', 'bandH'); },
