@@ -19,7 +19,8 @@ import { crateAdd, crateFree, takeCopy, chanceOf, refill } from './shelving.js';
 import { EVENTS } from '../data/calendar.js';
 import { eventOf } from './calendar.js';
 import { countryOf, travelInfo, crossBorder } from './travel.js';
-import { learn, learnOne } from './knowledge.js';
+import { learn, learnOne, learnAll } from './knowledge.js';
+import { FAVOR_AT, favorOpen, makeFavor, addRep, repLevel } from './bonds.js';
 import { COUNTRIES } from '../data/countries.js';
 import { TALK } from '../data/talk.js';
 import { seeded } from '../core/rng.js';
@@ -131,7 +132,7 @@ export function decaySat(S) {
 
 // --- Giderler ---
 // Park ücreti: kalabalık yer pahalı; okuma köşesi bağışlanan kasabada ücretsiz
-export const parkFee = (S, spotKey = S.spot) => S.donated.includes(S.town) ? 0
+export const parkFee = (S, spotKey = S.spot) => S.donated.includes(S.town) || repLevel(S) >= 3 ? 0
   : Math.round(BAL.parkRate * TOWNS[S.town].traffic * SPOTS[S.town][spotKey].traffic);
 // Bakım: takılı süsler (hediyeler bakımsız) ve geliştirmeler
 export function upkeepOf(S) {
@@ -150,6 +151,7 @@ export function donate(S) {
   S.coins -= BAL.donateCost;
   S.totals.spent += BAL.donateCost;
   S.donated.push(S.town);
+  addRep(S, S.town, 5);
   return null;
 }
 
@@ -268,15 +270,36 @@ export function addHeart(S, id) { const res = {}; befriend(S, id, res); return r
 function befriend(S, id, res) {
   const before = S.friends[id] || 0;
   if (before >= HEARTS_MAX) return;
+  // rica getirilmeden dostluk ilerlemez
+  if (before >= FAVOR_AT && favorOpen(S, id)) { res.waiting = id; return; }
   const now = before + 1;
   S.friends[id] = now;
   res.friend = { id, hearts: now };
+  if (now === FAVOR_AT && !S.favors[id]) res.friend.favor = makeFavor(S, id).book;
   if (now === HEARTS_MAX && !S.gifts.includes(id)) {
     S.gifts.push(id);
     const R = REGULARS[id];
     if (R.gift && DECOR[R.gift]) { S.decor.owned.push(R.gift); res.friend.gift = R.gift; }
-    else { S.coins += GIFT_COINS; res.friend.coins = GIFT_COINS; }
+    else { S.keepsakes.push(id); res.friend.keepsake = id; }
   }
+}
+
+// Rica getirildi: kitap verilir (satış fiyatının birkaç katı), kalp, itibar; kitabın her şeyi öğrenilir
+export function deliverFavor(S, id) {
+  const fv = S.favors[id];
+  if (!favorOpen(S, id)) return { why: 'Bekleyen bir rica yok.' };
+  if (!(plainCopies(S, fv.book) > 0)) return { why: 'Kitap rafta yok.' };
+  takeCopy(S, fv.book);
+  takeBook(S, fv.book);
+  if (!S.shelf[fv.book]) S.featured = S.featured.filter(x => x !== fv.book);
+  const coins = GENRES[BOOK[fv.book].genre].price * BAL.favorPay;
+  S.coins += coins;
+  if (S.today) { S.today.revenue += coins; S.today.favors = (S.today.favors || 0) + 1; }
+  fv.done = true;
+  learnAll(S, fv.book);
+  const res = { coins, book: fv.book, repUp: addRep(S, REGULARS[id].town, 3) };
+  befriend(S, id, res);
+  return res;
 }
 
 // Raftaki o türden, normal satışa açık bir kitap (çok olan daha olası)
@@ -300,6 +323,7 @@ function sell(S, id, res, rareCopy = false, mul = 1) {
   const sat = (S.sat[S.town] = S.sat[S.town] || {});
   sat[g] = (sat[g] || 0) + 1;
   if (cp.sec >= 0 && T.secSold) T.secSold[cp.sec]++;
+  (T.soldIds = T.soldIds || []).push(id);
   res.bought.push(id);
   res.paid += Math.max(1, Math.round(GENRES[g].price * BAL.priceTags[cp.price].mul * BAL.conds[cp.cond].sell * (rareCopy ? BAL.rareMul : 1) * mul));
   if (rareCopy) { res.rare = true; S.totals.rareSold++; T.rareSold = (T.rareSold || 0) + 1; }
@@ -385,6 +409,9 @@ export function recommend(S, c, id, opts = {}) {
       T.tips += res.tip;
       if (res.grade === 'perfect') {
         S.totals.perfect++;
+        // müdavimine tam isabet: kasabada adın duyulur
+        const up = c.reg ? addRep(S, S.town, 1) : null;
+        if (up) T.repUp = up;
         // mektuplar için: kime, ne zaman, nerede, hangi kitap
         S.recHistory.push({ day: S.day, town: S.town, spot: S.spot, book: id, arch: c.arch || null, reg: c.reg || null, look: c.look });
         // sınır aşılırsa önce mektubu gitmiş olanlar atılır; bekleyen öneriler korunur
@@ -420,7 +447,7 @@ export function stallOf(S) {
     let w = r() * COND_KEYS.reduce((n, k) => n + BAL.conds[k].w, 0), cond = 'iyi';
     for (const k of COND_KEYS) { w -= BAL.conds[k].w; if (w <= 0) { cond = k; break; } }
     const rare = r() < BAL.stallRare * dayMods(S.day, S.town).rare;
-    const cost = Math.max(1, Math.ceil(GENRES[g].cost * BAL.conds[cond].buy * (rare ? BAL.rareMul * 0.8 : 1)));
+    const cost = Math.max(1, Math.ceil(GENRES[g].cost * BAL.conds[cond].buy * (rare ? BAL.rareMul * 0.8 : 1) * (repLevel(S) >= 1 ? 0.8 : 1)));
     items.push({ i, id: b.id, cond, rare, cost, sold: S.stall.sold.includes(i) });
   }
   return items;

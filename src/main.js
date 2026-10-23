@@ -31,6 +31,8 @@ import { STAMPS } from './data/stamps.js';
 import { PAGES } from './data/story.js';
 import { tap } from './core/native.js';
 import { readBook } from './game/knowledge.js';
+import { orderBook, favorOpen, makeFavor } from './game/bonds.js';
+import { deliverFavor } from './game/shop.js';
 import { TAGS } from './data/books.js';
 import { buildScene } from './render/scene.js';
 import { buildScene2 } from './render2/scene2.js';
@@ -79,15 +81,27 @@ const crowd = createCrowd(scene.crowdView(), {
       if (r.bought.length) { scene.setStock(S); tap(r.grade === 'perfect' ? 'MEDIUM' : 'LIGHT'); }
       crowd.answer(c, r);
       sfx(r.grade === 'perfect' || r.friend ? 'heart' : r.grade === 'good' ? 'coin' : 'sad');
-      if (r.friend?.gift || r.friend?.coins) { saveGame(S); ui.confetti(); ui.giftPanel(r.friend); }
+      if (r.friend?.gift || r.friend?.coins || r.friend?.keepsake) { saveGame(S); ui.confetti(); ui.giftPanel(r.friend); }
+      if (r.friend?.favor) setTimeout(() => ui.toast(`🎁 ${REGULARS[c.reg].name} senden bir ricada bulundu: «${BOOK[r.friend.favor].title}». Bir dahaki gelişinde rafında olsun.`), 1800);
       // müşterinin karşılığı: konuşma kartı (kalp ya da bahşiş bilgisiyle)
       const line = c.reg && r.grade === 'perfect' ? REGULARS[c.reg].thanks : replyFor(S, c, r.discounted ? { grade: 'good' } : r, id);
-      const base = r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.discounted ? `İndirimle ₺${r.paid}` : r.grade !== 'miss' ? `Bahşiş ₺${r.tip}` : '';
+      const base = r.waiting ? '🎁 Ricasını bekliyor' : r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.discounted ? `İndirimle ₺${r.paid}` : r.grade !== 'miss' ? `Bahşiş ₺${r.tip}` : '';
       // öneriden öğrenilen etiket: kart bir sonraki sefer onu gösterir
       const note = [base, (r.learned || []).length ? '📚 ' + r.learned.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ') : ''].filter(Boolean).join(' · ');
       const a = crowd.anchor(c);
-      if (!(r.friend?.gift || r.friend?.coins)) ui.speech(c, line, r.grade, note, a && toFrame(a.x, a.y));
-    }, settings.hints !== false, { onTalk: () => talkHint(S, c), tea: S.upgrades.includes('cay'), teaLine: () => teaLine(S) });
+      if (!(r.friend?.gift || r.friend?.coins || r.friend?.keepsake)) ui.speech(c, line, r.grade, note, a && toFrame(a.x, a.y));
+    }, settings.hints !== false, { onTalk: () => talkHint(S, c), tea: S.upgrades.includes('cay'), teaLine: () => teaLine(S),
+      // müdavimin ricası: kitap raftaysa doğrudan verilir
+      favor: c.reg && favorOpen(S, c.reg) ? S.favors[c.reg].book : null,
+      onFavor: () => {
+        const d = deliverFavor(S, c.reg);
+        if (d.why) return ui.toast(d.why);
+        scene.setStock(S); tap('MEDIUM'); sfx('heart'); ui.confetti();
+        crowd.answer(c, { bought: [d.book], paid: d.coins, tip: 0, happy: true, grade: 'perfect' });
+        if (d.friend?.gift || d.friend?.keepsake) return ui.giftPanel(d.friend);
+        const a = crowd.anchor(c);
+        ui.speech(c, `«${BOOK[d.book].title}»! Bunu nereden buldun? Yıllardır arıyordum.`, 'perfect', `+₺${d.coins}${d.friend ? ` · 💛 ${d.friend.hearts}/${HEARTS_MAX}` : ''}`, a && toFrame(a.x, a.y));
+      } });
   },
   timeout: c => recommend(S, c, null),
   paid: x => { const at = toFrame(x, 540); ui.flyCoin(at.xf, at.yf); },
@@ -171,6 +185,11 @@ scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[ar
     if (why) ui.toast(why); else { tap(); sfx('page'); saveGame(S); ui.toast('🧺 Kitap koliye kondu'); }
     ui.stockPanel(S);
   }
+  else if (a === 'order') {
+    const why = orderBook(S, arg);
+    if (why) ui.toast(why); else { sfx('letter'); saveGame(S); ui.toast(`📮 «${BOOK[arg].title}» sipariş edildi: yarın sabah kolide.`); }
+    ui.stockPanel(S);
+  }
   else if (a === 'read') {
     // okuma köşesi: kitabın bütün etiketleri açılır
     const why = readBook(S, arg);
@@ -248,7 +267,7 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
       if (road) setTimeout(() => { sfx('hap'); ui.hapPanel(ROAD_BY_ID[road], i => {
         const r = chooseRoad(S, road, i);
         saveGame(S); scene.setStock(S);
-        if (r.friend?.gift || r.friend?.coins) r.after = () => ui.giftPanel(r.friend);
+        if (r.friend?.gift || r.friend?.coins || r.friend?.keepsake) r.after = () => ui.giftPanel(r.friend);
         return r;
       }); }, 700);
     });
@@ -369,8 +388,19 @@ if (PREVIEW) {
   if (panel === 'finale') { Object.assign(S.totals, { days: 34, sold: 512, perfect: 61 }); S.friends = { hasan: 5, ela: 4 }; S.stamps = STAMPS.slice(0, 14).map(s => s.id); ui.finalePanel(S, () => {}); }
   if (panel === 'book') { S.pages = ['miras', 'dostlar', 'liste']; S.visited = ['ayvalik', 'cunda']; ui.bookPanel(S); }
   if (panel === 'decor') ui.decorPanel(S);
-  if (panel === 'rec') ui.recPanel(S, makeRegular(S, q.get('kim') || 'hasan'), () => {});
-  if (panel === 'gift') ui.giftPanel({ id: 'hasan', hearts: 5, gift: 'zeytin' });
+  // ?panel=rec&kim=hasan&rica: 3 kalpli müdavim, ricası rafta
+  if (panel === 'rec') {
+    const kim = q.get('kim') || 'hasan';
+    if (q.has('rica')) { S.friends[kim] = 3; S.met.push(kim); const fv = makeFavor(S, kim); S.shelf[fv.book] = 1; }
+    ui.recPanel(S, makeRegular(S, kim), () => {}, true, { favor: S.favors[kim]?.book, onFavor: () => {} });
+  }
+  // ?panel=bag&ac=spotPanel|stockPanel|decorPanel|paperPanel: itibar, rica, sipariş ve hatıralar dolu bir oyun
+  if (panel === 'bag') {
+    S.rep.ayvalik = 11; S.friends = { hasan: 3, melis: 5 }; S.met = ['hasan', 'melis']; S.keepsakes = ['melis', 'selim', 'ela'];
+    makeFavor(S, 'hasan'); S.coins = 300;
+    ui[q.get('ac') || 'spotPanel'](S);
+  }
+  if (panel === 'gift') ui.giftPanel(q.has('hatira') ? { id: 'melis', hearts: 5, keepsake: 'melis' } : { id: 'hasan', hearts: 5, gift: 'zeytin' });
 }
 // perde: yazı tipleri ve (yeni motorda) ilk pişirme hazır olunca kalkar.
 // Pişirme başarısız olursa (ör. tarayıcı SVG'yi çözemezse) basit görünüme geçilir; perde ne olursa olsun en geç 6 sn'de kalkar.
@@ -412,7 +442,7 @@ function frame(now) {
         const r = chooseHappening(S, h, idx);
         scene.setStock(S);
         sfx(r.tags.some(t => t.startsWith('+₺') || t.startsWith('✨') || t.startsWith('💛')) ? 'heart' : 'tap');
-        if (r.friend?.gift || r.friend?.coins) r.after = () => ui.giftPanel(r.friend);
+        if (r.friend?.gift || r.friend?.coins || r.friend?.keepsake) r.after = () => ui.giftPanel(r.friend);
         return r;
       });
     }

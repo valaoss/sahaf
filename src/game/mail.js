@@ -13,6 +13,8 @@ import { takeBook } from './state.js';
 import { plainCopies } from './shop.js';
 import { pickFresh, remember } from './memory.js';
 import { learnAll } from './knowledge.js';
+import { EVENTS } from '../data/calendar.js';
+import { eventOf } from './calendar.js';
 
 const ago = d => d <= 7 ? 'Geçen hafta' : d <= 14 ? 'İki hafta önce' : d <= 21 ? 'Üç hafta önce' : 'Geçen ay';
 
@@ -51,8 +53,13 @@ export function morningLetter(S) {
 // --- ilanlar ---
 const lower = s => s.toLocaleLowerCase('tr');
 
+// üretilen ilanların metni (müdavim ve festival ilanları)
+const GEN_TEXT = {
+  reg: q => `${REGULARS[q.reg].name} arkadaşlarıyla bir okuma akşamı yapacak: {days} gün içinde {town} kasabasında {n} tane {tag} kitap istiyor.`,
+  fest: q => `${EVENTS[q.ev].name} için {town} belediyesi bir kitap köşesi kuruyor: festival gününe kadar {n} {genre} kitabı, teslim o gün orada.`,
+};
 export function questText(q) {
-  const V = VISITORS.find(v => v.id === q.vid);
+  const V = GEN_TEXT[q.vid] ? { text: GEN_TEXT[q.vid](q) } : VISITORS.find(v => v.id === q.vid);
   return V.text.replace('{book}', q.book ? BOOK[q.book].title : '').replace('{tag}', q.tag ? TAGS[q.tag].name : '')
     .replace('{genre}', q.genre ? lower(GENRES[q.genre].name) : '').replace(/\{n\}/g, q.n || '')
     .replace('{town}', q.town ? TOWNS[q.town].name : '').replace('{days}', q.deadline - q.from + 1);
@@ -61,6 +68,8 @@ export function questText(q) {
 // Sabah: aktif ilan yoksa ve şans tutarsa yeni ilan çıkar
 export function offerQuest(S) {
   if (S.quest || S.day < 3 || rnd(S) > BAL.questChance) return null;
+  // yarısı üretilir: tanıştığın bir müdavimin zevkinden ya da önümüzdeki günlerdeki bir festivalden
+  if (rnd(S) < 0.5) { const g = generatedQuest(S); if (g) { S.quest = g; return g; } }
   const V = pickFresh(S, 'quest', VISITORS.filter(v => !S.questsSeen.includes(v.id) || S.questsSeen.length >= VISITORS.length), v => v.id);
   remember(S, 'quest', V.id);
   if (!S.questsSeen.includes(V.id)) S.questsSeen.push(V.id);
@@ -74,6 +83,19 @@ export function offerQuest(S) {
   if (V.kind === 'genre') q.genre = V.genre;
   S.quest = q;
   return q;
+}
+
+function generatedQuest(S) {
+  const regs = S.met.filter(id => REGULARS[id] && S.unlocked.includes(REGULARS[id].town)).sort();
+  const fests = [2, 3, 4, 5].map(k => ({ day: S.day + k, ev: eventOf(S.day + k) })).filter(x => x.ev && S.unlocked.includes(EVENTS[x.ev].town));
+  if (fests.length && (rnd(S) < 0.5 || !regs.length)) {
+    const x = fests[0], town = EVENTS[x.ev].town, d = TOWNS[town].demand;
+    const genre = Object.keys(d).sort((a, b) => d[b] - d[a])[rndInt(S, 2)];
+    return { vid: 'fest', ev: x.ev, kind: 'genre', genre, n: 3, town, from: S.day, deadline: x.day, coins: 60, rare: false };
+  }
+  if (!regs.length) return null;
+  const id = rndPick(S, regs), R = REGULARS[id];
+  return { vid: 'reg', reg: id, kind: 'tag', tag: rndPick(S, R.likes), n: 2 + rndInt(S, 2), town: R.town, from: S.day, deadline: S.day + 4, coins: 45, rare: false };
 }
 
 // Raftaki uygun, normal satışa açık kopyalar

@@ -11,6 +11,9 @@ import { hasBackup } from '../core/save.js';
 import { settings } from '../audio/audio.js';
 import { BLURBS } from '../data/blurbs.js';
 import { knownTags, knowsAll, knownCount, readsLeft } from '../game/knowledge.js';
+import { REP_LEVELS, repOf, repLevel, favorOpen, orderCost, ordered } from '../game/bonds.js';
+import { KEEPSAKES } from '../data/keepsakes.js';
+import { plainCopies } from '../game/shop.js';
 import { paperName } from '../data/countries.js';
 import { COUNTRIES, COUNTRY_KEYS } from '../data/countries.js';
 import { travelInfo } from '../game/travel.js';
@@ -170,14 +173,28 @@ export function createUI(root, act) {
       <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 Raflar <b>${shelfCount(S)}/${shelfCap(S)}</b></span>
         <button class="btn sm hl2" data-refill title="Etiketli bölümlerdeki boşlukları kendi türünden kolilerle doldurur ve dizer">🔁 Rafı tamamla</button></div>
       <div class="ggrid">${cards}</div>
+      ${orderRows(S)}
       <h3>🧺 Bugün pazar tezgâhında <span class="hint">· tek tek seç; yıpranmış ucuz ama ucuza satılır, temiz pahalı ama iyi kazandırır</span></h3>
       <div class="stall2">${stall}</div>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => act('buy', b.dataset.buy));
     p.querySelector('[data-refill]').onclick = () => act('refill');
+    p.querySelectorAll('[data-order]').forEach(b => b.onclick = () => act('order', b.dataset.order));
     p.querySelectorAll('[data-stall]').forEach(b => b.onclick = () => act('stall', +b.dataset.stall));
     p.querySelector('[data-inside]').onclick = () => interiorPanel(S);
     p.querySelector('[data-close]').onclick = closePanel;
+  }
+
+  // Sipariş: ricası bekleyen ya da hikâyenin istediği, karavanda olmayan kitaplar (ertesi sabah kolide)
+  function orderRows(S) {
+    const want = [];
+    for (const id in S.favors) if (favorOpen(S, id)) want.push({ book: S.favors[id].book, why: `${REGULARS[id].name} ricası` });
+    const np = nextPage(S);
+    if (np?.need.carry) want.push({ book: np.need.carry.book, why: 'defterdeki iz' });
+    const rows = want.filter(w => !S.shelf[w.book] && !S.crate.some(e => e.id === w.book)).map(w => `<div class="dcard"><div class="dicon">📮</div>
+      <div><div class="gname">«${BOOK[w.book].title}»</div><div class="gmeta">${w.why} · ertesi sabah kolide</div></div>
+      ${ordered(S, w.book) ? '<span class="on">✓ Yolda</span>' : `<button class="btn sm ${S.coins < orderCost(w.book) ? 'off' : ''}" data-order="${w.book}">₺${orderCost(w.book)} · Sipariş</button>`}</div>`).join('');
+    return rows ? `<h3>📮 Sipariş</h3><div class="dgrid">${rows}</div>` : '';
   }
 
   function spotPanel(S) {
@@ -191,13 +208,19 @@ export function createUI(root, act) {
         ${here ? '<span class="on">✓ Buradasın</span>' : `<button class="btn sm" data-spot="${k}">Burada kur</button>`}</div>`;
     }).join('');
     const regs = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town).map(id => {
-      const met = S.met.includes(id);
-      return `<span class="chip reg">${met ? REGULARS[id].name : '❔ Henüz tanışmadın'} <b class="hearts">${hearts(S.friends[id] || 0)}</b></span>`;
+      const met = S.met.includes(id), fv = S.favors[id];
+      const favor = fv ? (fv.done ? ' · 🎁 rica ✓' : ` · 🎁 rica: «${BOOK[fv.book].title}»${plainCopies(S, fv.book) > 0 ? ' (rafta)' : ordered(S, fv.book) ? ' (yolda)' : ''}`) : '';
+      return `<span class="chip reg">${met ? REGULARS[id].name : '❔ Henüz tanışmadın'} <b class="hearts">${hearts(S.friends[id] || 0)}</b>${favor}</span>`;
     }).join('');
+    // itibar: bu kasabadaki kademe, bir sonrakine ne kaldı
+    const lv = repLevel(S), L = REP_LEVELS[lv], nx = REP_LEVELS[lv + 1], rp = repOf(S);
+    const rep = `<div class="rep2"><b>${L.icon} ${L.name}</b>${nx ? `<span class="repbar"><i style="width:${Math.round(100 * (rp - L.min) / (nx.min - L.min))}%"></i></span><small>${nx.icon} ${nx.name}: ${nx.perk}</small>` : '<small>En yüksek itibar</small>'}</div>
+      <p class="hint">İtibar: burada dükkân açtığın her gün, müdavimlerine her tam isabet, getirdiğin her rica ve bağış artırır.${REP_LEVELS.slice(1, lv + 1).map(x => ` ${x.icon} ${x.perk}.`).join('')}</p>`;
     const p = openPanel(`
       <h2>📍 Karavanı nereye kuralım?</h2>
       <p class="hint">${TOWNS[S.town].name} içinde yer değiştirmek ücretsiz. Kalabalık yerde satış, sakin yerde sohbet ve öneri çok olur.</p>
       <div class="dgrid one">${cards}</div>
+      <h3>İtibarın</h3>${rep}
       <h3>Kasabaya katkı</h3>
       <div class="dcard ${S.donated.includes(S.town) ? 'is-on' : ''}"><div class="dicon">📖</div><div><div class="gname">Okuma köşesi</div>
         <div class="gmeta">Meydana kitaplık ve bank: burada park ücretsiz, kalabalık kalıcı olarak +%${Math.round((BAL.donateTraffic - 1) * 100)}.</div></div>
@@ -216,9 +239,10 @@ export function createUI(root, act) {
     const p = openPanel(`
       <div class="letter">
         <h2>💌 Bir not var · ${R.name}</h2>
-        <p class="say">“${R.giftNote}”</p>
+        <p class="say">“${f.keepsake && KEEPSAKES[f.id] ? KEEPSAKES[f.id].note : R.giftNote}”</p>
+        ${f.keepsake && KEEPSAKES[f.id] ? `<div class="dcard is-on"><div class="dicon">${KEEPSAKES[f.id].icon}</div><div><div class="gname">${KEEPSAKES[f.id].name}</div><div class="gmeta">Hatıra · her gün +${BAL.keepsakeTraffic} ziyaretçi (${TOWNS[R.town].name})</div></div></div><p class="hint">🪴 Süsle panelinde Hatıralar rafında.</p>` : ''}
         ${d ? `<div class="dcard is-on"><div class="dicon">${d.icon}</div><div><div class="gname">${d.name}</div><div class="gmeta">${d.desc}</div></div></div>
-          <p class="hint">🪴 Süsle panelinden takabilirsin.</p>` : `<p class="gold big">+₺${f.coins}</p>`}
+          <p class="hint">🪴 Süsle panelinden takabilirsin.</p>` : f.coins ? `<p class="gold big">+₺${f.coins}</p>` : ''}
       </div>
       <div class="row end"><button class="btn hl" data-close>Teşekkürler!</button></div>`);
     p.querySelector('[data-close]').onclick = closePanel;
@@ -259,6 +283,8 @@ export function createUI(root, act) {
         return `<div class="dcard ${has ? 'is-on' : ''}"><div class="dicon">${u.icon}</div><div><div class="gname">${u.name}</div><div class="gmeta">${u.desc}${u.upkeep ? ` · 🪴 gider ₺${u.upkeep}/gün` : ''}</div></div>${has ? '<span class="on">✓</span>' : `<button class="btn sm ${S.coins < u.price ? 'off' : ''}" data-upgrade="${k}">₺${u.price} · Al</button>`}</div>`;
       }).join('')}</div>
       <h3>Karavan boyası</h3><div class="swatches">${paints}</div>
+      <h3>🎁 Hatıralar <span class="hint">· dost müdavimlerin bıraktıkları; her biri kendi kasabasında +${BAL.keepsakeTraffic} ziyaretçi</span></h3>
+      ${S.keepsakes.length ? `<div class="dgrid">${S.keepsakes.filter(id => KEEPSAKES[id]).map(id => `<div class="dcard is-on"><div class="dicon">${KEEPSAKES[id].icon}</div><div><div class="gname">${KEEPSAKES[id].name}</div><div class="gmeta">${REGULARS[id].name} · ${TOWNS[REGULARS[id].town].name}</div></div></div>`).join('')}</div>` : '<p class="hint">Bir müdavimle beş kalbe ulaşınca ilk hatıran gelir.</p>'}
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-decor]').forEach(b => b.onclick = () => act('decor-on', b.dataset.decor));
     p.querySelectorAll('[data-paint]').forEach(b => b.onclick = () => act('paint', b.dataset.paint));
@@ -300,6 +326,7 @@ export function createUI(root, act) {
         ${extra.tea ? '<button class="btn sm" data-tea>🍵 Çay ikram et</button>' : ''}
         <button class="btn sm" data-disc title="Önerdiğin kitap isteğe uymazsa yine de %${Math.round((1 - BAL.discount) * 100)} indirimle satılır (bahşiş yok)">🏷️ Uymazsa indirim</button>
       </div>
+      ${extra.favor ? `<div class="favor2">🎁 Ricası: <b>«${BOOK[extra.favor].title}»</b>${plainCopies(S, extra.favor) > 0 ? ' <button class="btn sm hl" data-favor>Ricasını ver</button>' : ` <span class="hint">${ordered(S, extra.favor) ? 'siparişin yolda' : 'rafında yok; toptancıdan sipariş edebilirsin'}</span>`}</div>` : ''}
       <div class="tabs">${tabs}</div>
       <div class="bgrid">${cards || '<p class="hint">Rafta hiç kitap yok…</p>'}</div>
       <div class="row end"><button class="btn" data-none>🤷 Elimde yok</button></div>`, 'wide rec');
@@ -309,6 +336,7 @@ export function createUI(root, act) {
     });
     p.querySelectorAll('[data-book]').forEach(b => b.onclick = () => { closePanel(); onPick(b.dataset.book, opts); });
     p.querySelector('[data-none]').onclick = () => { closePanel(); onPick(null, opts); };
+    p.querySelector('[data-favor]')?.addEventListener('click', () => { closePanel(); extra.onFavor(); });
     const say = text => { const n = document.createElement('p'); n.className = 'hello'; n.textContent = '“' + text + '”'; p.querySelector('.rec-head > div:last-child').appendChild(n); };
     p.querySelector('[data-talk]')?.addEventListener('click', e => {
       const h = extra.onTalk();
@@ -519,6 +547,20 @@ export function createUI(root, act) {
     p.querySelector('[data-book]')?.addEventListener('click', () => bookPanel(S, T.page, () => summaryPanel(S, T)));
   }
 
+  // Gazetenin haftalık festival takvimi: önümüzdeki yedi gün (yolu kapalı kasabalar ???)
+  function weekFests(S) {
+    const out = [];
+    let far = 0;
+    for (let k = 1; k <= 7; k++) {
+      const e = eventOf(S.day + k);
+      if (!e) continue;
+      if (!S.unlocked.includes(EVENTS[e].town)) { far++; continue; }
+      out.push(`<b>${k === 1 ? 'yarın' : k + ' gün sonra'}</b>: ${EVENTS[e].name} (${TOWNS[EVENTS[e].town].name})`);
+    }
+    if (far) out.push(`yolunu henüz bilmediğin kasabalarda ${far} şenlik daha`);
+    return out.join(' · ') || 'Bu hafta festival yok.';
+  }
+
   // Gün sonu teşhisi: fiyat etiketinin etkisi (ve ağızdan ağıza), doymuş türler, sponsorluk
   function diagnose(S, T) {
     const out = [];
@@ -526,6 +568,8 @@ export function createUI(root, act) {
     if (T.priceWon) out.push(`🏷️ Ucuz etiket <b>${T.priceWon}</b> kişiyi ikna etti${T.word > 1 ? ` — yarın burada kalabalık %${Math.round((T.word - 1) * 100)} fazla` : ''}.`);
     if ((T.saturated || []).length) out.push(`📉 ${T.saturated.map(g => GENRES[g].icon + ' ' + GENRES[g].name).join(', ')} bu kasabada çok satıldı; ilgi düştü, birkaç günde toparlanır.`);
     if (T.sponsored) out.push(`🎪 Sponsor olduğun festival: kalabalık ×${BAL.sponsorTraffic}.`);
+    if (T.repUp) out.push(`🏘️ ${TOWNS[T.town].name} · artık <b>${REP_LEVELS[T.repUp].icon} ${REP_LEVELS[T.repUp].name}</b>: ${REP_LEVELS[T.repUp].perk}.`);
+    if (T.favors) out.push(`🎁 Bugün ${T.favors} rica getirdin.`);
     return out.length ? `<div class="diag">${out.map(x => `<p>${x}</p>`).join('')}</div>` : '';
   }
 
@@ -550,12 +594,13 @@ export function createUI(root, act) {
     const p = openPanel(`
       <div class="paper">
         <div class="masthead"><h2>📰 ${paperName(S.town, TOWNS[S.town].country || 'tr')}</h2><small>${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün · fiyatı bir gülümseme</small></div>
-        ${letter}
+        ${letter}${(S.post?.orders || []).length ? `<p class="hint">📦 Siparişin geldi, koliye kondu: ${S.post.orders.map(b => `«${BOOK[b].title}»`).join(', ')}</p>` : ''}
         <div class="news">
           <div>${special}${today}${ad}</div>
           <div class="col2">
             <div class="kicker">Hava</div><div class="headline">${w.icon} ${w.name}</div><p>${w.note}</p>
             <div class="kicker">Yarın</div><p>${wt.icon} ${wt.name}${evT ? ` · 🎉 ${EVENTS[evT].name} (${TOWNS[EVENTS[evT].town].name})` : ''}</p>
+            <div class="kicker">🗓️ Bu hafta</div><p>${weekFests(S)}</p>
             <div class="kicker">Mevsim</div><p>${seasonOf(S.day)}: ${SEASON[seasonOf(S.day)].note}</p>
             <div class="kicker">Kasabadan</div><p>${gossipOf(S.day)}</p>
           </div>

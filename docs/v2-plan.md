@@ -169,7 +169,18 @@ Yapıldı:
 - Bir öneriyi ilk görüşte doğru bilme oranı yeni oyuncuda düşük, bilgi biriktikçe artıyor (simülasyonda bilgi seviyesine göre ölçülür).
 - 240 tanıtımın hepsi yazılmış.
 
-## Faz 4: İlişkiler ve hikâye
+## Faz 4: İlişkiler ve hikâye ✅ (23 Ekim 2026)
+
+Yapıldı (game/bonds.js):
+- Müdavim ricası: 3 kalpte müdavim zevkine uyan belirli bir kitabı ister; getirilmeden 4. kalp gelmez. Öneri panelinde "Ricasını ver"; kitap ricası ödenir (satış fiyatının 3 katı), kalp ve itibar getirir.
+- Kitap siparişi: ricası bekleyen ya da hikâyenin istediği kitap toptancıdan sipariş edilir, ertesi sabah kolide.
+- Hatıralar: süs hediyesi olmayan 52 müdavim 5 kalpte ₺40 yerine kendine özgü bir eşya bırakır (data/keepsakes.js); her biri kendi kasabasında +1 ziyaretçi, Süsle panelinde Hatıralar rafı.
+- Kasaba itibarı: dükkân açılan her gün, müdavime tam isabet, rica ve bağış artırır. Tanıdık (8): tezgâh %20 ucuz · Sevilen (20): müdavimler 1,5 kat sık · Kasabanın sahafı (40): park ücretsiz, kalabalık +%8, pul.
+- Hikâye: 6. sayfa artık görev: rafında «Yaşlı Adam ve Deniz» varken Foça'da dükkân aç (sipariş edilebilir). Gazetede haftalık festival takvimi.
+- İlanların yarısı üretiliyor: tanışılan müdavimin zevkinden (o kasabada etiketli kitaplar) ya da 2–5 gün sonraki festivalden (festival günü teslim).
+
+Ölçülen: 60. günde kasa akıllı oyuncu ₺7,7 bin (Faz 2'de ₺6,9 bin; itibar ve hatıralar bir kasabaya bağlılığı ödüllendiriyor), tembel oyuncu %27 geride. İlerleme testi yeni 6. sayfayla da Mısır'a ulaşıyor.
+
 
 - **Müdavim görev zincirleri:** 3 ve 5 kalpte, o kişinin 5 satırlık hikâyesine bağlı küçük görevler. Örnekler: kayıp bir kitabı bul, bir festivalde buluş, bir mektubu ilet. Ödül süs ya da hikâye.
 - **Hediyeler eşya olsun:** ₺40 yerine süs, nadir kitap ya da tarif. Hepsi karavanda görünür.

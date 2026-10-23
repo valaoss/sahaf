@@ -15,6 +15,8 @@ const CHECK = {
   sold: (S, n) => S.totals.sold >= n,
   shelfLv: (S, n) => S.shelfLv >= n,
   finale: (S, n, T) => !!T && T.town === 'cunda' && T.spot === 'tepe',
+  // kitabı rafında taşıyarak o kasabada dükkân açmak (gün içinde satıldıysa da sayılır)
+  carry: (S, n, T) => !!T && T.town === n.town && (S.shelf[n.book] > 0 || (T.soldIds || []).includes(n.book)),
 };
 
 export const nextPage = S => PAGES[S.pages.length] || null;

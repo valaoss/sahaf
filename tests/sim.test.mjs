@@ -21,7 +21,7 @@ import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, MOTIFS, THEMES } from '../s
 import { TUT_STEPS, tutorialStep, tutorialEvent } from '../src/game/tutorial.js';
 import { statsOf } from '../src/game/stats.js';
 import { syncLayout, placeAll, shelve, unshelve, moveBook, setLabel, setPrice, tidiness, sectionCap, crateFree, SECTIONS } from '../src/game/shelving.js';
-import { stallOf, buyStall, talkHint } from '../src/game/shop.js';
+import { stallOf, buyStall, talkHint, deliverFavor } from '../src/game/shop.js';
 import { roadEvent, chooseRoad, ROAD_BY_ID } from '../src/game/road.js';
 import { ROAD } from '../src/data/road.js';
 import { travelInfo, checkCountries, countryOf } from '../src/game/travel.js';
@@ -309,7 +309,7 @@ test('müdavim: zevkine uyan, karşılanabilir istek; kasabasında uğrar', () =
   assert.ok(seen > 20 && seen < 60, 'iki müdavim, %45 ihtimal: ' + seen);
 });
 
-test('dostluk: tam isabet kalp verir, 3 kalpte ek bahşiş, 5 kalpte hediye', () => {
+test('dostluk: tam isabet kalp verir, 3 kalpte ek bahşiş ve rica, rica getirilince ilerler, 5 kalpte hediye ya da hatıra', () => {
   const S = newGame(8);
   openShop(S);
   const give = id => {
@@ -321,15 +321,28 @@ test('dostluk: tam isabet kalp verir, 3 kalpte ek bahşiş, 5 kalpte hediye', ()
   let r;
   for (let i = 1; i <= HEARTS_TIP; i++) r = give('hasan');
   assert.equal(S.friends.hasan, HEARTS_TIP);
+  assert.ok(S.favors.hasan && !S.favors.hasan.done, '3 kalpte rica');
   r = give('hasan');
   assert.equal(r.tip, BAL.tipPerfect + REGULAR_TIP, '3 kalpten sonra ek bahşiş');
+  assert.equal(S.friends.hasan, HEARTS_TIP, 'rica getirilmeden kalp yok');
+  assert.equal(r.waiting, 'hasan');
+  const fb = S.favors.hasan.book;
+  assert.equal(deliverFavor(S, 'hasan').why, 'Kitap rafta yok.');
+  S.shelf = { [fb]: 1 };
+  const d = deliverFavor(S, 'hasan');
+  assert.equal(S.friends.hasan, HEARTS_TIP + 1);
+  assert.equal(d.coins, GENRES[BOOK[fb].genre].price * BAL.favorPay);
+  assert.ok(!S.shelf[fb] && S.favors.hasan.done);
   r = give('hasan');
   assert.equal(S.friends.hasan, HEARTS_MAX);
   assert.equal(r.friend.gift, 'zeytin');
   assert.ok(S.decor.owned.includes('zeytin'));
   assert.equal(give('hasan').friend, undefined, 'en fazla 5 kalp');
-  for (let i = 0; i < HEARTS_MAX; i++) r = give('melis');
-  assert.equal(r.friend.coins, GIFT_COINS, 'süs hediyesi olmayan para verir');
+  for (let i = 0; i < HEARTS_TIP; i++) give('melis');
+  S.shelf = { [S.favors.melis.book]: 1 }; deliverFavor(S, 'melis');
+  r = give('melis');
+  assert.equal(r.friend.keepsake, 'melis', 'süs hediyesi olmayan hatıra bırakır');
+  assert.ok(S.keepsakes.includes('melis'));
   const c = makeRegular(S, 'ruya');
   S.shelf = { garip: 1 };
   recommend(S, c, 'garip');
@@ -401,7 +414,13 @@ test('ana hikâye: sayfalar sırayla açılır, finalde ödül', () => {
   // koşullar çoktan tutsa da günde bir sayfa açılır
   assert.equal(checkStory(S), 'dostlar');
   assert.equal(checkStory(S), 'liste');
-  for (const id of ['fener', 'zarf', 'iz', 'gizligoz']) assert.equal(checkStory(S), id);
+  for (const id of ['fener', 'zarf']) assert.equal(checkStory(S), id);
+  // 6. sayfa: «Yaşlı Adam ve Deniz» rafta varken Foça'da dükkân açmak
+  assert.equal(checkStory(S, { town: 'ayvalik' }), null);
+  S.shelf.yasliadam = 0; delete S.shelf.yasliadam;
+  assert.equal(checkStory(S, { town: 'foca' }), null, 'kitap yok');
+  assert.equal(checkStory(S, { town: 'foca', soldIds: ['yasliadam'] }), 'iz', 'gün içinde satılsa da sayılır');
+  assert.equal(checkStory(S), 'gizligoz');
   assert.equal(checkStory(S, { town: 'foca', spot: 'kale' }), null, 'final yalnız Cunda tepesinde');
   const coins = S.coins;
   assert.equal(checkStory(S, { town: 'cunda', spot: 'tepe' }), 'kutuphane');
@@ -1212,6 +1231,7 @@ test('arayüzün her komutunun main.js\'te tek bir karşılığı var (çakışa
   assert.deepEqual(dup, [], 'aynı adla iki dal');
 });
 
+const BONDS = await import('../src/game/bonds.js');
 test('ilerleme: kurallarla oynayan oyuncu hikâyeyi bitirir, raf büyütür ve altı ülkenin hepsini açar', () => {
   const S = newGame(2024);
   const go = k => { if (k !== S.town) travel(S, k); };
@@ -1222,6 +1242,11 @@ test('ilerleme: kurallarla oynayan oyuncu hikâyeyi bitirir, raf büyütür ve a
     const e = eventOf(S.day), fest = e && EVENTS[e].town;
     const fresh = S.unlocked.filter(k => !S.visited.includes(k)).sort((a, b) => distance(S.town, a) - distance(S.town, b));
     if (need === 'finale') { go('cunda'); chooseSpot(S, 'tepe'); }
+    else if (need === 'carry') {
+      // 6. sayfa: kitabı sipariş et, gelince Foça'ya götür
+      const n = nextPage(S).need.carry, have = S.shelf[n.book] || S.crate.some(e => e.id === n.book);
+      if (!have) BONDS.orderBook(S, n.book); else go(n.town);
+    }
     else if (need === 'festival' && fest && S.unlocked.includes(fest)) go(fest);
     else if (need === 'hearts') { const best = Object.keys(S.friends).sort((a, b) => S.friends[b] - S.friends[a])[0]; if (best) go(REGULARS[best].town); }
     else if (fresh.length && d % 2 === 0) go(fresh[0]);
@@ -1438,6 +1463,72 @@ test('her kitabın tanıtımı var; etiketlerin adını anmaz, uzunluğu kartlar
     const words = t.toLocaleLowerCase('tr').split(/[^a-zçğıöşüâîû]+/).filter(Boolean);
     for (const w of words) assert.ok(!(STEMS.some(s => w.startsWith(s)) && !OK.some(o => w.startsWith(o))), `${b.id}: ${w}`);
   }
+});
+
+
+// ---------- Faz 4: bağlar ----------
+const BD = await import('../src/game/bonds.js');
+const { KEEPSAKES } = await import('../src/data/keepsakes.js');
+const { questText: qText } = await import('../src/game/mail.js');
+
+test('kasaba itibarı: günler, tam isabetler ve bağış büyütür; kademeler ayrıcalık açar', () => {
+  const S = newGame(41); S.coins = 999;
+  assert.equal(BD.repLevel(S), 0);
+  for (let d = 0; d < 8; d++) { openShop(S); closeShop(S); nextMorning(S); }
+  assert.ok(BD.repLevel(S) >= 1, 'sekiz gün: tanıdık');
+  const full = stallOf(newGame(41)).map(x => x.cost), cheap = stallOf(S).map(x => x.cost);
+  S.day = 1; S.stall = null;
+  assert.ok(stallOf(S).every((x, i) => x.cost <= full[i]), 'tanıdıkta tezgâh ucuz');
+  S.rep.ayvalik = 45;
+  assert.equal(BD.repLevel(S), 3);
+  assert.equal(SHOP2.parkFee(S), 0, 'kasabanın sahafı park ödemez');
+  const visits = rep => { let n = 0; for (let seed = 1; seed <= 30; seed++) { const P = newGame(seed); P.rep = { ayvalik: rep }; openShop(P); n += P.arrivals.length + P.regArrivals.length; } return n; };
+  assert.ok(visits(45) > visits(0));
+  const D = newGame(42); D.coins = 999; SHOP2.donate(D);
+  assert.equal(BD.repOf(D), 5);
+});
+
+test('sipariş: rica ya da hikâye kitabı ertesi sabah koliye gelir, koli doluysa bekler', () => {
+  const S = newGame(43); S.coins = 100;
+  assert.equal(BD.orderBook(S, 'yasliadam'), null);
+  assert.equal(BD.orderBook(S, 'yasliadam'), 'Bu kitap zaten yolda.');
+  assert.equal(S.coins, 100 - BD.orderCost('yasliadam'));
+  openShop(S); closeShop(S); nextMorning(S);
+  assert.ok(S.crate.some(e => e.id === 'yasliadam'));
+  assert.deepEqual(S.post.orders, ['yasliadam']);
+  const F = newGame(44); F.coins = 100; BD.orderBook(F, 'hobbit');
+  F.crate = Array.from({ length: BAL.crateCap }, () => ({ id: 'garip', rare: false }));
+  openShop(F); closeShop(F); nextMorning(F);
+  assert.equal(F.orders.length, 1, 'koli dolu: bekler');
+});
+
+test('hatıralar: süs hediyesi olmayan her müdavimin bir hatırası var; kendi kasabasında ziyaretçi getirir', () => {
+  for (const id of REGULAR_KEYS) if (!REGULARS[id].gift) {
+    const k = KEEPSAKES[id];
+    assert.ok(k && k.icon && k.name && k.note.length >= 60 && !/[₺0-9]/.test(k.note), id);
+  }
+  const S = newGame(45); S.keepsakes = ['melis'];
+  assert.equal(BD.keepsakeTraffic(S), BAL.keepsakeTraffic);
+  S.town = 'foca';
+  assert.equal(BD.keepsakeTraffic(S), 0);
+  const old = JSON.parse(JSON.stringify(newGame(46))); delete old.keepsakes; delete old.rep; old.gifts = ['melis', 'hasan']; old.townDays = { ayvalik: 9 };
+  const T = restore(old);
+  assert.deepEqual(T.keepsakes, ['melis'], 'eski kayıtta parasını vermiş dostun hatırası');
+  assert.equal(BD.repOf(T, 'ayvalik'), 9);
+});
+
+test('ilanlar: tanışılan müdavimlerden ve yaklaşan festivallerden üretilir', () => {
+  let reg = 0, fest = 0;
+  for (let seed = 1; seed <= 200; seed++) {
+    const S = newGame(seed); S.day = 5 + (seed % 40); S.met = ['hasan', 'ruya']; S.quest = null;
+    BAL.questChance = 1; offerQuest(S); BAL.questChance = 0.4;
+    const q = S.quest;
+    if (!q) continue;
+    if (q.vid === 'reg') { reg++; assert.ok(REGULARS[q.reg].likes.includes(q.tag) && q.town === REGULARS[q.reg].town); }
+    if (q.vid === 'fest') { fest++; assert.ok(eventOf(q.deadline) === q.ev && EVENTS[q.ev].town === q.town); }
+    assert.ok(!/[{}]/.test(qText(q)), qText(q));
+  }
+  assert.ok(reg > 10 && fest > 5, JSON.stringify({ reg, fest }));
 });
 
 

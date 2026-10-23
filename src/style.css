@@ -594,6 +594,12 @@ svg.world #wvan { transform-box: view-box; }
 .gmeta.sat { color: #b4574a; font-weight: 600; }
 .sponsor2 { display: flex; align-items: center; gap: .6em; background: #fff0d8; border: .15em dashed #efc56c; border-radius: .9em; padding: .4em .8em; margin: .4em 0; font-size: .92em; }
 .sponsor2 > span:first-child { flex: 1; }
+/* bağlar: itibar, rica */
+.rep2 { display: flex; flex-wrap: wrap; align-items: center; gap: .5em .8em; background: #fff; border: .15em solid var(--edge); border-radius: .9em; padding: .45em .9em; }
+.repbar { flex: 1; min-width: 6em; height: .6em; background: #f1e8da; border-radius: 999px; overflow: hidden; }
+.repbar i { display: block; height: 100%; background: linear-gradient(90deg, #efc56c, #e07a5f); }
+.rep2 small { color: #8a7468; }
+.favor2 { background: #fff0d8; border: .15em dashed #efc56c; border-radius: .9em; padding: .35em .8em; margin: .3em 0; display: flex; flex-wrap: wrap; gap: .5em; align-items: center; }
 .flag { border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); flex: none; }
 .passport { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7em; }
 .visa { background: #fff; border: .15em dashed var(--edge); border-radius: 1em; padding: .7em; display: flex; flex-direction: column; align-items: center; gap: .3em; text-align: center; min-height: 9em; }

@@ -13,6 +13,7 @@ import { scheduleHappenings, dueHappening, chooseHappening, buffFor, HAP } from 
 import { tidiness, placeAll } from './shelving.js';
 import { checkCountries } from './travel.js';
 import { satFactor } from './shop.js';
+import { addRep, repLevel, receiveOrders, keepsakeTraffic } from './bonds.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
@@ -24,8 +25,9 @@ export function openShop(S) {
   // düzenli raf (etiketine uygun bölümler) biraz daha kalabalık çeker
   const tidy = 1 + BAL.tidyBonus * tidiness(S);
   // okuma köşesi bağışlanan kasaba ve sponsor olunan festival daha kalabalık
-  const civic = (S.donated.includes(S.town) ? BAL.donateTraffic : 1) * (sponsoredToday(S) ? BAL.sponsorTraffic : 1);
-  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic * buffFor(S) * tidy * civic) + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
+  // en yüksek itibar (kasabanın sahafı) da kalabalığı artırır; hatıralar kendi kasabalarında birer ziyaretçi getirir
+  const civic = (S.donated.includes(S.town) ? BAL.donateTraffic : 1) * (sponsoredToday(S) ? BAL.sponsorTraffic : 1) * (repLevel(S) >= 3 ? 1.08 : 1);
+  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic * buffFor(S) * tidy * civic) + effects(S).traffic + keepsakeTraffic(S) + (newTown ? BAL.newTownTraffic : 0);
   const n = Math.max(4, base + rndInt(S, BAL.trafficJitter * 2 + 1) - BAL.trafficJitter);
   const times = [];
   for (let i = 0; i < n; i++) {
@@ -42,7 +44,9 @@ export function openShop(S) {
   S.clock = BAL.dayStart;
   S.arrivals = times;
   // kasabanın müdavimleri bazı günler uğrar
-  S.regArrivals = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town && rnd(S) < VISIT_CHANCE)
+  // sevilen bir kasabada müdavimler daha sık uğrar
+  const visit = VISIT_CHANCE * (repLevel(S) >= 2 ? 1.5 : 1);
+  S.regArrivals = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town && rnd(S) < visit)
     .map(id => ({ id, t: Math.round(BAL.dayStart + 30 + rnd(S) * (len - 90)) })).sort((a, b) => a.t - b.t);
   scheduleHappenings(S);
   S.today = { town: S.town, spot: S.spot, newTown, weather: weatherOf(S.day), event: mods.event, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 },
@@ -87,6 +91,9 @@ export function closeShop(S) {
     S.totals.festivals++;
     if (!S.festKinds.includes(T.event)) S.festKinds.push(T.event);
   }
+  // itibar: dükkân açılan her gün bir puan
+  const up = addRep(S, T.town, 1);
+  if (up) T.repUp = up;
   T.quest = settleQuest(S, T);
   T.page = checkStory(S, T);
   T.unlocked = checkUnlocks(S);
@@ -106,7 +113,7 @@ export function nextMorning(S) {
   S.travelled = false;
   S.clock = BAL.dayStart;
   // sabah postası: geçmiş önerilerden mektup, gazetede yeni ilan
-  S.post = { letter: morningLetter(S), quest: offerQuest(S) };
+  S.post = { letter: morningLetter(S), quest: offerQuest(S), orders: receiveOrders(S) };
   decaySat(S);
   if (S.sponsor && S.sponsor.day < S.day) S.sponsor = null;
   S.readsToday = 0;
@@ -116,7 +123,7 @@ export function nextMorning(S) {
 // Yolda kaçan günün "yarın kalabalık" etkisi varış gününe kayar. Dönüş: kasa boşsa belediye desteği (₺)
 export function afterFerry(S) {
   for (const b of S.buffs) if (b.day === S.day - 1) b.day = S.day;
-  S.post = { letter: morningLetter(S), quest: offerQuest(S) };
+  S.post = { letter: morningLetter(S), quest: offerQuest(S), orders: receiveOrders(S) };
   decaySat(S);
   if (S.sponsor && S.sponsor.day < S.day) S.sponsor = null;
   S.readsToday = 0;

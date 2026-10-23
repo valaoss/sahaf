@@ -6,6 +6,7 @@ import { DEFAULT_DECOR, SHELF_LEVELS } from '../data/decor.js';
 import { SPOTS, firstSpot } from '../data/spots.js';
 import { TOWNS, TOWN_KEYS, START_TOWNS } from '../data/towns.js';
 import { COUNTRIES } from '../data/countries.js';
+import { REGULARS } from '../data/regulars.js';
 import { seedRng, rndInt } from '../core/rng.js';
 import { learnAll } from './knowledge.js';
 
@@ -83,6 +84,10 @@ export function newGame(seed = Date.now()) {
     sponsor: null,             // festival sponsorluğu { day, town }
     known: {},                 // kitap bilgisi: kitap → bilinen etiketler (game/knowledge.js)
     readsToday: 0,             // okuma köşesi: bu sabah okunan kitap
+    rep: {},                   // kasaba itibarı: kasaba → puan (game/bonds.js)
+    favors: {},                // müdavim ricaları: müdavim → { book, day, done }
+    orders: [],                // kitap siparişleri: [{ book, day }] ertesi sabah kolide
+    keepsakes: [],             // müdavimlerin bıraktığı hatıralar (müdavim kimlikleri)
     nextId: 1,
     rng: 0,
   };
@@ -149,6 +154,11 @@ export function restore(saved) {
   for (const id in S.soldBooks) if (!BOOK[id]) delete S.soldBooks[id];
   for (const id in S.known) if (!BOOK[id] || !Array.isArray(S.known[id])) delete S.known[id]; else S.known[id] = S.known[id].filter(t => BOOK[id].tags.includes(t));
   S.donated = S.donated.filter(k => TOWNS[k]);
+  S.orders = S.orders.filter(o => isObj(o) && BOOK[o.book]);
+  for (const id in S.favors) if (!isObj(S.favors[id]) || !BOOK[S.favors[id].book]) delete S.favors[id];
+  // eski kayıt: dükkân açılan günler itibara sayılır; ₺40 bırakan dostların hatırası verilir
+  if (!isObj(saved.rep)) for (const t in S.townDays) if (TOWNS[t]) S.rep[t] = S.townDays[t];
+  if (!Array.isArray(saved.keepsakes)) S.keepsakes = S.gifts.filter(id => REGULARS[id] && !REGULARS[id].gift);
   if (S.sponsor && !(isObj(S.sponsor) && TOWNS[S.sponsor.town])) S.sponsor = null;
   // ülkeler ve yollar: kaldırılan şehirler düşer; açık ülkelerin koşulsuz şehirleri (sonradan eklenenler dahil) yola açılır
   S.countries = S.countries.filter(c => COUNTRIES[c]);

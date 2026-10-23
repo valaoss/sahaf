@@ -1,5 +1,6 @@
 // Pul albümü: koşulları tutan pulları verir. Gün kapanınca ve sabah alışverişlerinden sonra kontrol edilir.
 import { STAMPS, STAMP_REWARD } from '../data/stamps.js';
+import { repLevel } from './bonds.js';
 import { PAGES } from '../data/story.js';
 
 const VALUE = {
@@ -9,6 +10,7 @@ const VALUE = {
   towns: S => S.visited.length,
   spots: S => S.spotsSeen.length,
   donated: S => (S.donated || []).length,
+  repTop: S => Object.keys(S.rep || {}).filter(t => repLevel(S, t) >= 3).length,
   festivals: S => S.totals.festivals,
   festKinds: S => S.festKinds.length,
   rain: S => S.weathersSeen.includes('yagmurlu') ? 1 : 0,

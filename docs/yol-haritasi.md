@@ -136,7 +136,12 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Okuma köşesi ve okuma koltuğu; dolaylı müşteri cümleleri
 - Kitap bilgim sekmesi, kolay mod
 
-Sırada: v2 Faz 4 (ilişkiler ve hikâye) — ayrıntı: docs/v2-plan.md.
+### v2 · Faz 4 ✅ (ilişkiler ve hikâye)
+- Müdavim ricaları ve kitap siparişi; 52 müdavime özgü hatıra
+- Kasaba itibarı (dört kademe); 6. sayfa görev oldu; haftalık festival takvimi
+- Müdavimlerden ve festivallerden üretilen ilanlar
+
+Sırada: v2 Faz 5 (Akdeniz'in derinliği ve oyun sonu) — ayrıntı: docs/v2-plan.md.
 
 ## Faz 3 — içerik ve cila
 - Elle çizilmiş illüstrasyonlar (kod çizimlerinin yerine), müzik ve ses, Türkçe + İngilizce, 200+ kitap
