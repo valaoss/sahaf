@@ -1,7 +1,8 @@
 // Denge simülasyonu: farklı oyun tarzlarıyla 30 gün oynar, kasanın nasıl büyüdüğünü yazdırır.
 // Öneri isteyenlere raftaki en uygun kitap verilir (dikkatli oyuncu). Kullanım: npm run sim
 import { GENRE_KEYS } from '../src/data/genres.js';
-import { TOWN_KEYS } from '../src/data/towns.js';
+import { TOWNS, TOWN_KEYS } from '../src/data/towns.js';
+import { countryOf, distance } from '../src/game/travel.js';
 import { SHELF_LEVELS } from '../src/data/decor.js';
 import { newGame, genreCount, shelfCount, shelfCap } from '../src/game/state.js';
 import { BAL } from '../src/data/balance.js';
@@ -71,4 +72,52 @@ for (const [name, play] of Object.entries(STYLES)) {
   const pts = [1, 7, 14, 30].map(d => `${d}.g ₺${Math.round(curve[d - 1])}`).join(' · ');
   const per = x => (x / RUNS / DAYS).toFixed(1);
   console.log(`${name.padEnd(26)} ${pts} | günde ${per(sold)} satış, ${per(missed)} kaçan, ${per(perfect)} tam öneri, ₺${per(tips)} bahşiş`);
+}
+
+// Akdeniz: hikâye bitmiş, Türkiye'nin bütün şehirleri gezilmiş, Yunanistan feribotu açık; ₺600 ile 30 takvim günü.
+// Feribot günü takvimden düşer (o gün yolda geçer), bu yüzden eğri takvim gününe göre çizilir.
+const WORLD = {
+  'Türkiye\'de kalır, 3 günde bir': (S, n) => {
+    if (n % 3 === 2) { const tr = S.unlocked.filter(k => countryOf(k) === 'tr'); travel(S, tr[(n / 3 + 1) % tr.length | 0]); }
+  },
+  'Akdeniz turu, 3 günde bir': (S, n) => {
+    if (n % 3 !== 2) return;
+    // gezilmemiş şehirlerden en yakını; yeni ülke açıldıysa oraya
+    const fresh = S.unlocked.filter(k => !S.visited.includes(k)).sort((a, b) => distance(S.town, a) - distance(S.town, b));
+    if (fresh.length) travel(S, fresh[0]);
+  },
+  'Akdeniz turu, her gün': S => {
+    const fresh = S.unlocked.filter(k => !S.visited.includes(k)).sort((a, b) => distance(S.town, a) - distance(S.town, b));
+    if (fresh.length) travel(S, fresh[0]);
+  },
+};
+console.log('\nAkdeniz (hikâye bitmiş, ₺600 ile başlar):');
+for (const [name, move] of Object.entries(WORLD)) {
+  const curve = Array(DAYS + 1).fill(0);
+  let ferries = 0, ferrySpent = 0, countries = 0, sold = 0, played = 0;
+  for (let r = 0; r < RUNS; r++) {
+    const S = newGame(2000 + r);
+    S.unlocked = TOWN_KEYS.filter(k => countryOf(k) === 'tr' || countryOf(k) === 'gr' && !TOWNS[k].unlock);
+    S.visited = TOWN_KEYS.filter(k => countryOf(k) === 'tr');
+    S.countries = ['tr', 'gr'];
+    S.coins = 600;
+    let n = 0, last = S.coins;
+    while (S.day <= DAYS) {
+      rescue(S);
+      const before = S.day;
+      move(S, n++);
+      if (S.lastTrip?.abroad && S.travelled) { ferries++; ferrySpent += S.lastTrip.cost; }
+      for (let d = before; d < Math.min(S.day, DAYS + 1); d++) curve[d] += last / RUNS;  // yolda geçen gün
+      if (S.day > DAYS) break;
+      invest(S);
+      stockSmart(S);
+      const T = simulateDay(S);
+      sold += T.soldCount; played++;
+      last = S.coins;
+      curve[Math.min(S.day - 1, DAYS)] += S.coins / RUNS;
+    }
+    countries += S.countries.length;
+  }
+  const pts = [7, 14, 30].map(d => `${d}.g ₺${Math.round(curve[d])}`).join(' · ');
+  console.log(`${name.padEnd(30)} ${pts} | ${(countries / RUNS).toFixed(1)} ülke, ${(ferries / RUNS).toFixed(1)} feribot (₺${Math.round(ferrySpent / RUNS)}), oynanan günde ${(sold / played).toFixed(1)} satış`);
 }
