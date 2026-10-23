@@ -56,6 +56,31 @@ export const TOWNS = {
     blurb: 'Athena tapınağının gölgesinde taş bir köy; karşıda Midilli. Tarih ve felsefe okurlarının son durağı.',
     sky: ['#e9c6c2', '#fbe4d8'], sea: ['#86c4dc', '#4f98bd'], map: { x: 700, y: 92 },
   },
+  // Türkiye büyür: Bodrum, Antalya, İstanbul ve Kapadokya hikâyeyle açılır
+  bodrum: {
+    name: 'Bodrum', country: 'tr', geo: [27.43, 37.03], traffic: 25, unlock: { pages: 3 },
+    demand: { polisiye: 3, roman: 2, fantastik: 2, siir: 1, cocuk: 1, tarih: 1 },
+    blurb: 'Beyaz evler, begonviller ve deniz kıyısında koca bir kale. Tatilciler kumsal için polisiye arar.',
+    sky: ['#f7c6a8', '#fde8d0'], sea: ['#7fcfdc', '#3fa6c4'],
+  },
+  antalya: {
+    name: 'Antalya', country: 'tr', geo: [30.71, 36.89], traffic: 27, unlock: { pages: 6 },
+    demand: { roman: 3, cocuk: 2, polisiye: 2, tarih: 2, fantastik: 1, siir: 1 },
+    blurb: 'Kaleiçi\'nin dar sokakları, Yivli Minare, arkada karlı Toroslar. Kış bile ılık; okur dört mevsim gelir.',
+    sky: ['#f6cfa6', '#fff0d4'], sea: ['#78cbd8', '#3a9fc4'],
+  },
+  istanbul: {
+    name: 'İstanbul', country: 'tr', geo: [28.98, 41.01], traffic: 32, unlock: { pages: 8 },
+    demand: { roman: 3, tarih: 3, polisiye: 2, siir: 2, fantastik: 1, cocuk: 1 },
+    blurb: 'Sahaflar Çarşısı, vapurlar, martılar, Galata. Kostas Efendi mesleği burada öğrenmişti; her sahafın bir gün yolu düşer.',
+    sky: ['#f1c3b4', '#fbe2d4'], sea: ['#80b8d0', '#4f8fb8'],
+  },
+  kapadokya: {
+    name: 'Kapadokya', country: 'tr', geo: [34.83, 38.64], traffic: 20, unlock: { pages: 8 }, inland: true,
+    demand: { fantastik: 3, tarih: 2, cocuk: 2, roman: 1, siir: 1, polisiye: 1 },
+    blurb: 'Denizden uzak bir masal: peribacaları, kaya kiliseler, sabahları gökyüzünü dolduran balonlar.',
+    sky: ['#f6c2a0', '#fde4c8'], sea: ['#c9b48e', '#b8a07a'],
+  },
   // Yunanistan: hikâye bitince feribotla
   midilli: {
     name: 'Midilli', country: 'gr', geo: [26.55, 39.1], traffic: 17,

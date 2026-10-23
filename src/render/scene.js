@@ -94,7 +94,7 @@ const MARKUP = `
   <!-- uzak tepe + deniz feneri -->
   <path class="paintable" d="M1080 360 C1200 270 1320 250 1420 265 C1500 278 1560 300 1600 320 L1600 380 L1080 380Z" fill="#c4dc9b"/>
   <path d="M1180 360 C1260 310 1360 300 1450 312 C1520 322 1570 340 1600 352 L1600 380 L1180 380Z" fill="#acd08a"/>
-  <g transform="translate(1440 190)">
+  <g id="lighthouse" transform="translate(1440 190)">
     <path d="M10 0 L40 0 L46 90 L4 90Z" fill="#fffaf2"/>
     <path d="M8 22 L42 22 L43 40 L7 40Z M6 58 L44 58 L45 74 L5 74Z" fill="#f08a7e"/>
     <rect x="6" y="-22" width="38" height="24" rx="6" fill="#ffe9a6"/>
@@ -394,6 +394,8 @@ export function buildScene(host) {
       $('seaTop').setAttribute('stop-color', t.sea[0]);
       $('seaBot').setAttribute('stop-color', t.sea[1]);
       drawHouses($('houses'), 7 + TOWN_KEYS.indexOf(key) * 101, t.country || 'tr');
+      // iç bölgede deniz feneri olmaz
+      $('lighthouse').style.display = t.inland ? 'none' : '';
     },
     // kasaba içindeki mekân: arka plan, zemin, evlerin görünürlüğü
     setSpot(scene, town) {

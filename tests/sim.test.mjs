@@ -464,7 +464,7 @@ test('pullar: normal oyunda gün kapanınca kazanılır; mekân, hava ve festiva
   assert.ok(S.spotsSeen.includes('ayvalik/iskele'));
   assert.ok(S.weathersSeen.includes('gunesli'));
   // festival olan bir güne atla, o kasabaya git
-  const d = [...Array(300).keys()].map(i => i + 2).find(x => eventOf(x));
+  const d = [...Array(600).keys()].map(i => i + 2).find(x => eventOf(x) && S.unlocked.includes(EVENTS[eventOf(x)].town) && EVENTS[eventOf(x)].town !== S.town);
   S.day = d;
   S.coins += 100;
   travel(S, EVENTS[eventOf(d)].town) ;
@@ -723,14 +723,14 @@ test('yeni kasabalar: kilitli başlar, hikâyeyle açılır', () => {
   assert.deepEqual(S.unlocked, ['ayvalik', 'cunda', 'foca', 'alacati']);
   assert.equal(travel(S, 'bozcaada'), 'Bu kasabanın yolunu henüz bilmiyorsun.');
   S.pages = PAGES.slice(0, 4).map(p => p.id);
-  assert.deepEqual(checkUnlocks(S), ['bozcaada', 'dikili']);
+  assert.deepEqual(checkUnlocks(S), ['bozcaada', 'dikili', 'bodrum']);
   assert.equal(travel(S, 'bozcaada'), null);
   assert.equal(S.spot, 'liman');
   S.pages = PAGES.slice(0, 7).map(p => p.id);
-  assert.deepEqual(checkUnlocks(S), ['sirince', 'urla']);
+  assert.deepEqual(checkUnlocks(S), ['sirince', 'urla', 'antalya']);
   assert.deepEqual(checkUnlocks(S), []);
   S.pages = PAGES.map(p => p.id);
-  assert.deepEqual(checkUnlocks(S), ['assos'], 'hikâyenin sonunda Assos');
+  assert.deepEqual(checkUnlocks(S), ['assos', 'istanbul', 'kapadokya'], 'hikâyenin sonunda Assos, İstanbul, Kapadokya');
   for (const k of TOWN_KEYS) {
     assert.ok(SPOTS[k] && MOTIFS[k], k);
     assert.equal(REGULAR_KEYS.filter(id => REGULARS[id].town === k).length, 2, k + ' müdavimleri');

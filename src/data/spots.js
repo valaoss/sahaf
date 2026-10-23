@@ -58,6 +58,30 @@ export const SPOTS = {
     tapinak: { name: 'Tapınak tepesi', scene: 'tepe', traffic: 0.75, ask: 1.7, demand: { tarih: 1.5, siir: 1.3 }, tags: ['felsefe', 'savas'],
       desc: 'Aristoteles\'in yürüdüğü yamaç. Az kişi gelir, gelen de uzun konuşur.' },
   },
+  bodrum: {
+    marina: { name: 'Marina', scene: 'sahil', traffic: 1.15, ask: 0.9, demand: { polisiye: 1.4, roman: 1.2 }, tags: ['deniz', 'macera'],
+      desc: 'Yatlar, guletler, kumsala inen tatilciler. Kalabalık ama acele.' },
+    carsi: { name: 'Bodrum çarşısı', scene: 'carsi', traffic: 1.2, ask: 1, demand: { fantastik: 1.3, cocuk: 1.2 }, tags: ['komik', 'yolculuk'],
+      desc: 'Begonvilli sokaklar, sandalet ustaları, dondurmacılar.' },
+  },
+  antalya: {
+    kaleici: { name: 'Kaleiçi', scene: 'carsi', traffic: 1.2, ask: 1.1, demand: { tarih: 1.4, roman: 1.2 }, tags: ['sehir', 'gizem'],
+      desc: 'Hadrian Kapısı\'ndan girilen eski şehir. Konaklar, avlular, rehberli gruplar.' },
+    konyaalti: { name: 'Konyaaltı', scene: 'sahil', traffic: 1.1, ask: 0.9, demand: { cocuk: 1.4, polisiye: 1.2 }, tags: ['aile', 'deniz'],
+      desc: 'Uzun çakıl kumsal, arkada Toroslar. Aileler ve şemsiyeler.' },
+  },
+  istanbul: {
+    sahaflar: { name: 'Sahaflar Çarşısı', scene: 'carsi', traffic: 1.25, ask: 1.4, demand: { tarih: 1.5, siir: 1.3 }, tags: ['sehir', 'felsefe'],
+      desc: 'Beyazıt\'ta asırlık sahaflar. Burada kitap soran kitabı bilir.' },
+    karakoy: { name: 'Karaköy iskelesi', scene: 'sahil', traffic: 1.3, ask: 0.9, demand: { roman: 1.3, polisiye: 1.3 }, tags: ['deniz', 'yolculuk'],
+      desc: 'Vapur bekleyenler, simitçiler, martılar. Kısa yolculuğa kısa kitap.' },
+  },
+  kapadokya: {
+    goreme: { name: 'Göreme çarşısı', scene: 'carsi', traffic: 1.15, ask: 1, demand: { fantastik: 1.4, cocuk: 1.3 }, tags: ['buyu', 'cocukluk'],
+      desc: 'Kaya evler arasında halıcılar, çömlekçiler, sabahın erken saatinde balon yolcuları.' },
+    peribacalari: { name: 'Peribacaları', scene: 'tepe', traffic: 0.85, ask: 1.6, demand: { fantastik: 1.5, tarih: 1.3 }, tags: ['buyu', 'gizem'],
+      desc: 'Rüzgârın oyduğu kayalar. Az kişi gelir, gelen masal sorar.' },
+  },
   midilli: {
     liman: { name: 'Mitilini limanı', scene: 'sahil', traffic: 1, ask: 1.2, demand: { siir: 1.3, tarih: 1.2 }, tags: ['deniz', 'yolculuk'],
       desc: 'Ayvalık feribotunun yanaştığı rıhtım. Yolcular ve balıkçılar.' },

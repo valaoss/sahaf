@@ -9,7 +9,38 @@ const castle = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"
   <rect x="-24" y="-92" width="48" height="92"/>${[-24, -8, 8].map(cx => `<rect x="${cx}" y="-104" width="12" height="12"/>`).join('')}
   <rect x="-6" y="-70" width="12" height="18" rx="6" fill="#8a6a4f"/><path d="M0 -104 L0 -128 L22 -120 L0 -114" fill="#4a7fb5"/></g>`;
 
+// cami silüeti: büyük kubbe, yarım kubbeler, dört minare (uzak, mor-gri)
+const mosque = (x, y, s, c = '#b9a9c4') => `<g transform="translate(${x} ${y}) scale(${s})" fill="${c}">
+  <rect x="-120" y="-40" width="240" height="40"/><path d="M-70 -40 A70 70 0 0 1 70 -40Z"/><path d="M-115 -40 A35 35 0 0 1 -55 -40Z M55 -40 A35 35 0 0 1 115 -40Z"/>
+  <rect x="-4" y="-115" width="8" height="10"/><path d="M0 -125 L4 -115 L-4 -115Z"/>
+  ${[-150, -130, 130, 150].map(mx => `<rect x="${mx - 4}" y="-160" width="8" height="160"/><path d="M${mx - 5} -160 L${mx} -186 L${mx + 5} -160Z"/><rect x="${mx - 7}" y="-120" width="14" height="4"/>`).join('')}</g>`;
+
+// balon: renkli dilimler, sepet (Kapadokya); bob sınıfı canvas motorunda süzülür
+const balloon = (x, y, s, c1, c2, d) => `<g class="bob" style="animation-delay:-${d}s"><g transform="translate(${x} ${y}) scale(${s})">
+  <path d="M0 -40 C30 -40 34 -6 14 14 L-14 14 C-34 -6 -30 -40 0 -40Z" fill="${c1}"/><path d="M0 -40 C10 -40 12 -6 5 14 L-5 14 C-12 -6 -10 -40 0 -40Z" fill="${c2}"/>
+  <path d="M-12 16 L-6 26 M12 16 L6 26" stroke="#7a5a48" stroke-width="1.5"/><rect x="-7" y="26" width="14" height="9" rx="2" fill="#a07448"/></g></g>`;
+
 const LANDMARKS = {
+  // Bodrum: denizin içinde kale (St. Peter)
+  bodrum: () => `<path d="M1120 470 C1150 440 1200 432 1260 430 C1350 428 1420 438 1480 470Z" fill="#b8a07a"/>` + castle(1300, 438, 1.05),
+  // Antalya: karlı Toroslar ve Yivli Minare
+  antalya: () => `<path d="M0 420 L120 300 L210 360 L330 250 L460 350 L560 290 L700 390 L760 470 L0 470Z" fill="#a9b6c8"/>
+    <path d="M300 280 L330 250 L362 278 L345 288 L330 276 L314 290Z M100 320 L120 300 L142 322 L128 326Z M540 308 L560 290 L582 310 L566 314Z" fill="#fbfbff"/>
+    <g transform="translate(1260 470)"><rect x="-16" y="-200" width="32" height="200" fill="#c96f5a"/>${[-10, -2, 6].map(gx => `<rect x="${gx}" y="-196" width="3" height="190" fill="#000" opacity=".12"/>`).join('')}
+      <rect x="-22" y="-150" width="44" height="8" fill="#b85c48"/><path d="M-12 -200 L0 -236 L12 -200Z" fill="#7f9c5a"/><rect x="-40" y="-40" width="80" height="40" fill="#e3d4b4"/></g>`,
+  // İstanbul: karşı kıyıda tepedeki cami silüeti ve Galata Kulesi
+  istanbul: () => `<path d="M780 470 C860 400 1000 380 1150 390 C1300 400 1450 420 1600 400 L1600 470Z" fill="#cdbfd2"/>`
+    + mosque(1180, 400, .95) + mosque(1450, 418, .55, '#c4b4cc')
+    + `<g transform="translate(330 470)" fill="#c7b2bf"><rect x="-26" y="-190" width="52" height="190"/><rect x="-32" y="-196" width="64" height="12"/>
+      <path d="M-30 -196 L0 -250 L30 -196Z" fill="#9a8a9e"/>${[-150, -110, -70].map(y => `<rect x="-6" y="${y}" width="12" height="18" rx="6" fill="#a8949f"/>`).join('')}</g>`,
+  // Kapadokya: deniz yok; yayla, peribacaları, balonlar
+  kapadokya: () => `<path d="M0 330 C200 310 400 320 600 330 C800 340 1000 318 1200 324 C1400 330 1520 322 1600 326 L1600 562 L0 562Z" fill="#e6c9a0"/>
+    <path d="M0 380 C300 360 600 372 900 380 C1200 388 1400 370 1600 378 L1600 562 L0 562Z" fill="#d9b88a"/>
+    ${[[160, 470, 1.1], [270, 486, .8], [1180, 474, 1.2], [1300, 490, .9], [1420, 470, 1.05], [560, 492, .7]].map(([x, y, s]) => `<g transform="translate(${x} ${y}) scale(${s})">
+      <path d="M-34 0 C-30 -60 -18 -120 -10 -150 L10 -150 C18 -120 30 -60 34 0Z" fill="#f1dcb8"/><ellipse cx="0" cy="-152" rx="20" ry="11" fill="#9a7a5a"/>
+      <rect x="-8" y="-70" width="10" height="14" rx="5" fill="#8a6a4f"/><rect x="8" y="-100" width="8" height="11" rx="4" fill="#8a6a4f"/></g>`).join('')}
+    ${balloon(420, 170, 1.4, '#e57f73', '#f2c45a', 0)}${balloon(760, 120, 1.1, '#5b8bd0', '#fff4e0', 1.2)}${balloon(980, 210, 1.6, '#8bc49a', '#f08a7e', 2.1)}${balloon(1350, 150, 1, '#b98ad6', '#f2c45a', .7)}${balloon(1150, 90, .8, '#f2c45a', '#e57f73', 1.6)}`,
+
   // Ayvalık'ın karşısı: tepede taş kale
   midilli: () => hill(1050, 1600, 330, '#bfd29a') + castle(1330, 352, .8),
   // Akropolis tepesi ve Parthenon
