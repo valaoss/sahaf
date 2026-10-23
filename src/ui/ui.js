@@ -8,6 +8,9 @@ import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
 import { THEMES } from '../audio/compose.js';
 import { worldSVG, routePath, townXY, declutter, flagSVG, WW, WH } from '../render/world.js';
 import { hasBackup } from '../core/save.js';
+import { settings } from '../audio/audio.js';
+import { BLURBS } from '../data/blurbs.js';
+import { knownTags, knowsAll, knownCount, readsLeft } from '../game/knowledge.js';
 import { paperName } from '../data/countries.js';
 import { COUNTRIES, COUNTRY_KEYS } from '../data/countries.js';
 import { travelInfo } from '../game/travel.js';
@@ -44,7 +47,7 @@ const level = (x, lo, hi) => x >= hi ? 'çok' : x <= lo ? 'az' : 'orta';
 function markAsk(text) {
   // Türkçe küçük harfe çevirmek uzunluğu değiştirmez (İ→i, I→ı), konumlar korunur
   const low = text.toLocaleLowerCase('tr'), hits = [];
-  for (const t in TAGS) for (const say of TAGS[t].say) {
+  for (const t in TAGS) for (const say of [...TAGS[t].say, ...(TAGS[t].hint || [])]) {
     const m = low.indexOf(say);
     if (m >= 0) hits.push({ t, at: m, len: say.length });
   }
@@ -58,6 +61,14 @@ function markAsk(text) {
   return out + text.slice(i);
 }
 const tagChips = tags =>tags.map(t => `<span class="tag">${TAGS[t].icon} ${TAGS[t].name}</span>`).join('');
+// kitabın oyuncunun bildiği etiketleri; bilinmeyenler ❔ (⚙️ kolay modda hepsi görünür)
+const shownTags = (S, b) => settings.allTags ? b.tags : knownTags(S, b.id);
+const bookTags = (S, b) => {
+  const k = shownTags(S, b), unk = b.tags.length - k.length;
+  return tagChips(k) + (unk > 0 ? `<span class="tag unk" title="Henüz bilmiyorsun: satınca, önerince ya da okuyunca öğrenirsin">${'❔'.repeat(unk)}</span>` : '');
+};
+const BOOKS_N = GENRE_KEYS.reduce((n, g) => n + booksOf(g).length, 0);
+const blurbOf = b => BLURBS[b.id] ? `<span class="bblurb">${BLURBS[b.id]}</span>` : '';
 
 export function createUI(root, act) {
   root.innerHTML = `
@@ -148,7 +159,7 @@ export function createUI(root, act) {
       const b = BOOK[x.id], G = GENRES[b.genre];
       return `<div class="scard2 ${x.sold ? 'sold' : ''} c-${x.cond}" style="--c:${G.color}">
         <div class="st-title">${G.icon} ${b.title}</div><div class="st-author">${b.author}</div>
-        <div class="btags">${tagChips(b.tags.slice(0, 3))}</div>
+        ${blurbOf(b)}<div class="btags">${bookTags(S, b)}</div>
         <div class="st-foot"><span class="cond2">${COND_NAME[x.cond]}</span>${x.rare ? '<span class="rarebadge">✨ İlk baskı</span>' : ''}
           <button class="btn sm" data-stall="${x.i}" ${x.sold ? 'disabled' : ''}>${x.sold ? 'Alındı' : '₺' + x.cost}</button></div></div>`;
     }).join('');
@@ -268,7 +279,7 @@ export function createUI(root, act) {
     const cards = GENRE_KEYS.flatMap(g => booksOf(g)).filter(b => S.shelf[b.id]).map(b => `
       <button class="bcard" data-book="${b.id}" data-g="${b.genre}" style="--c:${GENRES[b.genre].color}">
         <span class="btitle">${b.title}</span><span class="bauthor">${b.author}</span>
-        <span class="btags">${tagChips(b.tags)}</span>${S.shelf[b.id] > 1 ? `<span class="bcount">×${S.shelf[b.id]}</span>` : ''}
+        ${blurbOf(b)}<span class="btags">${bookTags(S, b)}</span>${S.shelf[b.id] > 1 ? `<span class="bcount">×${S.shelf[b.id]}</span>` : ''}
         ${S.rare[b.id] ? `<span class="rarebadge">✨ İlk baskı${S.rare[b.id] > 1 ? ' ×' + S.rare[b.id] : ''}</span>` : ''}
       </button>`).join('');
     const R = c.reg && REGULARS[c.reg];
@@ -313,7 +324,8 @@ export function createUI(root, act) {
       const on = !m.classList.contains('is-on');
       p.querySelectorAll('mark[data-tag]').forEach(x => x.classList.toggle('is-on', x === m && on));
       p.querySelectorAll('.tab').forEach(x => x.classList.toggle('is-on', !x.dataset.f));
-      p.querySelectorAll('.bcard').forEach(b => { b.style.display = !on || BOOK[b.dataset.book].tags.includes(m.dataset.tag) ? '' : 'none'; });
+      // süzgeç yalnız bildiğin etiketlere bakar (bilinmeyen etiketli kitaplar da görünür kalır: tanıtımı oku)
+      p.querySelectorAll('.bcard').forEach(b => { const B = BOOK[b.dataset.book], k = shownTags(S, B); b.style.display = !on || k.includes(m.dataset.tag) || k.length < B.tags.length ? '' : 'none'; });
     });
   }
 
@@ -492,6 +504,7 @@ export function createUI(root, act) {
       ${(T.countries || []).length ? `<p class="tip page">🌍 Yeni bir ülke açıldı: <b>${T.countries.map(c => COUNTRIES[c].name).join(', ')}</b>! Haritadan feribotla gidebilirsin.</p>` : ''}
       ${(T.unlocked || []).length ? `<p class="tip page">🧭 Yeni bir yol açıldı: <b>${T.unlocked.map(k => TOWNS[k].name).join(', ')}</b> artık haritada!</p>` : ''}
       ${T.tea ? `<p class="hint">🫖 Çay köşesinden ${T.tea} çay satıldı.</p>` : ''}
+      ${T.learned ? `<p class="hint">📚 Satarken ${T.learned} kitap hakkında yeni bir şey öğrendin (📚 Kitap bilgim).</p>` : ''}
       ${(T.haps || []).length ? `<p class="recline">Bugün yaşananlar: ${T.haps.map(id => HAP[id].icon + ' ' + HAP[id].title).join(' · ')}</p>` : ''}
       ${T.quest ? `<p class="tip page">${T.quest.done ? `📌 İlan teslim edildi: +₺${T.quest.coins}${T.quest.rare ? ` ve bir ilk baskı (${BOOK[T.quest.rare].title})` : ''}` : '📌 İlanın süresi doldu; bir dahaki sefere.'}</p>` : ''}
       ${(T.regulars || []).length ? `<p class="recline">Uğrayan müdavimler: ${T.regulars.map(r => `${REGULARS[r.id].name} ${r.grade === 'perfect' ? '💛' : r.grade === 'good' ? '🙂' : '😕'} <span class="hearts">${hearts(S.friends[r.id] || 0)}</span>`).join(' · ')}</p>` : ''}
@@ -530,7 +543,7 @@ export function createUI(root, act) {
       : sp ? '' : '<div class="kicker">Bugün</div><div class="headline">Sakin bir gün</div><p>Kasabalarda özel bir etkinlik yok. Raflara özen göstermek için iyi bir gün.</p>';
     // bu sabahın mektubu (varsa) ve ilan panosu
     const L = S.post?.letter;
-    const letter = L ? `<div class="letterbox"><div class="kicker">📮 Sana bir mektup var · ${L.from}</div><p class="say">“${L.text}”</p>${L.coins ? `<p class="hint">Zarfın içinden ₺${L.coins} çıktı: “bir sonraki kitap benden”.</p>` : ''}</div>` : '';
+    const letter = L ? `<div class="letterbox"><div class="kicker">📮 Sana bir mektup var · ${L.from}</div><p class="say">“${L.text}”</p>${L.coins ? `<p class="hint">Zarfın içinden ₺${L.coins} çıktı: “bir sonraki kitap benden”.</p>` : ''}${(L.learned || []).length ? `<p class="hint">📚 Mektuptan öğrendin: <b>${BOOK[L.book].title}</b> · ${L.learned.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ')}</p>` : ''}</div>` : '';
     const q = S.quest, qp = questProgress(S);
     const ad = q ? `<div class="kicker">📌 İlan${S.post?.quest ? ' · yeni' : ''}</div><p>${questText(q)}</p>
       <p class="hint">Rafta ${qp.have}/${qp.n} · son gün: ${q.deadline - S.day === 0 ? 'bugün' : `${q.deadline - S.day} gün sonra`} · ödül ₺${q.coins}${q.rare ? ' + sürpriz' : ''}</p>` : '';
@@ -562,13 +575,34 @@ export function createUI(root, act) {
   // Defter sekmeleri: hikâye, pul albümü, mektuplar
   function bookTabs(S, on) {
     const t = (k, label) => `<button class="tab ${on === k ? 'is-on' : ''}" data-tab="${k}">${label}</button>`;
-    return `<div class="tabs head">${t('book', '📜 Defter')}${t('album', `🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 Mektuplar (${S.letters.length})`)}${t('stats', '📊 İstatistik')}${t('passport', `🛂 Pasaport (${Object.keys(S.passport).length})`)}</div>`;
+    return `<div class="tabs head">${t('book', '📜 Defter')}${t('album', `🏅 Pul albümü (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 Mektuplar (${S.letters.length})`)}${t('stats', '📊 İstatistik')}${t('passport', `🛂 Pasaport (${Object.keys(S.passport).length})`)}${t('know', `📚 Kitap bilgim (${knownCount(S)})`)}</div>`;
   }
   function wireTabs(p, S, back) {
     p.querySelectorAll('[data-tab]').forEach(b => b.onclick = () =>
       b.dataset.tab === 'book' ? bookPanel(S, null, back) : b.dataset.tab === 'album' ? albumPanel(S, back)
-        : b.dataset.tab === 'stats' ? statsPanel(S, back) : b.dataset.tab === 'passport' ? passportPanel(S, back) : mailPanel(S, back));
+        : b.dataset.tab === 'stats' ? statsPanel(S, back) : b.dataset.tab === 'passport' ? passportPanel(S, back)
+        : b.dataset.tab === 'know' ? knowPanel(S, back) : mailPanel(S, back));
   }
+  // Kitap bilgim: karşılaşılan kitaplar, tanıtımları ve bilinen etiketleri (türe göre)
+  function knowPanel(S, back = null) {
+    const met = id => S.known[id] || S.shelf[id] || S.soldBooks[id] || S.crate.some(e => e.id === id);
+    const sections = GENRE_KEYS.map(g => {
+      const list = booksOf(g).filter(b => met(b.id));
+      if (!list.length) return '';
+      return `<h3>${GENRES[g].icon} ${GENRES[g].name} <span class="hint">· ${list.filter(b => knowsAll(S, b.id)).length}/${booksOf(g).length}</span></h3>
+        <div class="klist">${list.map(b => `<div class="kcard ${knowsAll(S, b.id) ? 'full' : ''}" style="--c:${GENRES[g].color}">
+          <b>${b.title}</b> <small>${b.author}</small>${blurbOf(b)}<span class="btags">${bookTags(S, b)}</span></div>`).join('')}</div>`;
+    }).join('');
+    const p = openPanel(`
+      ${bookTabs(S, 'know')}
+      <p class="hint">Bir kitabın etiketlerini <b>satınca</b> (biri), <b>önerince</b> (isteğe uyanlar), sabahları karavanda <b>okuyunca</b> ve <b>mektup gelince</b> (hepsi) öğrenirsin.
+        Bilmediğin kitapta tanıtımı oku: ipucu orada. · <b>${knownCount(S)}</b>/${BOOKS_N} kitabı iyi tanıyorsun.</p>
+      ${sections || '<p class="hint">Henüz kitap tanımıyorsun.</p>'}
+      <div class="row end"><button class="btn hl" data-close>Kapat</button></div>`, 'wide');
+    wireTabs(p, S, back);
+    p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
+  }
+
   // Pasaport: ülke damgaları (ilk girilen gün), kapalı ülkelerin ipucu
   function passportPanel(S, back = null) {
     const cards = COUNTRY_KEYS.map(c => {
@@ -715,11 +749,11 @@ export function createUI(root, act) {
 
   // Ayarlar: müzik, ses efektleri, kaydı sıfırlama (iki adımlı onay)
   function settingsPanel(set, S = null) {
-    const row = (k, label) => `<div class="dcard"><div class="dicon">${k === 'music' ? '🎵' : k === 'hints' ? '🔍' : k === 'paint' ? '🖌️' : k === 'simple' ? '🎞️' : '🔔'}</div><div class="gname">${label}</div>
+    const row = (k, label) => `<div class="dcard"><div class="dicon">${k === 'music' ? '🎵' : k === 'hints' ? '🔍' : k === 'allTags' ? '🏷️' : k === 'paint' ? '🖌️' : k === 'simple' ? '🎞️' : '🔔'}</div><div class="gname">${label}</div>
       <button class="btn sm toggle ${set[k] ? 'hl' : ''}" data-toggle="${k}">${set[k] ? 'Açık' : 'Kapalı'}</button></div>`;
     const p = openPanel(`
       <h2>⚙️ Ayarlar</h2>
-      <div class="dgrid one">${row('music', 'Müzik')}${row('sfx', 'Ses efektleri ve yağmur')}${row('hints', 'Öneri ipuçları (cümledeki anahtar kelimeler)')}${row('paint', 'Boyanmış doku (kapatırsan telefon daha az yorulur)')}${row('simple', 'Basit görünüm (eski çizim; oyun yeniden açılır)')}</div>
+      <div class="dgrid one">${row('music', 'Müzik')}${row('sfx', 'Ses efektleri ve yağmur')}${row('hints', 'Öneri ipuçları (cümledeki anahtar kelimeler)')}${row('allTags', 'Kolay mod: kitapların bütün etiketleri baştan görünür')}${row('paint', 'Boyanmış doku (kapatırsan telefon daha az yorulur)')}${row('simple', 'Basit görünüm (eski çizim; oyun yeniden açılır)')}</div>
       <h3>🔠 Yazı boyutu</h3><div class="swatches">${[[1, 'Normal'], [1.15, 'Büyük'], [1.3, 'Çok büyük']].map(([v, n]) => `<button class="swatch ${set.textScale === v ? 'is-on' : ''}" data-scale="${v}"><span style="font-size:${v}em">Aa</span><small>${n}</small></button>`).join('')}</div>
       ${S?.upgrades.includes('plak') ? `<h3>📻 Plak çalar</h3><div class="swatches">${Object.keys(THEMES).map(k => `<button class="swatch ${set.theme === k ? 'is-on' : ''}" data-theme="${k}"><span>${THEMES[k].name}</span><small>${set.theme === k ? '✓ çalıyor' : 'Çal'}</small></button>`).join('')}</div>` : ''}
       <h3>Kayıt</h3>

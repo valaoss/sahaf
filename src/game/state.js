@@ -7,6 +7,7 @@ import { SPOTS, firstSpot } from '../data/spots.js';
 import { TOWNS, TOWN_KEYS, START_TOWNS } from '../data/towns.js';
 import { COUNTRIES } from '../data/countries.js';
 import { seedRng, rndInt } from '../core/rng.js';
+import { learnAll } from './knowledge.js';
 
 export const SAVE_V = 2;
 
@@ -80,11 +81,15 @@ export function newGame(seed = Date.now()) {
     sat: {},                   // tür doygunluğu: kasaba → tür → son günlerde satılan (game/shop.js demandOf)
     donated: [],               // okuma köşesi bağışlanan kasabalar
     sponsor: null,             // festival sponsorluğu { day, town }
+    known: {},                 // kitap bilgisi: kitap → bilinen etiketler (game/knowledge.js)
+    readsToday: 0,             // okuma köşesi: bu sabah okunan kitap
     nextId: 1,
     rng: 0,
   };
   seedRng(S, seed);
   S.shelf = startShelf(S);
+  // teyzenin notları: karavandaki ilk kitapların etiketleri baştan bilinir
+  for (const id in S.shelf) learnAll(S, id);
   return S;
 }
 
@@ -125,6 +130,12 @@ export function restore(saved) {
   if (saved.v !== SAVE_V) return null;
   const fresh = newGame(1);
   const S = Object.assign(newGame(1), saved);
+  // kitap bilgisinden önceki kayıtlar: oyuncu o zaman bütün etiketleri görüyordu; elindeki ve sattığı kitapları bilir
+  if (!isObj(saved.known)) {
+    S.known = {};
+    const ids = [...Object.keys(saved.shelf || {}), ...Object.keys(saved.soldBooks || {}), ...(saved.crate || []).map(e => e?.id), ...(saved.recHistory || []).map(r => r?.book)];
+    for (const id of ids) if (BOOK[id]) learnAll(S, id);
+  }
   sanitize(S, fresh);
   S.totals = Object.assign(fresh.totals, saved.totals);
   sanitize(S.totals, newGame(1).totals);
@@ -136,6 +147,7 @@ export function restore(saved) {
   S.featured = [...new Set(S.featured.filter(id => BOOK[id]))].slice(0, 3);
   S.recHistory = S.recHistory.filter(e => isObj(e) && BOOK[e.book]);
   for (const id in S.soldBooks) if (!BOOK[id]) delete S.soldBooks[id];
+  for (const id in S.known) if (!BOOK[id] || !Array.isArray(S.known[id])) delete S.known[id]; else S.known[id] = S.known[id].filter(t => BOOK[id].tags.includes(t));
   S.donated = S.donated.filter(k => TOWNS[k]);
   if (S.sponsor && !(isObj(S.sponsor) && TOWNS[S.sponsor.town])) S.sponsor = null;
   // ülkeler ve yollar: kaldırılan şehirler düşer; açık ülkelerin koşulsuz şehirleri (sonradan eklenenler dahil) yola açılır

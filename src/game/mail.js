@@ -12,6 +12,7 @@ import { rnd, rndInt, rndPick } from '../core/rng.js';
 import { takeBook } from './state.js';
 import { plainCopies } from './shop.js';
 import { pickFresh, remember } from './memory.js';
+import { learnAll } from './knowledge.js';
 
 const ago = d => d <= 7 ? 'Geçen hafta' : d <= 14 ? 'İki hafta önce' : d <= 21 ? 'Üç hafta önce' : 'Geçen ay';
 
@@ -38,6 +39,8 @@ export function morningLetter(S) {
   const r = rndPick(S, cand);
   r.sent = true;
   const L = writeLetter(S, r);
+  // okurun mektubu kitabı anlatır: bütün etiketleri öğrenilir
+  L.learned = learnAll(S, r.book);
   if (rnd(S) < 0.35) { L.coins = 10 + rndInt(S, 16); S.coins += L.coins; }
   S.letters.push(L);
   S.lettersTotal = (S.lettersTotal || 0) + 1;

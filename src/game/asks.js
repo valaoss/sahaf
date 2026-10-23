@@ -1,6 +1,7 @@
 // Müşteri cümlesi kurar: [selam] [bağlam] [istek] [kapanış]. Aynı cümle yakın zamanda söylendiyse yeniden dener.
 import { rnd, rndPick } from '../core/rng.js';
 import { TAGS } from '../data/books.js';
+import { BAL } from '../data/balance.js';
 import { GREET, CLOSE, CONTEXT, REQ_ONE, REQ_TWO, RARE_REQ } from '../data/asks.js';
 import { remember, seenRecently } from './memory.js';
 
@@ -22,7 +23,9 @@ export function buildAsk(S, tags, ctx = {}) {
       ];
       if (pool.length) parts.push(pick(pool));
     }
-    const says = tags.map(t => pick(TAGS[t].say));
+    // dolaylı söyleyiş: etiketin adı değil bir imgesi ("martı sesleri duyulan"); oyun ilerledikçe daha sık
+    const indirect = Math.min(BAL.indirectMax, BAL.indirectBase + (S.totals?.days || 0) * BAL.indirectPerDay);
+    const says = tags.map(t => pick(TAGS[t].hint && rnd(S) < indirect ? TAGS[t].hint : TAGS[t].say));
     const table = tags.length > 1 ? REQ_TWO : REQ_ONE;
     parts.push(fill(pick(ctx.rare ? RARE_REQ : [...table.any, ...(table[voice] || [])]), says));
     if (!ctx.bare && rnd(S) < 0.35) parts.push(pick(CLOSE[voice]));

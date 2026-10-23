@@ -1361,4 +1361,84 @@ test('rafı tamamla: etiketli bölümlerdeki boşlukları kendi türünden kolil
 });
 
 
+// ---------- Faz 3: kitap bilgisi ve öneri bulmacası ----------
+const KN = await import('../src/game/knowledge.js');
+const { BLURBS } = await import('../src/data/blurbs.js');
+const { buildAsk } = await import('../src/game/asks.js');
+const { CONTEXT } = await import('../src/data/asks.js');
+const { morningLetter } = await import('../src/game/mail.js');
+
+test('kitap bilgisi: teyzenin kitapları bilinir, koliden gelenler bilinmez', () => {
+  const S = newGame(31);
+  for (const id in S.shelf) assert.ok(KN.knowsAll(S, id), id);
+  S.coins = 99; buyBox(S, 'tarih');
+  assert.ok(S.crate.some(e => !KN.knowsAll(S, e.id)));
+});
+
+test('kitap bilgisi: satınca en fazla bir, önerince yalnız isteğe uyan etiketler öğrenilir', () => {
+  const S = newGame(32); S.coins = 99; buyBox(S, 'fantastik'); placeAll(S); openShop(S);
+  const id = S.crate.length ? S.crate[0].id : Object.keys(S.shelf).find(i => !KN.knowsAll(S, i));
+  const before = KN.knownTags(S, id).length;
+  const ask = { tags: [BOOK[id].tags[0], Object.keys(TAGS).find(t => !BOOK[id].tags.includes(t))] };
+  const r = recommend(S, { id: 1, ask }, id);
+  assert.deepEqual(r.learned, [BOOK[id].tags[0]].filter(t => !(before && KN.knownTags(S, id).includes(t) && !r.learned.includes(t))));
+  assert.ok(KN.knownTags(S, id).every(t => BOOK[id].tags.includes(t)));
+  // satış: her satış en fazla bir etiket
+  const P = newGame(33); P.coins = 99; buyBox(P, 'roman'); placeAll(P); openShop(P);
+  const known0 = Object.values(P.known).reduce((n, a) => n + a.length, 0);
+  let sold = 0;
+  for (let k = 0; k < 15; k++) sold += resolveCustomer(P, { id: k, wants: 'roman', look: k }).bought.length;
+  const known1 = Object.values(P.known).reduce((n, a) => n + a.length, 0);
+  assert.ok(known1 - known0 <= sold, 'satış başına en fazla bir');
+});
+
+test('okuma köşesi: sabahları günde iki kitap (koltukla üç), bütün etiketler açılır, ertesi sabah yenilenir', () => {
+  const S = newGame(34); S.coins = 999; buyBox(S, 'tarih'); buyBox(S, 'siir'); placeAll(S);
+  const fresh = Object.keys(S.shelf).filter(id => !KN.knowsAll(S, id));
+  assert.ok(fresh.length >= 4);
+  assert.equal(KN.readBook(S, fresh[0]), null);
+  assert.ok(KN.knowsAll(S, fresh[0]));
+  assert.equal(KN.readBook(S, fresh[0]), 'Bu kitabı zaten iyi tanıyorsun.');
+  assert.equal(KN.readBook(S, fresh[1]), null);
+  assert.ok(KN.readBook(S, fresh[2]), 'üçüncü okunmaz');
+  S.upgrades.push('koltuk');
+  assert.equal(KN.readBook(S, fresh[2]), null, 'okuma koltuğu');
+  openShop(S);
+  assert.equal(KN.readBook(S, fresh[3]), 'Okumak için sabahı bekle.');
+  closeShop(S); nextMorning(S);
+  assert.equal(KN.readsLeft(S), 3);
+});
+
+test('mektup kitabı anlatır: bütün etiketleri öğrenilir; eski kayıtta eldeki ve satılan kitaplar bilinir', () => {
+  const S = newGame(35); BAL.letterChance = 1;
+  const id = 'garip'; S.recHistory.push({ day: 1, town: 'ayvalik', spot: 'iskele', book: id, arch: 'balikci', look: 3 }); S.day = 9;
+  const L = morningLetter(S); BAL.letterChance = 0.35;
+  assert.ok(L && KN.knowsAll(S, id));
+  const old = JSON.parse(JSON.stringify(newGame(36))); delete old.known; old.soldBooks = { hobbit: 2 };
+  const T = restore(old);
+  assert.ok(KN.knowsAll(T, 'hobbit'));
+  for (const b in old.shelf) assert.ok(KN.knowsAll(T, b));
+});
+
+test('dolaylı istekler: oyun ilerledikçe etiketin adı yerine imgesi söylenir', () => {
+  for (const t in TAGS) assert.ok(TAGS[t].hint.length >= 4, t);
+  const count = days => { const S = newGame(37); S.totals.days = days; let n = 0;
+    for (let i = 0; i < 300; i++) { const t = Object.keys(TAGS)[i % 19]; const text = buildAsk(S, [t], { voice: 'samimi', bare: true }).toLocaleLowerCase('tr'); if (TAGS[t].hint.some(h => text.includes(h))) n++; } return n / 300; };
+  const early = count(0), late = count(40);
+  assert.ok(early < 0.3 && late > 0.45, JSON.stringify({ early, late }));
+  for (const k of ARCH_KEYS) assert.ok(CONTEXT.arch[k].length >= 8, k);
+});
+
+test('her kitabın tanıtımı var; etiketlerin adını anmaz, uzunluğu kartlara uygun', () => {
+  const STEMS = ['deniz', 'hüzün', 'hüzn', 'aşk', 'macera', 'gizem', 'komik', 'aile', 'savaş', 'doğa', 'büyü', 'yolculuk', 'kısa', 'umut', 'yalnız', 'çocukluk', 'kork', 'şehir', 'şehr', 'hayvan', 'felsefe'];
+  const OK = ['büyük', 'büyüme', 'büyümek', 'büyüyen', 'büyüdü', 'büyüt', 'yalnızca', 'doğan', 'doğal'];
+  for (const b of BOOKS) {
+    const t = BLURBS[b.id];
+    assert.ok(t && t.length >= 60 && t.length <= 140, b.id);
+    const words = t.toLocaleLowerCase('tr').split(/[^a-zçğıöşüâîû]+/).filter(Boolean);
+    for (const w of words) assert.ok(!(STEMS.some(s => w.startsWith(s)) && !OK.some(o => w.startsWith(o))), `${b.id}: ${w}`);
+  }
+});
+
+
 console.log(`\n${passed} test geçti`);

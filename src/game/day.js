@@ -109,6 +109,7 @@ export function nextMorning(S) {
   S.post = { letter: morningLetter(S), quest: offerQuest(S) };
   decaySat(S);
   if (S.sponsor && S.sponsor.day < S.day) S.sponsor = null;
+  S.readsToday = 0;
 }
 
 // Feribotla varış: denizde bir gün geçti (game/travel.js crossBorder), bu sabahın işleri yapılır.
@@ -118,17 +119,18 @@ export function afterFerry(S) {
   S.post = { letter: morningLetter(S), quest: offerQuest(S) };
   decaySat(S);
   if (S.sponsor && S.sponsor.day < S.day) S.sponsor = null;
+  S.readsToday = 0;
   return rescue(S);
 }
 
-// Başsız tam gün: test ve denge simülasyonu için
-export function simulateDay(S, pick = () => 0) {
+// Başsız tam gün: test ve denge simülasyonu için. rec(S, ask, wants): öneri isteyene verilecek kitap (varsayılan: her şeyi bilen)
+export function simulateDay(S, pick = () => 0, rec = (S, ask) => bestBook(S, ask)) {
   placeAll(S);
   openShop(S);
   // yarım saatlik adımlar: olaylar zamanında çıksın; öneri isteyene raftaki en uygun kitap, olayda pick(seçenekler)
   while (!closingTime(S)) {
     for (const c of advanceClock(S, 30)) {
-      if (c.ask) recommend(S, c, bestBook(S, c.ask)); else resolveCustomer(S, c);
+      if (c.ask) recommend(S, c, rec(S, c.ask, c.wants)); else resolveCustomer(S, c);
     }
     for (let h; (h = dueHappening(S));) chooseHappening(S, h, pick(HAP[h].choices.length));
   }

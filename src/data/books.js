@@ -1,5 +1,6 @@
 // Gerçek kitaplar: yalnızca başlık ve yazar (kapak görseli yok). Etiketler öneri oyununda eşleşme için.
 // `say`: müşterinin cümlesinde "… bir kitap" kalıbına oturan sıfat öbekleri (biri seçilir; ilki en yalını).
+// `hint`: aynı kalıba oturan dolaylı söyleyişler (etiketin adı değil bir imgesi; oyun ilerledikçe daha sık, game/asks.js)
 export const TAGS = {
   deniz:    { icon: '🌊', name: 'deniz',     say: ['denizi anlatan', 'deniz kokan', 'dalgaların arasında geçen'] },
   huzun:    { icon: '💧', name: 'hüzün',     say: ['biraz hüzünlü', 'insanın içini burkan', 'buruk'] },
@@ -23,6 +24,29 @@ export const TAGS = {
 };
 
 const B = (id, genre, title, author, tags) => ({ id, genre, title, author, tags });
+
+const HINT = {
+  deniz: ['martı sesleri duyulan', 'tuzlu rüzgârı olan', 'teknelerin, iskelelerin olduğu', 'ufka bakan'],
+  huzun: ['okurken boğazımı düğümleyecek', 'güz akşamı gibi', 'gözlerimi dolduracak', 'içinde bir sızı bırakan'],
+  ask: ['iki kişinin birbirini aradığı', 'kalbi hızlı attıran', 'kavuşmayı bekleyen', 'sevdalıların okuyacağı'],
+  macera: ['kaçışların, kovalamacaların olduğu', 'elimden bırakamayacağım', 'kahramanı tehlikeye atılan', 'nefesimi tutturacak'],
+  gizem: ['sonunu tahmin edemeyeceğim', 'içinde bir bilmece olan', 'ipucu peşinde koşulan', 'kapalı kapıların ardını merak ettiren'],
+  komik: ['kahkaha attıracak', 'yüzümü güldürecek', 'nükteli', 'tatlı tatlı alay eden'],
+  aile: ['kuşaktan kuşağa geçen', 'sofrada toplanılan', 'anneyle babayı anlatan', 'kardeşlerin olduğu'],
+  savas: ['askerlerin olduğu', 'top seslerinin geldiği', 'barışın kıymetini bildiren', 'cepheden mektup gibi'],
+  doga: ['ormanların, dağların olduğu', 'toprak kokan', 'kuş sesleri gelen', 'mevsimleri anlatan'],
+  buyu: ['ejderhaların uçtuğu', 'sihirbazların olduğu', 'başka bir dünyaya kapı açan', 'peri masalı gibi'],
+  yolculuk: ['valizimle okuyacağım', 'tren camından bakar gibi', 'harita üstünde gezdiren', 'diyar diyar dolaştıran'],
+  kisa: ['çantama sığacak', 'bir çay demlenene kadar biten', 'birkaç sayfalık', 'bir akşamda bitecek'],
+  umut: ['karanlıktan aydınlığa çıkan', 'yeniden başlamayı anlatan', 'insana güç veren', 'sonunda güneş doğan'],
+  yalniz: ['kimsesiz birini anlatan', 'kendi kendine konuşan bir kahramanı olan', 'tek başına kalanların okuyacağı', 'sessiz odalarda geçen'],
+  cocukluk: ['küçüklüğümü hatırlatacak', 'okul bahçesi kokan', 'eski bayramları anımsatan', 'misket ve uçurtma günlerini anlatan'],
+  korku: ['geceleri ışığı açık bıraktıracak', 'tekinsiz', 'hayaletli', 'karanlık koridorları olan'],
+  sehir: ['apartmanlar arasında geçen', 'tramvay sesleri gelen', 'sokak lambalarının altında geçen', 'meydanları, çarşıları olan'],
+  hayvan: ['bir köpeğin, bir kedinin olduğu', 'patili kahramanları olan', 'çiftlik avlusunda geçen', 'kuyruklu, kanatlı kahramanları olan'],
+  felsefe: ['hayatın anlamını soran', 'bitince uzun uzun düşündürecek', 'insana kendini sorgulatan', 'iyi ile kötüyü tartan'],
+};
+for (const t in TAGS) TAGS[t].hint = HINT[t];
 
 export const BOOKS = [
   B('kurk', 'roman', 'Kürk Mantolu Madonna', 'Sabahattin Ali', ['ask', 'huzun', 'yalniz']),

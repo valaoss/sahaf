@@ -63,6 +63,10 @@ export const BAL = {
   featureBuy: 0.08,    // vitrinde aradığı türden kitap varsa alma ihtimaline eklenen
   featureDemand: 0.15, // vitrindeki her kitap kendi türüne olan ilgiyi bu kadar artırır
   patience: 14,        // öneri isteyen müşterinin bekleme süresi (sn, normal hızda)
+  readsPerDay: 2,      // okuma köşesi: sabahları okunabilen kitap (okuma koltuğuyla bir fazla)
+  learnOnSale: 0.35,   // satılan kitabın bir etiketini öğrenme ihtimali (müşteri giderken bir şey söyler)
+  // dolaylı istek: etiketin adını değil bir imgesini söyleme ihtimali (ilk günler az, oyun ilerledikçe artar)
+  indirectBase: 0.15, indirectPerDay: 0.025, indirectMax: 0.65,
   daysPerSeason: 7,
 };
 

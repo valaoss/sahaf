@@ -19,6 +19,7 @@ import { crateAdd, crateFree, takeCopy, chanceOf, refill } from './shelving.js';
 import { EVENTS } from '../data/calendar.js';
 import { eventOf } from './calendar.js';
 import { countryOf, travelInfo, crossBorder } from './travel.js';
+import { learn, learnOne } from './knowledge.js';
 import { COUNTRIES } from '../data/countries.js';
 import { TALK } from '../data/talk.js';
 import { seeded } from '../core/rng.js';
@@ -294,6 +295,8 @@ function sell(S, id, res, rareCopy = false, mul = 1) {
   if (rareCopy || plainCopies(S, id) < 0) { S.rare[id]--; if (!S.rare[id]) delete S.rare[id]; }
   const g = BOOK[id].genre, T = S.today;
   S.soldBooks[id] = (S.soldBooks[id] || 0) + 1;
+  // satılan kitap hakkında bir şey öğrenilir (müşteri giderken söyler)
+  if (rnd(S) < BAL.learnOnSale && learnOne(S, id).length) T.learned = (T.learned || 0) + 1;
   const sat = (S.sat[S.town] = S.sat[S.town] || {});
   sat[g] = (sat[g] || 0) + 1;
   if (cp.sec >= 0 && T.secSold) T.secSold[cp.sec]++;
@@ -365,6 +368,8 @@ export function recommend(S, c, id, opts = {}) {
   const res = { bought: [], paid: 0, tip: 0, happy: false, grade: 'miss' };
   if (id && S.shelf[id]) {
     res.grade = matchGrade(c.ask, id);
+    // öneri: isteğe uyan etiketler artık biliniyor
+    res.learned = learn(S, id, c.ask.tags);
     const rareCopy = !!c.ask.rare && (S.rare[id] || 0) > 0;
     if (c.ask.rare && !rareCopy && res.grade === 'perfect') res.grade = 'good';
     if (res.grade === 'miss' && opts.discount && plainCopies(S, id) > 0) {

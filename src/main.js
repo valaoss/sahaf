@@ -30,6 +30,8 @@ import { checkStamps } from './game/stamps.js';
 import { STAMPS } from './data/stamps.js';
 import { PAGES } from './data/story.js';
 import { tap } from './core/native.js';
+import { readBook } from './game/knowledge.js';
+import { TAGS } from './data/books.js';
 import { buildScene } from './render/scene.js';
 import { buildScene2 } from './render2/scene2.js';
 import { createCrowd, personSVG, figureMeta } from './render/people.js';
@@ -80,7 +82,9 @@ const crowd = createCrowd(scene.crowdView(), {
       if (r.friend?.gift || r.friend?.coins) { saveGame(S); ui.confetti(); ui.giftPanel(r.friend); }
       // müşterinin karşılığı: konuşma kartı (kalp ya da bahşiş bilgisiyle)
       const line = c.reg && r.grade === 'perfect' ? REGULARS[c.reg].thanks : replyFor(S, c, r.discounted ? { grade: 'good' } : r, id);
-      const note = r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.discounted ? `İndirimle ₺${r.paid}` : r.grade !== 'miss' ? `Bahşiş ₺${r.tip}` : '';
+      const base = r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.discounted ? `İndirimle ₺${r.paid}` : r.grade !== 'miss' ? `Bahşiş ₺${r.tip}` : '';
+      // öneriden öğrenilen etiket: kart bir sonraki sefer onu gösterir
+      const note = [base, (r.learned || []).length ? '📚 ' + r.learned.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ') : ''].filter(Boolean).join(' · ');
       const a = crowd.anchor(c);
       if (!(r.friend?.gift || r.friend?.coins)) ui.speech(c, line, r.grade, note, a && toFrame(a.x, a.y));
     }, settings.hints !== false, { onTalk: () => talkHint(S, c), tea: S.upgrades.includes('cay'), teaLine: () => teaLine(S) });
@@ -166,6 +170,13 @@ scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[ar
     const why = buyStall(S, arg);
     if (why) ui.toast(why); else { tap(); sfx('page'); saveGame(S); ui.toast('🧺 Kitap koliye kondu'); }
     ui.stockPanel(S);
+  }
+  else if (a === 'read') {
+    // okuma köşesi: kitabın bütün etiketleri açılır
+    const why = readBook(S, arg);
+    if (why) ui.toast(why);
+    else { sfx('page'); saveGame(S); ui.toast(`📖 ${BOOK[arg].title}: ${BOOK[arg].tags.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ')}`); }
+    ui.interiorPanel(S);
   }
   else if (a === 'refill') {
     // rafı tamamla: etiketli bölümlerin boşluklarını kendi türünden kolilerle doldurup dizer

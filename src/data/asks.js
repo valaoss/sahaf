@@ -20,17 +20,17 @@ export const CLOSE = {
 // Bağlam: kim olduğundan, havadan, mevsimden ya da mekândan bir cümle (hepsi isteğe bağlı)
 export const CONTEXT = {
   arch: {
-    ogrenci: ['Sınavlar bitti, nihayet kendi kitabımı okuyabilirim.', 'Yurtta okuyacak bir şey arıyorum.', 'Hocam ödev verdi ama ben başka bir şey okumak istiyorum.'],
-    emekli: ['Emekli oldum, vaktim bol.', 'Kırk yıl öğrencilere kitap önerdim, şimdi sıra bende.', 'Torunlarım okusun diye kitaplık kuruyorum.'],
-    balikci: ['Ağları topladım, akşama okumalık lazım.', 'Teknede dalgayı beklerken okurum.', 'Balık yok bugün, bari kitap olsun.'],
-    turist: ['Tatildeyim, otelde okuyacağım.', 'İlk kez buraya geliyorum.', 'Valizime bir kitap daha sığar.'],
-    anne: ['Kızım için bakıyorum.', 'Oğlumun doğum günü yaklaşıyor.', 'Çocuklar akşam masal istiyor.'],
-    cocuk: ['Annem izin verdi!', 'Harçlığımı biriktirdim.', 'Okulda kitap okuma yarışması var!'],
-    sevgili: ['Sevgilime hediye alacağım.', 'Yarın yıldönümümüz.', 'Birine kitap hediye etmek istiyorum, ilk kez.'],
-    yazar: ['Bir roman yazıyorum, ilhama ihtiyacım var.', 'Defterim boş kaldı bu hafta.', 'Yazarken başka sesler duymak istiyorum.'],
-    koleksiyoncu: ['Kütüphanem için bakıyorum.', 'Eski baskıların peşindeyim.', 'Rafta gözüme bir şey takılmadı ama sorayım.'],
-    teyze: ['Akşamları çayımın yanına okurum.', 'Gözlüğümü taktım, hazırım.', 'Komşularla kitap değiş tokuşu yapıyoruz.'],
-    sorfcu: ['Rüzgâr çıkana kadar okuyacağım.', 'Kumsala kitapsız gitmem.', 'Dalgalar sakin bugün.'],
+    ogrenci: ['Sınavlar bitti, nihayet kendi kitabımı okuyabilirim.', 'Yurtta okuyacak bir şey arıyorum.', 'Hocam ödev verdi ama ben başka bir şey okumak istiyorum.', 'Kantinde arkadaşlarla kitap değiş tokuşu yapıyoruz.', 'Otobüste okuyacak bir şey lazım.', 'Burs parası yattı, kendime bir kitap alacağım.', 'Telefondan sıkıldım, kâğıt sayfa özledim.', 'Edebiyat hocam sahaflara uğrayın dedi.'],
+    emekli: ['Emekli oldum, vaktim bol.', 'Kırk yıl öğrencilere kitap önerdim, şimdi sıra bende.', 'Torunlarım okusun diye kitaplık kuruyorum.', 'Sabah yürüyüşümü yaptım, şimdi sıra okumada.', 'Bahçede gölgeye bir sandalye koydum.', 'Gözüm eskisi kadar görmüyor ama bırakmam.', 'Eşimle akşamları sesli okuyoruz.', 'Gençken okuduklarımı yeniden okuyorum.'],
+    balikci: ['Ağları topladım, akşama okumalık lazım.', 'Teknede dalgayı beklerken okurum.', 'Balık yok bugün, bari kitap olsun.', 'Lodos çıktı, tekne bağlı kaldı.', 'Ağ örerken radyo dinlerim, bu akşam kitap olsun.', 'Kahvede herkes aynı şeyi konuşuyor, bıktım.', 'Sabah dörtte kalkarım, akşam erken okurum.', 'Oğlum da okusun diye bakıyorum.'],
+    turist: ['Tatildeyim, otelde okuyacağım.', 'İlk kez buraya geliyorum.', 'Valizime bir kitap daha sığar.', 'Rehber kitabımı bitirdim.', 'Plajda şemsiye altında okuyacağım.', 'Arkadaşım bu kasabayı çok övdü.', 'Hatıra olarak bir kitap götürmek istiyorum.', 'Akşam yemeğinden önce biraz vaktim var.'],
+    anne: ['Kızım için bakıyorum.', 'Oğlumun doğum günü yaklaşıyor.', 'Çocuklar akşam masal istiyor.', 'Bebek uyudu, beş dakikam var.', 'Okulda kitap listesi verdiler.', 'Bu sefer kendime de bir şey alayım.', 'Çocuklar ekrandan biraz kalksın istiyorum.', 'Yatmadan önce birlikte okuyoruz.'],
+    cocuk: ['Annem izin verdi!', 'Harçlığımı biriktirdim.', 'Okulda kitap okuma yarışması var!', 'Ödevimi bitirdim!', 'Ablam okudu, ben de istiyorum!', 'Kütüphane kartım doldu!', 'Resim yapmaktan sıkıldım.', 'Doğum günümde kitap aldılar, bir tane daha istiyorum!'],
+    sevgili: ['Sevgilime hediye alacağım.', 'Yarın yıldönümümüz.', 'Birine kitap hediye etmek istiyorum, ilk kez.', 'Bankta oturup birlikte okuyacağız.', 'Sayfaların arasına bir not koyacağım.', 'Tanıştığımız gün bir kitapçıdaydık.', 'O uzak bir kasabada, kitap yollayacağım.', 'Biraz kalbim kırık açıkçası.'],
+    yazar: ['Bir roman yazıyorum, ilhama ihtiyacım var.', 'Defterim boş kaldı bu hafta.', 'Yazarken başka sesler duymak istiyorum.', 'Kahvedeki masam beni bekliyor.', 'Bir karakterim var ama sesi eksik.', 'Editörüm daha çok okumamı söyledi.', 'Gece yazıyorum, gündüz okuyorum.', 'Başkalarının cümlelerine bakmak iyi geliyor.'],
+    koleksiyoncu: ['Kütüphanem için bakıyorum.', 'Eski baskıların peşindeyim.', 'Rafta gözüme bir şey takılmadı ama sorayım.', 'Bu işte kırkıncı yılım.', 'Kitabın kokusundan baskısını bilirim.', 'Müzayededen eli boş döndüm.', 'Rafımda bir boşluk var, onu dolduracak bir şey.', 'Eski bir dostum için de bakıyorum.'],
+    teyze: ['Akşamları çayımın yanına okurum.', 'Gözlüğümü taktım, hazırım.', 'Komşularla kitap değiş tokuşu yapıyoruz.', 'Torunlar gelecek, birlikte okuyalım dedim.', 'Komşu kızı bana bir kitap verdi, şimdi bırakamıyorum.', 'Pazardan döndüm, çantada yer var.', 'Radyodaki arkası yarın bitti, yerine kitap.', 'Gençliğimde çok okurdum, yeniden başlıyorum.'],
+    sorfcu: ['Rüzgâr çıkana kadar okuyacağım.', 'Kumsala kitapsız gitmem.', 'Dalgalar sakin bugün.', 'Kumda havlu serili, eksik bir kitap.', 'Rüzgâr dönünce suya gireceğim.', 'Benim karavan da seninki gibi, yollardayım.', 'Kamp ateşinin başında okuruz.', 'Akşamüstü dalga yok, okuma vakti.'],
   },
   weather: {
     yagmurlu: ['Yağmur başladı, eve dönmeden bir kitap alayım.', 'Bu yağmurda eve kapanacağım, okuyacak bir şey lazım.'],

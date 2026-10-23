@@ -143,7 +143,20 @@ Paranın her gün bir anlamı olsun; baskın stratejiler kırılsın.
 - Hiçbir fiyat etiketi her durumda baskın değil.
 - 60. günde kasa ₺4–6 bin bandında, harcanacak anlamlı bir şey var.
 
-## Faz 3: Öneri bulmacası ve kitap bilgisi
+## Faz 3: Öneri bulmacası ve kitap bilgisi ✅ (23 Ekim 2026)
+
+Yapıldı:
+- 240 kitabın her birine tek satırlık tanıtım (src/data/blurbs.js). Tanıtımlar etiketleri sezdirir ama adlarını anmaz; bir test bunu ve uzunluğu denetler.
+- Kitap bilgisi (game/knowledge.js): kartlarda yalnız bilinen etiketler görünür, bilinmeyenler ❔. Teyzenin bıraktığı başlangıç kitapları bilinir. Satınca (%35 ihtimalle) bir etiket, önerince isteğe uyanlar, okuyunca ve mektup gelince hepsi öğrenilir. Eski kayıtlarda eldeki ve satılmış kitaplar bilinir.
+- Okuma köşesi: raf modunda seçili kitabı sabahları oku (günde 2; yeni Okuma koltuğu ₺150 ile 3), bütün etiketleri açılır.
+- Dolaylı istekler: her etikete dört imge ("martı sesleri duyulan", "çantama sığacak"…); ilk günler %15, her gün biraz daha, en çok %65. İpucu işaretleri bunları da gösterir.
+- Her müşteri tipinin bağlam cümlesi 3'ten 8'e çıktı.
+- Defterde 📚 Kitap bilgim sekmesi; ⚙️ kolay mod: bütün etiketler baştan görünür.
+
+Ölçülen (tanıtımları okumayan, yalnız öğrendiği etiketlere bakan bot; gerçek oyuncu tanıtımı da okur, bu bir alt sınırdır):
+- Tam isabet: her şeyi bilen %78–84; öğrendikleriyle 1–5. gün %33 → 31–60. gün %58, okuyarak %68.
+- 60. günde ~140 kitap (okumayla ~205) tam tanınıyor.
+
 
 Öneri, oyunun kalbi. Eşleştirmeden okumaya dönsün.
 

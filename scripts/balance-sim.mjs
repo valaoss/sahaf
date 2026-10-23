@@ -1,5 +1,5 @@
 // Denge simülasyonu: farklı oyun tarzlarıyla 60 gün oynar, kasanın nasıl büyüdüğünü yazdırır.
-// Öneri isteyenlere raftaki en uygun kitap verilir (dikkatli oyuncu). Kullanım: npm run sim (yalnız ilk tablo: npm run sim -- kisa)
+// Öneri isteyenlere raftaki en uygun kitap verilir (dikkatli oyuncu). Kullanım: npm run sim (yalnız ilk tablo: -- kisa · yalnız öneri bilgisi: -- bilgi)
 import { GENRE_KEYS } from '../src/data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../src/data/towns.js';
 import { countryOf, distance } from '../src/game/travel.js';
@@ -68,7 +68,8 @@ const STYLES = {
   'yatırım + gezer + bağışçı': (S, day) => { if (day % 3 === 2) travel(S, S.unlocked[(day / 3 + 1) % S.unlocked.length | 0]); invest(S); donor(S); stockSmart(S); },
 };
 
-for (const [name, play] of Object.entries(STYLES)) {
+const ONLY = process.argv[2];
+if (ONLY !== 'bilgi') for (const [name, play] of Object.entries(STYLES)) {
   const curve = Array(DAYS).fill(0);
   let sold = 0, missed = 0, perfect = 0, tips = 0, costs = 0, lost = 0, won = 0;
   for (let r = 0; r < RUNS; r++) {
@@ -89,7 +90,7 @@ for (const [name, play] of Object.entries(STYLES)) {
   const per = x => (x / RUNS / DAYS).toFixed(1);
   console.log(`${name.padEnd(28)} ${pts} | günde ${per(sold)} satış, ${per(missed)} kaçan, ${per(perfect)} tam öneri, ₺${per(tips)} bahşiş, ₺${per(costs)} gider, fiyat −${per(lost)}/+${per(won)}`);
 }
-if (process.argv[2] === 'kisa') process.exit(0);
+if (ONLY === 'kisa') process.exit(0);
 
 // Akdeniz: hikâye bitmiş, Türkiye'nin bütün şehirleri gezilmiş, Yunanistan feribotu açık; ₺600 ile 30 takvim günü.
 // Feribot günü takvimden düşer (o gün yolda geçer), bu yüzden eğri takvim gününe göre çizilir.
@@ -108,8 +109,8 @@ const WORLD = {
     if (fresh.length) travel(S, fresh[0]);
   },
 };
-console.log('\nAkdeniz (hikâye bitmiş, ₺600 ile başlar):');
-for (const [name, move] of Object.entries(WORLD)) {
+if (ONLY !== 'bilgi') console.log('\nAkdeniz (hikâye bitmiş, ₺600 ile başlar):');
+if (ONLY !== 'bilgi') for (const [name, move] of Object.entries(WORLD)) {
   const curve = Array(DAYS + 1).fill(0);
   let ferries = 0, ferrySpent = 0, countries = 0, sold = 0, played = 0;
   for (let r = 0; r < RUNS; r++) {
@@ -137,4 +138,25 @@ for (const [name, move] of Object.entries(WORLD)) {
   }
   const pts = [7, 14, 30].map(d => `${d}.g ₺${Math.round(curve[d])}`).join(' · ');
   console.log(`${name.padEnd(30)} ${pts} | ${(countries / RUNS).toFixed(1)} ülke, ${(ferries / RUNS).toFixed(1)} feribot (₺${Math.round(ferrySpent / RUNS)}), oynanan günde ${(sold / played).toFixed(1)} satış`);
+}
+
+// Kitap bilgisi: her şeyi bilen oyuncu ile yalnız öğrendiği etiketlere bakan oyuncu (tanıtımı okumaz: alt sınır).
+// Bilgili oyuncu sabahları okuma köşesinde bilmediği iki kitabı okur. Tam isabet oranı dönem dönem.
+console.log('\nÖneri bilgisi (tam isabet / öneri isteyen):');
+const { knownBest, readBook, knowsAll, knownCount } = await import('../src/game/knowledge.js');
+for (const [name, rec, reads] of [['her şeyi bilen', null, false], ['yalnız öğrendikleri', knownBest, false], ['öğrendikleri + okuma', knownBest, true]]) {
+  const span = [[1, 5], [6, 15], [16, 30], [31, 60]], hit = span.map(() => [0, 0]);
+  let known = 0;
+  for (let r = 0; r < 15; r++) {
+    const S = newGame(3000 + r);
+    for (let d = 1; d <= DAYS; d++) {
+      rescue(S); invest(S); stockSmart(S);
+      if (reads) for (const id of Object.keys(S.shelf).sort()) if (!knowsAll(S, id)) readBook(S, id);
+      const T = simulateDay(S, () => 0, rec || undefined);
+      const i = span.findIndex(([a, b]) => d >= a && d <= b), asked = T.recs.perfect + T.recs.good + T.recs.miss;
+      hit[i][0] += T.recs.perfect; hit[i][1] += asked;
+    }
+    known += knownCount(S);
+  }
+  console.log(`${name.padEnd(24)} ${span.map(([a, b], i) => `${a}–${b}. gün %${Math.round(100 * hit[i][0] / Math.max(1, hit[i][1]))}`).join(' · ')} | 60. günde ${Math.round(known / 15)} kitap tanınıyor`);
 }

@@ -131,7 +131,12 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Tür doygunluğu; "Rafı tamamla" düğmesi
 - Okuma köşesi bağışı ve festival sponsorluğu; gün sonu teşhisi
 
-Sırada: v2 Faz 3 (öneri bulmacası ve kitap bilgisi) — ayrıntı: docs/v2-plan.md.
+### v2 · Faz 3 ✅ (öneri bulmacası)
+- 240 kitaba tanıtım; etiketler öğrenilir (satış, öneri, okuma, mektup)
+- Okuma köşesi ve okuma koltuğu; dolaylı müşteri cümleleri
+- Kitap bilgim sekmesi, kolay mod
+
+Sırada: v2 Faz 4 (ilişkiler ve hikâye) — ayrıntı: docs/v2-plan.md.
 
 ## Faz 3 — içerik ve cila
 - Elle çizilmiş illüstrasyonlar (kod çizimlerinin yerine), müzik ve ses, Türkçe + İngilizce, 200+ kitap
