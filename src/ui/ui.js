@@ -309,9 +309,11 @@ export function createUI(root, act) {
       <p class="hint">Yol ₺${BAL.travelCost} · günde bir kez, sabahları. Yeni gittiğin kasabada karavanı merak eden ${BAL.newTownTraffic} kişi daha uğrar.</p>
       <svg class="map map3d" viewBox="0 0 1600 900">${mapSVG(S, { eventTown: ev ? EVENTS[ev].town : null, paint: PAINTS[S.paint] })}</svg>
       <p class="hint" id="blurb">${TOWNS[S.town].blurb}</p>
-      <div class="row end"><span class="hint grow">🔍 İki parmakla ya da tekerlekle yakınlaştır, sürükleyerek gez.</span><button class="btn" data-close>Kapat</button></div>`, 'wide');
+      <div class="row end"><span class="hint grow">🔍 İki parmakla, tekerlekle ya da düğmelerle yakınlaştır; yakınken sürükleyerek gez.</span><span class="zoom2"><button class="btn sm" data-zin title="Yakınlaştır">＋</button><button class="btn sm" data-zout title="Uzaklaştır">－</button></span><button class="btn" data-close>Kapat</button></div>`, 'wide');
     p.querySelector('[data-close]').onclick = closePanel;
-    zoomable(p.querySelector('svg.map3d'));
+    const zm = zoomable(p.querySelector('svg.map3d'));
+    p.querySelector('[data-zin]').onclick = () => zm.zoom(1.5);
+    p.querySelector('[data-zout]').onclick = () => zm.zoom(1 / 1.5);
     p.querySelectorAll('[data-town]').forEach(g => {
       const blurb = k => S.unlocked.includes(k) ? TOWNS[k].blurb : 'Haritada sisli bir köşe… Defterde ilerledikçe buranın yolunu öğreneceksin.';
       g.onmouseenter = () => { p.querySelector('#blurb').textContent = blurb(g.dataset.town); };
@@ -358,6 +360,8 @@ export function createUI(root, act) {
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => svg.addEventListener(n, up));
     svg.addEventListener('click', e => { if (moved > 8) { e.stopPropagation(); e.preventDefault(); } }, true);
     svg.addEventListener('dblclick', e => zoomAt(e.clientX, e.clientY, vb.w < W - 1 ? vb.w / W : 2));
+    // düğmelerle: haritanın ortasına göre
+    return { zoom(k) { const r = svg.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, k); } };
   }
 
   // Karavan haritada bir kasabadan ötekine sekerek gider (ekran koordinatlarında)

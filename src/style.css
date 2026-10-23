@@ -400,8 +400,11 @@ mark[data-tag].is-on { background: #ffd56b; }
   svg.map { height: 62vw; }
 }
 /* harita: kıstırarak ya da tekerlekle yakınlaştırılır, sürükleyerek gezilir */
-svg.map3d { touch-action: none; }
-svg.map3d.zoomed { cursor: grab; }
+/* yakınlaştırılmamış harita dikey kaydırmayı panele bırakır; yakınlaşınca parmak haritayı gezdirir */
+svg.map3d { touch-action: pan-y; max-height: 56vh; }
+svg.map3d.zoomed { cursor: grab; touch-action: none; }
+.zoom2 { display: flex; gap: .3em; }
+.zoom2 .btn { min-width: 2.2em; padding-left: .5em; padding-right: .5em; }
 .grow { flex: 1; align-self: center; font-size: .85em; margin: 0; }
 
 /* raf düzenleyici */
