@@ -6,7 +6,7 @@ import { TOWNS, TOWN_KEYS } from '../data/towns.js';
 import { BOOK, booksOf, TAGS } from '../data/books.js';
 import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
 import { THEMES } from '../audio/compose.js';
-import { worldSVG, routePath, townXY, flagSVG, WW, WH } from '../render/world.js';
+import { worldSVG, routePath, townXY, declutter, flagSVG, WW, WH } from '../render/world.js';
 import { COUNTRIES, COUNTRY_KEYS } from '../data/countries.js';
 import { travelInfo } from '../game/travel.js';
 import { createShelfPanel } from './shelf-panel.js';
@@ -321,9 +321,14 @@ export function createUI(root, act) {
     p.querySelector('[data-close]').onclick = closePanel;
     // önce bulunduğun bölgeye yakın açılır
     const [hx, hy] = townXY(S.town);
+    // kümeler yalnız ölçek değişince yeniden kurulur (kaydırmak ekrandaki aralıkları değiştirmez)
+    let lastSc = 0;
     const zm = zoomable(svg, WW, WH, {
       minW: 160, init: { x: hx - 330, y: hy - 160, w: 660, h: 660 * WH / WW },
-      onChange: (vb, sc) => { svg.style.setProperty('--ms', (1 / sc).toFixed(3)); svg.classList.toggle('far', vb.w > 1300); },
+      onChange: (vb, sc) => {
+        svg.style.setProperty('--ms', (1 / sc).toFixed(3));
+        if (Math.abs(sc - lastSc) > 1e-4) { lastSc = sc; declutter(svg, sc); }
+      },
     });
     p.querySelector('[data-zin]').onclick = () => zm.zoom(1.5);
     p.querySelector('[data-zout]').onclick = () => zm.zoom(1 / 1.5);
@@ -332,6 +337,7 @@ export function createUI(root, act) {
       const T = TOWNS[k], c = T.country || 'tr', C = COUNTRIES[c], open = S.unlocked.includes(k), info = travelInfo(S, k), why = canTravel(S, k);
       p.querySelectorAll('.city.sel').forEach(n => n.classList.remove('sel'));
       p.querySelector(`.city[data-town="${k}"]`)?.classList.add('sel');
+      if (lastSc) declutter(svg, lastSc);
       card.innerHTML = `<div class="wc-head">${flagSVG(C.flag)}<div><b>${open ? T.name : '???'}</b><small>${C.name}</small></div></div>
         <p>${open ? T.blurb : 'Haritada sisli bir köşe… Defterde ilerledikçe buranın yolunu öğreneceksin.'}</p>
         ${k === S.town ? '<p class="hint">📍 Buradasın.</p>' : open ? `<p class="wc-trip">${info.abroad ? `⛴️ Feribot · ₺${info.cost} · bir gün sürer${S.passport[c] ? '' : ' · 🛂 pasaporta damga'}` : `🚐 Karayolu · ₺${info.cost}`}</p>` : ''}
@@ -348,7 +354,15 @@ export function createUI(root, act) {
         <p>${S.countries.includes(c) ? `"${C.greet}!" diye karşılarlar. Şehirleri haritada.` : C.hint}</p>`;
       card.classList.add('show');
     };
-    p.querySelectorAll('.city').forEach(g => g.addEventListener('click', () => showTown(g.dataset.town)));
+    // kümeye dokununca harita o şehirlerin üstüne yaklaşır
+    p.querySelectorAll('.city').forEach(g => g.addEventListener('click', () => {
+      if (g.classList.contains('clus')) {
+        const pts = [g.dataset.town, ...g.dataset.kids.split(',')].map(townXY), xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+        const spread = Math.max(Math.max(...xs) - Math.min(...xs), (Math.max(...ys) - Math.min(...ys)) * WW / WH);
+        zm.flyTo((Math.max(...xs) + Math.min(...xs)) / 2, (Math.max(...ys) + Math.min(...ys)) / 2, Math.min(spread * 4 + 120, zm.view().w / 2));
+      }
+      showTown(g.dataset.town);
+    }));
     p.querySelectorAll('.country').forEach(g => g.addEventListener('click', () => showCountry(g.dataset.country)));
     showTown(S.town);
   }
@@ -370,13 +384,19 @@ export function createUI(root, act) {
   // Harita yakınlaştırma: viewBox kaydırılır. İki parmak kıstırma, tekerlek, çift dokunuş; tek parmakla sürükleme.
   // Sürükleme ya da kıstırmadan sonra gelen tıklama kasaba seçmez.
   // o: { minW (en yakın görünüm genişliği), init (başlangıç viewBox), onChange(vb, ekranPikseli/birim) }
+  // Görünüm ekranın oranını alır: dikey telefonda yakınlaşınca harita boydan boya dolar, yukarı aşağı da kaydırılır.
   function zoomable(svg, W = 1600, H = 900, o = {}) {
+    const asp = () => { const r = svg.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? r.width / r.height : W / H; };
+    const hOf = w => Math.min(H, w / asp());
     const clamp = v => ({ ...v, x: Math.max(0, Math.min(W - v.w, v.x)), y: Math.max(0, Math.min(H - v.h, v.y)) });
-    let vb = o.init ? clamp(o.init) : { x: 0, y: 0, w: W, h: H }, moved = 0;
+    // ortası yerinde kalarak ekran oranına getirir
+    const shape = v => { const w = Math.min(v.w, W), h = hOf(w); return clamp({ x: v.x + (v.w - w) / 2, y: v.y + (v.h - h) / 2, w, h }); };
+    let vb = o.init ? shape(o.init) : shape({ x: 0, y: 0, w: W, h: H }), moved = 0;
     const pts = new Map();
-    // svg kutusu harita oranında değilse (tam ekran) "meet" yerleşimi: ölçek ve kenar boşluğu
+    // oran tutmadığı anlarda (boyut değişirken) "meet" yerleşimi: ölçek ve kenar boşluğu
     const fit = () => { const r = svg.getBoundingClientRect(), sc = Math.min(r.width / vb.w, r.height / vb.h); return { r, sc, ox: (r.width - vb.w * sc) / 2, oy: (r.height - vb.h * sc) / 2 }; };
     const apply = () => {
+      vb = shape(vb);
       svg.setAttribute('viewBox', `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`);
       svg.classList.toggle('zoomed', vb.w < W - 1);
       o.onChange?.(vb, fit().sc || 1);
@@ -384,7 +404,7 @@ export function createUI(root, act) {
     const toSvg = (cx, cy) => { const { r, sc, ox, oy } = fit(); return { x: vb.x + (cx - r.left - ox) / sc, y: vb.y + (cy - r.top - oy) / sc }; };
     function zoomAt(cx, cy, k) {
       const p = toSvg(cx, cy), w = Math.min(W, Math.max(o.minW || W / 4, vb.w / k)), s = w / vb.w;
-      vb = clamp({ x: p.x - (p.x - vb.x) * s, y: p.y - (p.y - vb.y) * s, w, h: w * H / W });
+      vb = clamp({ x: p.x - (p.x - vb.x) * s, y: p.y - (p.y - vb.y) * s, w, h: hOf(w) });
       apply();
     }
     svg.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 1 / 1.15); }, { passive: false });
@@ -396,7 +416,7 @@ export function createUI(root, act) {
       if (pts.size === 1) {
         const dx = cur.x - prev.x, dy = cur.y - prev.y;
         moved += Math.abs(dx) + Math.abs(dy);
-        if (vb.w < W) { const sc = fit().sc; vb = clamp({ ...vb, x: vb.x - dx / sc, y: vb.y - dy / sc }); apply(); }
+        if (vb.w < W - 1 || vb.h < H - 1) { const sc = fit().sc; vb = clamp({ ...vb, x: vb.x - dx / sc, y: vb.y - dy / sc }); apply(); }
       } else {
         const o = [...pts].find(([id]) => id !== e.pointerId)[1];
         const d0 = Math.hypot(prev.x - o.x, prev.y - o.y), d1 = Math.hypot(cur.x - o.x, cur.y - o.y);
@@ -411,8 +431,21 @@ export function createUI(root, act) {
     svg.addEventListener('dblclick', e => zoomAt(e.clientX, e.clientY, vb.w < W - 1 ? vb.w / W : 2));
     apply();
     new ResizeObserver(apply).observe(svg);
-    // düğmelerle: haritanın ortasına göre
-    return { zoom(k) { const r = svg.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, k); } };
+    // düğmelerle: haritanın ortasına göre · flyTo: (cx, cy) merkezli w genişliğinde görünüme yumuşakça geçer
+    return {
+      zoom(k) { const r = svg.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, k); },
+      view: () => vb,
+      flyTo(cx, cy, w) {
+        w = Math.min(W, Math.max(o.minW || W / 4, w));
+        const a = { ...vb }, b = clamp({ x: cx - w / 2, y: cy - hOf(w) / 2, w, h: hOf(w) }), t0 = performance.now();
+        (function step(now) {
+          const k = Math.min((now - t0) / 450, 1), e = 1 - (1 - k) ** 3;
+          vb = { x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e, w: a.w + (b.w - a.w) * e, h: a.h + (b.h - a.h) * e };
+          apply();
+          if (k < 1) requestAnimationFrame(step);
+        })(t0);
+      },
+    };
   }
 
 

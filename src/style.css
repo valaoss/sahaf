@@ -541,7 +541,9 @@ svg.map3d.zoomed { cursor: grab; touch-action: none; }
 .wmap svg.world { position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; border-radius: 0; margin: 0; background: #8ccfd8; }
 svg.world .city { cursor: pointer; transform-box: view-box; }
 svg.world .city.sel .city-label rect { stroke: #f08a7e; stroke-width: 3; }
-svg.world.far .city:not(.here):not(.sel) .city-label { display: none; }
+svg.world .city.hid, svg.world .city .cnt { display: none; }
+svg.world .city.clus .cnt { display: inline; }
+svg.world .city.nolab:not(.sel) .city-label { display: none; }
 svg.world .country { cursor: pointer; }
 svg.world #wvan { transform-box: view-box; }
 .wbar { position: absolute; left: 1em; right: 1em; top: calc(env(safe-area-inset-top) + .8em); display: flex; align-items: center; gap: .6em; background: var(--cream);

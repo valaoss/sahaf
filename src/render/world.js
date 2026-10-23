@@ -87,11 +87,50 @@ function marker(S, k) {
     ? '<g transform="translate(-16 -30)"><rect x="0" y="6" width="32" height="20" rx="6" fill="#9fd8c4" stroke="#5ea592" stroke-width="2"/><rect x="5" y="10" width="12" height="8" rx="2" fill="#6b4a3a"/><circle cx="8" cy="27" r="3.5" fill="#5b4636"/><circle cx="24" cy="27" r="3.5" fill="#5b4636"/></g>'
     : open ? `<g transform="translate(-11 -26)"><rect x="2" y="10" width="18" height="14" fill="#fffaf0" stroke="#c9a676" stroke-width="1.5"/><path d="M0 11 L11 1 L22 11Z" fill="${ROOF[c]}"/><rect x="9" y="16" width="5" height="8" rx="2" fill="${ROOF[c]}"/></g>`
       : '<g transform="translate(-9 -22)"><circle cx="9" cy="11" r="10" fill="#e9dcc8" stroke="#c9b49a" stroke-width="1.5"/><text x="9" y="16" text-anchor="middle" font-size="14" font-weight="700" fill="#a08a72">?</text></g>';
+  const name = open ? T.name : '???';
   return `<g class="city ${open ? 'open' : 'locked'} ${here ? 'here' : ''}" data-town="${k}" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(var(--ms,1))">
     <ellipse cx="0" cy="0" rx="12" ry="4" fill="#000" opacity=".12"/>${icon}
-    <g class="city-label"><rect x="${-T.name.length * 4.2 - 7}" y="4" width="${T.name.length * 8.4 + 14}" height="19" rx="9.5" fill="${here ? '#5ea592' : '#fffaf0'}" stroke="${here ? '#4a8a78' : '#e2c29c'}" stroke-width="1.5"/>
-      <text x="0" y="18" text-anchor="middle" font-size="13" font-weight="700" fill="${here ? '#fff' : open ? '#4a3a33' : '#a08a72'}">${open ? T.name : '???'}</text></g>
+    <g class="city-label"><rect x="${-name.length * 4.2 - 7}" y="4" width="${name.length * 8.4 + 14}" height="19" rx="9.5" fill="${here ? '#5ea592' : '#fffaf0'}" stroke="${here ? '#4a8a78' : '#e2c29c'}" stroke-width="1.5"/>
+      <text x="0" y="18" text-anchor="middle" font-size="13" font-weight="700" fill="${here ? '#fff' : open ? '#4a3a33' : '#a08a72'}">${name}</text></g>
+    <g class="cnt"><circle cx="15" cy="-27" r="10" fill="#e07a5f" stroke="#fffaf0" stroke-width="2"/><text x="15" y="-23" text-anchor="middle" font-size="11" font-weight="700" fill="#fff"></text></g>
     <circle class="hit" r="22" fill="transparent"/></g>`;
+}
+
+// Şehirleri ekrana sığdırır (sc: ekran pikseli / harita birimi). Evleri üst üste binen şehirler kümelenir:
+// öndeki görünür, üstünde "+n" yazar, öbürleri gizlenir. Ad önce evin altına, sığmazsa üstüne, sağına, soluna denenir;
+// hiçbir yere sığmayan şehrin adı gizlenir.
+// Öncelik: bulunduğun yer, seçili şehir, açık şehirler (kalabalık olan önce), kilitliler.
+export function declutter(svg, sc) {
+  const rank = g => g.classList.contains('here') ? 0 : g.classList.contains('sel') ? 1 : g.classList.contains('open') ? 2 : 3;
+  const items = [...svg.querySelectorAll('#wcities .city')].map(g => {
+    const [x, y] = townXY(g.dataset.town);
+    return { g, x: x * sc, y: y * sc, r: rank(g), t: TOWNS[g.dataset.town].traffic || 0, kids: [] };
+  }).sort((a, b) => a.r - b.r || b.t - a.t);
+  const shown = [];
+  for (const it of items) {
+    const lead = it.r > 1 && shown.find(s => Math.abs(s.x - it.x) < 26 && Math.abs(s.y - it.y) < 30);
+    if (lead) lead.kids.push(it); else shown.push(it);
+  }
+  const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+  // engeller: evler ve kümelerin "+n" rozetleri
+  const boxes = shown.map(s => ({ l: s.x - 12, r: s.x + 12, t: s.y - 28, b: s.y + 2, own: s }))
+    .concat(shown.filter(s => s.kids.length).map(s => ({ l: s.x + 4, r: s.x + 26, t: s.y - 38, b: s.y - 16, own: null })));
+  for (const s of shown) {
+    const lab = s.g.querySelector('.city-label'), w = +lab.querySelector('rect').getAttribute('width');
+    const spots = [[0, 0], [0, -50], [w / 2 + 14, -22], [-w / 2 - 14, -22]];
+    const box = ([dx, dy]) => ({ l: s.x + dx - w / 2, r: s.x + dx + w / 2, t: s.y + dy + 4, b: s.y + dy + 23, own: s });
+    const at = spots.find(d => !boxes.some(o => o.own !== s && hit(box(d), o))) || (s.r < 2 ? spots[0] : null);
+    s.lab = !!at;
+    if (at) { boxes.push(box(at)); lab.setAttribute('transform', `translate(${at[0]} ${at[1]})`); }
+  }
+  for (const it of items) {
+    const on = shown.includes(it);
+    it.g.classList.toggle('hid', !on);
+    it.g.classList.toggle('nolab', on && !it.lab);
+    it.g.classList.toggle('clus', it.kids.length > 0);
+    it.g.dataset.kids = it.kids.map(k => k.g.dataset.town).join(',');
+    it.g.querySelector('.cnt text').textContent = '+' + it.kids.length;
+  }
 }
 
 export function worldSVG(S) {
