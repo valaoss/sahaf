@@ -20,6 +20,7 @@ import { PAGES, FINALE_REWARD } from '../src/data/story.js';
 import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, MOTIFS, THEMES } from '../src/audio/compose.js';
 import { TUT_STEPS, tutorialStep, tutorialEvent } from '../src/game/tutorial.js';
 import { statsOf } from '../src/game/stats.js';
+import { syncLayout, placeAll, shelve, unshelve, moveBook, setLabel, tidiness, sectionCap, crateFree, SECTIONS } from '../src/game/shelving.js';
 import { replyFor } from '../src/game/replies.js';
 import { REPLIES } from '../src/data/replies.js';
 import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
@@ -54,21 +55,32 @@ test('yeni oyun başlangıç değerleri', () => {
   assert.equal(seasonOf(BAL.daysPerSeason + 1), 'Yaz');
 });
 
-test('koli: para düşer, o türden farklı kitaplar gelir', () => {
+test('koli: para düşer, o türden farklı kitaplar koliye gelir, dizilince rafa geçer', () => {
   const S = newGame(1);
+  const before = genreCount(S, 'siir');
   assert.equal(buyBox(S, 'siir'), null);
   assert.equal(S.coins, BAL.startCoins - boxCost('siir'));
-  assert.equal(genreCount(S, 'siir'), BAL.boxSize);
-  assert.equal(booksOf('siir').filter(b => S.shelf[b.id]).length, BAL.boxSize);
+  assert.equal(S.crate.length, BAL.boxSize);
+  assert.equal(new Set(S.crate.map(e => e.id)).size, BAL.boxSize);
+  assert.equal(genreCount(S, 'siir'), before, 'dizilmeden rafa geçmez');
+  placeAll(S);
+  assert.equal(genreCount(S, 'siir'), before + BAL.boxSize);
+  assert.equal(S.crate.length, 0);
   assert.equal(S.totals.spent, boxCost('siir'));
 });
 
-test('koli: raf kapasitesi, para ve saat sınırları', () => {
+test('koli: koli ve raf kapasitesi, para ve saat sınırları', () => {
   const S = newGame(1);
   S.coins = 10000;
-  while (!buyBox(S, 'cocuk'));
+  assert.equal(buyBox(S, 'cocuk'), null);
+  assert.equal(buyBox(S, 'cocuk'), null);
+  assert.equal(buyBox(S, 'cocuk'), 'Koli dolu: önce kitapları rafa diz.');
+  while (!buyBox(S, 'cocuk') || placeAll(S));
+  placeAll(S);
   assert.equal(shelfCount(S), shelfCap(S));
-  assert.equal(buyBox(S, 'cocuk'), 'Raflarda yer yok.');
+  while (!buyBox(S, 'cocuk'));
+  assert.equal(S.crate.length, BAL.crateCap);
+  assert.equal(buyBox(S, 'cocuk'), 'Karavanda yer yok.');
   const P = newGame(1); P.coins = 1;
   assert.equal(buyBox(P, 'tarih'), 'Paran yetmiyor.');
   openShop(P);
@@ -213,7 +225,8 @@ test('saat parça parça ilerleyince de bütün müşteriler gelir', () => {
   openShop(S);
   const n = S.arrivals.length + S.regArrivals.length;
   let seen = 0;
-  while (!closingTime(S)) seen += advanceClock(S, 0.7).length;
+  // gün içi olaylar da sırası gelince açılır (açılmazsa gün kapanmaz)
+  while (!closingTime(S)) { seen += advanceClock(S, 0.7).length; while (dueHappening(S)); }
   assert.equal(seen, n);
   assert.ok(closeShop(S));
   assert.equal(S.phase, 'evening');
@@ -503,7 +516,7 @@ test('ilk baskı: kolilerden arada çıkar, normal müşteriye satılmaz, koleks
   S.coins = 1e6; S.shelfLv = 2;
   let rare = 0, books = 0;
   for (let i = 0; i < 400; i++) {
-    S.shelf = {}; S.rare = {};
+    S.shelf = {}; S.rare = {}; S.crate = [];
     buyBox(S, GENRE_KEYS[i % 6]);
     rare += S.lastBox.rare.length; books += 5;
   }
@@ -664,7 +677,7 @@ test('özel günler: doğru günde, bütün kasabalarda; fuar ilk baskıyı art�
   const rareRate = d => {
     const S = newGame(5); S.day = d; S.coins = 1e6; S.shelfLv = 2;
     let r = 0;
-    for (let i = 0; i < 300; i++) { S.shelf = {}; S.rare = {}; buyBox(S, 'roman'); r += S.lastBox.rare.length; }
+    for (let i = 0; i < 300; i++) { S.shelf = {}; S.rare = {}; S.crate = []; buyBox(S, 'roman'); r += S.lastBox.rare.length; }
     return r;
   };
   assert.ok(rareRate(day('Yaz', 4)) > rareRate(day('Yaz', 3)) * 2, 'fuarda ilk baskı');
@@ -723,11 +736,11 @@ test('2. bölüm: Kostas kitapları yalnız hikâye bitince, doğru kasaba ve t�
   S.coins = 1e6; S.shelfLv = 2;
   const k0 = KOSTAS[0];
   S.town = k0.town;
-  for (let i = 0; i < 50; i++) { S.shelf = {}; buyBox(S, BOOK[k0.book].genre); }
+  for (let i = 0; i < 50; i++) { S.shelf = {}; S.crate = []; buyBox(S, BOOK[k0.book].genre); }
   assert.equal(S.kostasFound.length, 0, 'hikâye bitmeden yok');
   S.pages = PAGES.map(p => p.id);
   // yanlış tür: çıkmaz
-  for (let i = 0; i < 50; i++) { S.shelf = {}; buyBox(S, GENRE_KEYS.find(g => g !== BOOK[k0.book].genre && !KOSTAS.some(k => k.town === S.town && BOOK[k.book].genre === g))); }
+  for (let i = 0; i < 50; i++) { S.shelf = {}; S.crate = []; buyBox(S, GENRE_KEYS.find(g => g !== BOOK[k0.book].genre && !KOSTAS.some(k => k.town === S.town && BOOK[k.book].genre === g))); }
   assert.equal(S.kostasFound.length, 0, 'yanlış tür');
   // bütün kasabalarda doğru türler: hepsi bulunur, ödül verilir
   const coins = S.coins;
@@ -735,7 +748,7 @@ test('2. bölüm: Kostas kitapları yalnız hikâye bitince, doğru kasaba ve t�
   for (const k of KOSTAS) {
     S.town = k.town;
     for (let i = 0; i < 60 && !S.kostasFound.includes(k.book); i++) {
-      S.shelf = {}; spent += boxCost(BOOK[k.book].genre); buyBox(S, BOOK[k.book].genre);
+      S.shelf = {}; S.crate = []; spent += boxCost(BOOK[k.book].genre); buyBox(S, BOOK[k.book].genre);
       if (S.lastBox.kostas?.done) done = S.lastBox.kostas;
     }
   }
@@ -830,6 +843,71 @@ test('vitrin: en fazla üç kitap, sabah düzenlenir, müşteri önce vitrindeki
   S.shelf = { kurk: 1 }; S.featured = ['kurk'];
   resolveCustomer(S, { id: 9, wants: 'roman', look: 1 });
   if (!S.shelf.kurk) assert.deepEqual(S.featured, [], 'biten kitap vitrinden iner');
+});
+
+test('raf düzeni: eski kayıt türlere göre dizilir, düzen sayılarla uzlaşır', () => {
+  const S = newGame(3);
+  S.layout = null;
+  const L = syncLayout(S);
+  assert.equal(L.sections.length, SECTIONS);
+  const placed = L.sections.reduce((n, s) => n + s.books.length, 0);
+  assert.equal(placed, shelfCount(S));
+  assert.equal(tidiness(S), 1, 'başlangıçta her kitap kendi türünün bölümünde');
+  // satış ya da olay S.shelf'i değiştirince düzen de değişir
+  const id = Object.keys(S.shelf)[0], n = S.shelf[id];
+  S.shelf[id] = n + 1;
+  syncLayout(S);
+  assert.equal(S.layout.sections.flatMap(s => s.books).filter(e => e.id === id).length, n + 1);
+  delete S.shelf[id];
+  syncLayout(S);
+  assert.equal(S.layout.sections.flatMap(s => s.books).filter(e => e.id === id).length, 0);
+});
+
+test('raf düzeni: koliden bölüme, bölümden koliye, bölümler arası; kapasite ve etiket', () => {
+  const S = newGame(4);
+  S.coins = 999; S.shelfLv = 2;   // bölümlerde boş yer olsun
+  buyBox(S, 'roman');
+  syncLayout(S);
+  const sec = S.layout.sections.findIndex(s => s.label === 'roman');
+  const room = sectionCap(S) - S.layout.sections[sec].books.length;
+  const id = S.crate[0].id, had = S.shelf[id] || 0;
+  assert.equal(shelve(S, 0, sec, 0), null);
+  assert.equal(S.shelf[id], had + 1);
+  assert.equal(S.layout.sections[sec].books[0].id, id);
+  // bölüm dolunca kabul etmez
+  for (let i = 1; i < room; i++) assert.equal(shelve(S, 0, sec), null);
+  assert.equal(shelve(S, 0, sec), 'Bu bölüm dolu.');
+  // koliye geri: raftan düşer
+  const back = S.layout.sections[sec].books[0].id, cnt = S.shelf[back];
+  assert.equal(unshelve(S, sec, 0), null);
+  assert.equal(S.shelf[back] || 0, cnt - 1);
+  // başka bölüme taşıma ve etiket: türüne uymayan bölüm düzeni düşürür
+  const other = (sec + 1) % SECTIONS;
+  S.layout.sections[other].books.length = Math.min(S.layout.sections[other].books.length, sectionCap(S) - 1);
+  const before = tidiness(S);
+  assert.equal(moveBook(S, sec, 0, other, 0), null);
+  assert.ok(tidiness(S) < before);
+  assert.equal(setLabel(S, other, null), null);
+  assert.equal(S.layout.sections[other].label, null);
+  assert.ok(crateFree(S) >= 0);
+});
+
+test('raf düzeni: kolide bekleyen kitap satılmaz, düzenli raf daha kalabalık', () => {
+  const S = newGame(8);
+  S.shelf = {}; S.rare = {}; S.crate = [];
+  S.coins = 999;
+  buyBox(S, 'polisiye');
+  openShop(S);
+  const r = resolveCustomer(S, { id: 1, wants: 'polisiye', look: 1 });
+  assert.equal(r.bought.length, 0, 'raf boş, koli dolu: satış yok');
+  let tidy = 0, messy = 0;
+  for (let seed = 1; seed <= 40; seed++) {
+    const A = newGame(seed); placeAll(A); openShop(A); tidy += A.arrivals.length;
+    const B = newGame(seed); syncLayout(B);
+    B.layout.sections.forEach(s => { s.label = null; });
+    openShop(B); messy += B.arrivals.length;
+  }
+  assert.ok(tidy > messy, `düzenli ${tidy} > dağınık ${messy}`);
 });
 
 test('karşılıklar: dereceye ve konuya uygun, yer tutucusuz, kısa aralıkla tekrar etmez', () => {

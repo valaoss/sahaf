@@ -9,7 +9,9 @@ export const BAL = {
   buyChance: 0.85,     // aradığı tür raftaysa alma ihtimali
   extraChance: 0.2,    // aynı türden bir kitap daha alma ihtimali
   altChance: 0.3,      // aradığını bulamayınca başka bir şey alma ihtimali
-  trafficJitter: 3,    // günlük ziyaretçi sayısı ± bu kadar oynar
+  trafficJitter: 3,
+  crateCap: 10,        // koli: rafa dizilmeyi bekleyen en fazla kitap
+  tidyBonus: 0.15,     // raf düzeni %100 iken kalabalık bu kadar artar    // günlük ziyaretçi sayısı ± bu kadar oynar
   travelCost: 6,       // kasabalar arası yakıt
   newTownTraffic: 5,   // dün başka kasabadaydıysan: yeni karavanı merak eden ek ziyaretçi
   askChance: 0.2,      // müşterinin öneri isteme ihtimali

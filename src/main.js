@@ -18,6 +18,7 @@ import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood, setA
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
 import { checkStory } from './game/story.js';
+import { placeAll, shelve, unshelve, moveBook, setLabel } from './game/shelving.js';
 import { replyFor } from './game/replies.js';
 import { tutorialStep, tutorialEvent } from './game/tutorial.js';
 import { HAP, dueHappening, chooseHappening } from './game/happenings.js';
@@ -100,12 +101,33 @@ function stampCheck() {
   setTimeout(() => ui.toast(`🏅 Yeni pul: ${st.icon} ${st.name}`), 600);
 }
 
+let openWarned = false;
 const act = (a, arg) => {
   if (a === 'stock') ui.stockPanel(S);
   else if (a === 'inside') ui.interiorPanel(S);
   else if (a === 'feature') {
     const why = toggleFeature(S, arg);
     if (why) ui.toast(why); else { tap(); sfx('tap'); saveGame(S); }
+    ui.interiorPanel(S);
+  }
+  else if (a === 'shelf') {
+    // raf düzenleyiciden gelen hamle: diz, taşı, koliye geri al, vitrine koy, etiket as
+    const o = arg;
+    let why = null;
+    if (o.op === 'auto') { if (!placeAll(S)) why = 'Rafta boş yer yok.'; else { sfx('page'); tutorialEvent(S, 'shelve'); } }
+    else if (o.op === 'label') why = setLabel(S, o.sec, o.g);
+    else if (o.op === 'drop') {
+      const [k, x, y] = o.from.split(':').map((v, i) => i ? +v : v);
+      if (o.to === 'vit') {
+        const id = k === 's' ? S.layout.sections[x]?.books[y]?.id : null;
+        why = !id ? 'Önce rafa koy, sonra vitrine.' : S.featured.includes(id) ? null : toggleFeature(S, id);
+      } else if (o.to === 'crate') why = k === 'c' ? null : unshelve(S, x, y);
+      else if (o.to === 'sec') {
+        why = k === 'c' ? shelve(S, x, o.sec, o.pos) : moveBook(S, x, y, o.sec, o.pos);
+        if (!why && k === 'c') tutorialEvent(S, 'shelve');
+      }
+    }
+    if (why) ui.toast(why); else { tap(); sfx('tap'); saveGame(S); scene.setStock(S); }
     ui.interiorPanel(S);
   }
   else if (a === 'decor' && tutorialEvent(S, 'decor')) { saveGame(S); ui.decorPanel(S); }
@@ -142,7 +164,7 @@ scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[ar
       const rare = S.lastBox.rare;
       if (S.lastBox.kostas) { sfx('letter'); ui.confetti(); ui.kostasFoundPanel(S.lastBox.kostas); return; }
       if (rare.length) { sfx('heart'); ui.toast(`✨ Kolide bir ilk baskı çıktı: ${BOOK[rare[0]].title}! Koleksiyoncuya sakla.`); }
-      else ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap raflara dizildi`);
+      else ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap koliye kondu — 📚 Raflar'dan diz`);
     }
     ui.stockPanel(S);
   } else if (a === 'decor-on') {
@@ -168,6 +190,9 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
     sfx('whoosh');
     changeTown(() => { ui.closePanel(); ui.toast(`Hoş geldin: ${TOWNS[S.town].name}!`); });
   } else if (a === 'open') {
+    // kolide kitap varken ilk dokunuş uyarır: dizilmeyen kitap satılmaz
+    if (S.crate.length && !openWarned) { openWarned = true; return ui.toast(`📦 Kolide ${S.crate.length} kitap var, rafa dizilmeyen satılmaz. Yine de açmak için tekrar dokun.`); }
+    openWarned = false;
     const why = openShop(S);
     if (why) return ui.toast(why);
     tap('MEDIUM');
@@ -242,7 +267,7 @@ if (PREVIEW) {
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
   if (panel === 'konus') { const c = makeCustomer(S); c.arch = 'balikci'; c.style = ARCHETYPES.balikci.style; c.ask = { tags: ['deniz'] }; ui.speech(c, replyFor(S, c, { grade: 'perfect' }, 'yasliadam'), 'perfect', 'Bahşiş ₺5', toFrame(1210, 470)); }
-  if (panel === 'ic') { S.coins = 999; ['roman','siir','fantastik'].forEach(g => buyBox(S, g)); S.featured = Object.keys(S.shelf).slice(2, 4); S.rare[Object.keys(S.shelf)[6]] = 1; ui.interiorPanel(S); }
+  if (panel === 'ic') { S.coins = 999; S.shelfLv = 1; buyBox(S, 'roman'); placeAll(S); buyBox(S, 'siir'); buyBox(S, 'fantastik'); S.featured = Object.keys(S.shelf).slice(2, 4); ui.interiorPanel(S); }
   // ?insanlar: farklı tiplerden on kişilik dizi (yürüyen, okuyan, sevinen)
   if (q.has('insanlar')) {
     const kinds = ['ogrenci', 'emekli', 'balikci', 'turist', 'anne', 'cocuk', 'sevgili', 'yazar', 'teyze', 'sorfcu'];

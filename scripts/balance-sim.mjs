@@ -3,8 +3,10 @@
 import { GENRE_KEYS } from '../src/data/genres.js';
 import { TOWN_KEYS } from '../src/data/towns.js';
 import { SHELF_LEVELS } from '../src/data/decor.js';
-import { newGame, genreCount } from '../src/game/state.js';
+import { newGame, genreCount, shelfCount, shelfCap } from '../src/game/state.js';
+import { BAL } from '../src/data/balance.js';
 import { buyBox, travel, rescue, demandOf } from '../src/game/shop.js';
+import { placeAll } from '../src/game/shelving.js';
 import { equipDecor, upgradeShelf } from '../src/game/decor.js';
 import { simulateDay } from '../src/game/day.js';
 import { eventOf } from '../src/game/calendar.js';
@@ -12,16 +14,24 @@ import { EVENTS } from '../src/data/calendar.js';
 
 const DAYS = 30, RUNS = 40;
 
+// İyi oyuncu gibi: rafta yer varken koli al ve hemen diz (kolide bekleyen kitap satılmaz)
+function buyShelved(S, g) {
+  if (shelfCount(S) + BAL.boxSize > shelfCap(S)) return 'dolu';
+  const why = buyBox(S, g);
+  placeAll(S);
+  return why;
+}
+
 // Rafları kasabanın zevkine göre doldurur: en çok aranıp rafta en az olan türü alır
 function stockSmart(S) {
   const d = demandOf(S);
   for (;;) {
     const g = GENRE_KEYS.slice().sort((a, b) => genreCount(S, a) / d[a] - genreCount(S, b) / d[b])[0];
-    if (buyBox(S, g)) break;
+    if (buyShelved(S, g)) break;
   }
 }
 // Hep aynı türü alır
-function stockLazy(S) { while (!buyBox(S, 'roman')); }
+function stockLazy(S) { while (!buyShelved(S, 'roman')); }
 
 // Kenara para ayırıp sırayla raf, ziyaretçi süsü ve masa süsü alır
 function invest(S) {

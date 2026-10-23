@@ -7,7 +7,7 @@ import { BOOK, booksOf, TAGS } from '../data/books.js';
 import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
 import { THEMES } from '../audio/compose.js';
 import { mapSVG, proj } from '../render/map3d.js';
-import { interiorSVG } from '../render/interior.js';
+import { createShelfPanel } from './shelf-panel.js';
 import { KOSTAS } from '../data/kostas.js';
 import { shelfCount, shelfCap, genreCount, seasonOf, dayOfSeason } from '../game/state.js';
 import { boxCost, canBuyBox, canTravel, topDemand } from '../game/shop.js';
@@ -103,13 +103,14 @@ export function createUI(root, act) {
     put('coins', String(S.coins));
     put('shelf', `${shelfCount(S)}/${shelfCap(S)}`);
     const b = $('bottom');
-    const want = S.phase + speed + S.spot;
+    const want = S.phase + speed + S.spot + S.crate.length;
     if (b.dataset.k === want) return;
     b.dataset.k = want;
     if (S.phase === 'morning') {
       const sp = SPOTS[S.town][S.spot];
       b.innerHTML = `<button class="btn" data-a="spot">📍 ${sp.name}</button>
         <button class="btn" data-a="stock">📦 Toptancı</button>
+        ${S.crate.length ? `<button class="btn hl2" data-a="inside">📚 Diz <b class="badge2">${S.crate.length}</b></button>` : ''}
         <button class="btn" data-a="decor">🪴 Süsle</button>
         <button class="btn" data-a="map">🗺️ Harita</button>
         <button class="btn" data-a="book">📜 Defter</button>
@@ -136,7 +137,7 @@ export function createUI(root, act) {
       </div>`;
     }).join('');
     const p = openPanel(`
-      <h2>📦 Toptancı <button class="btn sm" data-inside>🪟 Karavanın içi</button></h2>
+      <h2>📦 Toptancı <button class="btn sm" data-inside>📚 Raflar${S.crate.length ? ` · 📦 ${S.crate.length}` : ''}</button></h2>
       <p class="hint">Bu kasabada çok aranan: <b>${hot}</b></p>${missed}
       ${S.quest ? `<p class="hint">📌 İlan: ${questText(S.quest)} <b>(${questProgress(S).have}/${questProgress(S).n})</b></p>` : ''}
       <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 Raflar <b>${shelfCount(S)}/${shelfCap(S)}</b></span></div>
@@ -492,19 +493,10 @@ export function createUI(root, act) {
     if (step.target) setTimeout(() => root.querySelector(step.target)?.classList.add('pulse'), 60);
   }
 
-  // Karavanın içi: raflar ve vitrin. Sabah kitap sırtına dokunarak vitrine al/çıkar.
-  function interiorPanel(S) {
-    const cards = S.featured.map(id => `<span class="chip" style="--c:${GENRES[BOOK[id].genre].color}">⭐ ${BOOK[id].title}</span>`).join('')
-      || '<span class="hint">Vitrin boş. Bir kitabın sırtına dokun.</span>';
-    const p = openPanel(`
-      <h2>🪟 Karavanın içi</h2>
-      <svg class="interior" viewBox="0 0 1600 760">${interiorSVG(S)}</svg>
-      <p class="hint">Vitrin (en fazla ${BAL.featureMax}): ${cards}</p>
-      <p class="hint">Vitrindeki kitap müşterinin önce gözüne çarpar ve o türe ilgiyi artırır.${S.phase !== 'morning' ? ' Vitrin sabah düzenlenir.' : ''}</p>
-      <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
-    p.querySelectorAll('[data-feature]').forEach(g => g.onclick = () => act('feature', g.dataset.feature));
-    p.querySelector('[data-close]').onclick = closePanel;
-  }
+  // Karavanın içi: raf düzenleyici (ui/shelf-panel.js)
+  const shelves = createShelfPanel({ openPanel, closePanel, act, toast });
+  const interiorPanel = S => shelves.render(S);
+
 
   // Müşterinin karşılığı: küçük portreli konuşma kartı, birkaç saniye sonra kaybolur
   let speechTimer = 0;

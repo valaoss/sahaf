@@ -36,7 +36,8 @@ export function kostasDrop(S, genre) {
   if (!cand.length || rnd(S) >= KOSTAS_CHANCE) return null;
   const k = rndPick(S, cand);
   S.kostasFound.push(k.book);
-  S.shelf[k.book] = (S.shelf[k.book] || 0) + 1;
+  // kolinin içinden çıkar: diğer kitaplarla birlikte koliye (koli doluysa da sığar)
+  (S.crate = S.crate || []).push({ id: k.book, rare: false });
   const done = S.kostasFound.length === KOSTAS.length;
   if (done) S.coins += KOSTAS_REWARD;
   return { book: k.book, note: k.note, done };

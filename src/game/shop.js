@@ -15,6 +15,7 @@ import { dayMods, weatherOf } from './calendar.js';
 import { buildAsk } from './asks.js';
 import { kostasDrop } from './story.js';
 import { remember, pickFresh, weightedFresh } from './memory.js';
+import { crateAdd, crateFree } from './shelving.js';
 export { askText } from './asks.js';
 
 export const boxCost = g => GENRES[g].cost * BAL.boxSize;
@@ -22,12 +23,13 @@ export const boxCost = g => GENRES[g].cost * BAL.boxSize;
 export function canBuyBox(S, g) {
   if (!GENRES[g]) return 'Böyle bir tür yok.';
   if (S.phase !== 'morning') return 'Koli yalnızca sabah alınır.';
-  if (shelfCount(S) + BAL.boxSize > shelfCap(S)) return 'Raflarda yer yok.';
+  if (crateFree(S) < BAL.boxSize) return shelfCount(S) < shelfCap(S) ? 'Koli dolu: önce kitapları rafa diz.' : 'Karavanda yer yok.';
   if (S.coins < boxCost(g)) return 'Paran yetmiyor.';
   return null;
 }
 
 // Koli: o türden olabildiğince farklı kitaplar (rafta az olan önce); arada bir ilk baskı çıkar.
+// Kitaplar koliye (S.crate) gelir; oyuncu rafa dizer (game/shelving.js).
 // Dönen değer: hata metni ya da null; çıkan ilk baskılar S.lastBox.rare içinde
 export function buyBox(S, g) {
   const why = canBuyBox(S, g);
@@ -38,10 +40,13 @@ export function buyBox(S, g) {
   const got = [], rare = [];
   for (let i = 0; i < BAL.boxSize; i++) {
     const pool = booksOf(g).filter(b => !got.includes(b.id));
-    const least = Math.min(...pool.map(b => S.shelf[b.id] || 0));
-    const id = rndPick(S, pool.filter(b => (S.shelf[b.id] || 0) === least)).id;
-    S.shelf[id] = (S.shelf[id] || 0) + 1;
-    if (rnd(S) < BAL.rareChance * dayMods(S.day, S.town).rare) { S.rare[id] = (S.rare[id] || 0) + 1; rare.push(id); }
+    // rafta ve kolide az olan önce
+    const owned = id => (S.shelf[id] || 0) + S.crate.filter(e => e.id === id).length;
+    const least = Math.min(...pool.map(b => owned(b.id)));
+    const id = rndPick(S, pool.filter(b => owned(b.id) === least)).id;
+    const isRare = rnd(S) < BAL.rareChance * dayMods(S.day, S.town).rare;
+    crateAdd(S, id, isRare);
+    if (isRare) rare.push(id);
     got.push(id);
   }
   S.lastBox = { genre: g, books: got, rare, kostas: kostasDrop(S, g) };

@@ -10,6 +10,7 @@ import { checkStory, checkUnlocks } from './story.js';
 import { checkStamps } from './stamps.js';
 import { morningLetter, offerQuest, settleQuest } from './mail.js';
 import { scheduleHappenings, dueHappening, chooseHappening, buffFor, HAP } from './happenings.js';
+import { tidiness, placeAll } from './shelving.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
@@ -18,7 +19,9 @@ export function openShop(S) {
   const newTown = S.town !== S.prevTown;
   // hava ve etkinlik kalabalığı çarpar; süs ve yeni kasaba ilgisi üstüne eklenir
   const mods = dayMods(S.day, S.town);
-  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic * buffFor(S)) + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
+  // düzenli raf (etiketine uygun bölümler) biraz daha kalabalık çeker
+  const tidy = 1 + BAL.tidyBonus * tidiness(S);
+  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic * buffFor(S) * tidy) + effects(S).traffic + (newTown ? BAL.newTownTraffic : 0);
   const n = Math.max(4, base + rndInt(S, BAL.trafficJitter * 2 + 1) - BAL.trafficJitter);
   const times = [];
   for (let i = 0; i < n; i++) {
@@ -90,6 +93,7 @@ export function nextMorning(S) {
 
 // Başsız tam gün: test ve denge simülasyonu için
 export function simulateDay(S, pick = () => 0) {
+  placeAll(S);
   openShop(S);
   // yarım saatlik adımlar: olaylar zamanında çıksın; öneri isteyene raftaki en uygun kitap, olayda pick(seçenekler)
   while (!closingTime(S)) {

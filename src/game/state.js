@@ -72,6 +72,8 @@ export function newGame(seed = Date.now()) {
     soldBooks: {},             // istatistik: kitap → satış adedi
     townDays: {},              // istatistik: kasaba → dükkân açılan gün
     tut: 0,                    // ilk günlerin rehberi: hangi adımda (game/tutorial)
+    crate: [],                 // koli: alınmış ama rafa dizilmemiş kitaplar [{ id, rare }]
+    layout: null,              // raf düzeni: 6 bölüm, etiket ve sıra (game/shelving.js)
     nextId: 1,
     rng: 0,
   };
@@ -107,6 +109,7 @@ export function restore(saved) {
   for (const id in S.rare) if (!S.shelf[id] || S.rare[id] <= 0) delete S.rare[id]; else S.rare[id] = Math.min(S.rare[id], S.shelf[id]);
   if (!SPOTS[S.town]?.[S.spot]) S.spot = firstSpot(S.town);
   S.regArrivals = S.regArrivals || [];
+  S.crate = (S.crate || []).filter(e => e && BOOK[e.id]);
   // gün ortasında kapanan oyun o sabaha döner (sabah kaydı stok ve parayı zaten tutuyor)
   // rehber eklenmeden önce başlamış oyunlarda rehber gösterilmez
   if (saved.tut === undefined && S.totals.days > 0) S.tut = -1;

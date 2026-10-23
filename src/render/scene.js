@@ -4,9 +4,10 @@ import { el } from '../core/svg.js';
 import { seeded } from '../core/rng.js';
 import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../data/towns.js';
-import { booksOf } from '../data/books.js';
+import { booksOf, BOOK } from '../data/books.js';
 import { PAINTS } from '../data/decor.js';
 import { shelfCap, genreCounts } from '../game/state.js';
+import { syncLayout, sectionCap } from '../game/shelving.js';
 import { DECOR_ART } from './decor-art.js';
 import { spotArt, GROUND, SHOW_HOUSES } from './spot-art.js';
 import { svgView } from './people.js';
@@ -263,17 +264,17 @@ const hash = str => [...str].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0
 
 // Raflar: her kitap bir sırt. Stok azaldıkça raflar gözle görülür boşalır.
 const SHELF_Y = [178, 232, 284];
-function drawShelves(g, shelf, cap, rare = {}) {
+function drawShelves(g, S) {
   g.innerHTML = '';
-  const books = [];
-  // ilk baskılar o kitabın ilk kopyaları olarak işaretlenir
-  for (const k of GENRE_KEYS) for (const b of booksOf(k)) for (let i = 0; i < (shelf[b.id] || 0); i++) books.push({ ...b, isRare: i < (rare[b.id] || 0) });
-  const per = Math.ceil(cap / SHELF_Y.length), unit = Math.min(28, 296 / per);
+  // oyuncunun dizdiği gibi: her rafta iki bölüm, kitaplar sırasıyla
+  const L = syncLayout(S), per = sectionCap(S), unit = Math.min(28, 290 / (per * 2));
   const r = seeded(4242);
   SHELF_Y.forEach((sy, row) => {
-    let bx = 64;
+    for (let half = 0; half < 2; half++) {
+    let bx = 64 + half * (per * unit + 8);
+    const sec = L.sections[row * 2 + half];
     for (let i = 0; i < per; i++) {
-      const bw = unit * (.78 + r() * .14), bh = 36 + r() * 12, b = books[row * per + i];
+      const bw = unit * (.78 + r() * .14), bh = 36 + r() * 12, e = sec.books[i], b = e && { ...BOOK[e.id], isRare: e.rare };
       if (b) {
         const h = hash(b.id), col = shade(GENRES[b.genre].color, .86 + (h % 28) / 100);
         el('rect', { x: bx, y: sy - bh, width: bw, height: bh, rx: 3, fill: b.isRare ? '#e7b84a' : col, stroke: b.isRare ? '#fff3b0' : 'none', 'stroke-width': 1.5 }, g);
@@ -282,6 +283,7 @@ function drawShelves(g, shelf, cap, rare = {}) {
         if (h % 2) el('rect', { x: bx + 2.5, y: sy - 12, width: bw - 5, height: 3, rx: 1.5, fill: '#000', opacity: .15 }, g);
       }
       bx += unit;
+    }
     }
     el('rect', { x: 54, y: sy, width: 342, height: 8, rx: 3, fill: '#a8704a' }, g);
   });
@@ -423,7 +425,7 @@ export function buildScene(host) {
       $('seasonFx').innerHTML = html;
     },
     setStock(S) {
-      drawShelves($('shelves'), S.shelf, shelfCap(S), S.rare);
+      drawShelves($('shelves'), S);
       drawTableBooks($('tableBooks'), genreCounts(S));
     },
     setDecor(on) {
