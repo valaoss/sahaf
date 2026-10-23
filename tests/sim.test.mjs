@@ -796,8 +796,8 @@ test('rehber: adımlar sırayla, doğru olayla ilerler; kapatılabilir; eski oyu
   assert.equal(tutorialStep(S).done, 'buy');
   assert.equal(tutorialEvent(S, 'open'), false, 'sırası gelmeyen olay ilerletmez');
   assert.equal(tutorialEvent(S, 'buy'), true);
-  assert.equal(tutorialStep(S).done, 'open');
-  for (const ev of ['open', 'rec', 'next', 'spot', 'decor', 'book']) assert.ok(tutorialEvent(S, ev), ev);
+  assert.equal(tutorialStep(S).done, 'shelve', 'koliden sonra rafa dizme adımı');
+  for (const ev of ['shelve', 'open', 'rec', 'next', 'spot', 'decor', 'book']) assert.ok(tutorialEvent(S, ev), ev);
   assert.equal(tutorialStep(S), null, 'rehber bitti');
   const P = newGame(1);
   tutorialEvent(P, 'skip');
