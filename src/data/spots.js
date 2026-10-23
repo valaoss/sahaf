@@ -106,6 +106,30 @@ export const SPOTS = {
     fira: { name: 'Fira sokakları', scene: 'carsi', traffic: 1.2, ask: 1, demand: { fantastik: 1.3, roman: 1.2 }, tags: ['buyu', 'yolculuk'],
       desc: 'Basamaklı sokaklar, eşek kervanları, gemiden inen yolcular.' },
   },
+  venedik: {
+    kanal: { name: 'Büyük Kanal', scene: 'sahil', traffic: 1.1, ask: 1, demand: { roman: 1.3, siir: 1.2 }, tags: ['ask', 'deniz'],
+      desc: 'Gondollar, vaporettolar, rıhtımda bekleşen turistler.' },
+    sanmarco: { name: 'San Marco', scene: 'carsi', traffic: 1.3, ask: 0.9, demand: { tarih: 1.3, polisiye: 1.2 }, tags: ['sehir', 'gizem'],
+      desc: 'Güvercinler, kafeler, maske dükkânları. Kalabalık ama büyülü.' },
+  },
+  roma: {
+    trastevere: { name: 'Trastevere', scene: 'carsi', traffic: 1.25, ask: 1, demand: { roman: 1.3, polisiye: 1.2 }, tags: ['sehir', 'komik'],
+      desc: 'Sarmaşıklı duvarlar, trattoriler, gece geç saate kadar sohbet.' },
+    forum: { name: 'Forum yamacı', scene: 'tepe', traffic: 0.9, ask: 1.6, demand: { tarih: 1.6, siir: 1.2 }, tags: ['savas', 'felsefe'],
+      desc: 'Antik sütunların arasında, Kolezyum\'a bakan çimenler.' },
+  },
+  napoli: {
+    liman: { name: 'Napoli limanı', scene: 'sahil', traffic: 1.15, ask: 0.9, demand: { polisiye: 1.4, cocuk: 1.2 }, tags: ['deniz', 'macera'],
+      desc: 'Capri feribotları, balıkçılar, karşıda Vezüv.' },
+    spaccanapoli: { name: 'Spaccanapoli', scene: 'carsi', traffic: 1.3, ask: 1, demand: { cocuk: 1.3, roman: 1.2 }, tags: ['aile', 'komik'],
+      desc: 'Şehri ikiye bölen dar sokak: pizzacılar, minyatür ustaları, çocuklar.' },
+  },
+  palermo: {
+    mondello: { name: 'Mondello', scene: 'sahil', traffic: 1.1, ask: 1, demand: { fantastik: 1.3, siir: 1.2 }, tags: ['deniz', 'buyu'],
+      desc: 'Turkuaz koy, eski bir iskele, dondurmalı akşamüstleri.' },
+    ballaro: { name: 'Ballarò pazarı', scene: 'carsi', traffic: 1.25, ask: 1.1, demand: { fantastik: 1.4, cocuk: 1.2 }, tags: ['buyu', 'cocukluk'],
+      desc: 'Bağıran satıcılar, limon yığınları, köşede kukla tiyatrosu.' },
+  },
 };
 
 export const firstSpot = town => Object.keys(SPOTS[town])[0];

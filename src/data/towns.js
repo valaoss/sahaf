@@ -106,6 +106,31 @@ export const TOWNS = {
     blurb: 'Volkanın yarım ay kıyısı: uçurumda beyaz evler, mavi kubbeler, dünyanın en ünlü gün batımı.',
     sky: ['#f7b8a8', '#fde0d0'], sea: ['#6fb9d8', '#3f8fc0'],
   },
+  // İtalya: Yunanistan'da üç şehirden sonra
+  venedik: {
+    name: 'Venedik', country: 'it', geo: [12.33, 45.44], traffic: 26,
+    demand: { roman: 3, siir: 2, tarih: 2, polisiye: 2, fantastik: 1, cocuk: 1 },
+    blurb: 'Sokak yerine kanallar, araba yerine gondol. Her köprüde bir okur, her sarayda bir sır.',
+    sky: ['#f4c6b8', '#fde6da'], sea: ['#7fb8b8', '#4f9a9e'],
+  },
+  roma: {
+    name: 'Roma', country: 'it', geo: [12.5, 41.9], traffic: 30,
+    demand: { tarih: 3, roman: 2, polisiye: 2, siir: 1, cocuk: 1, fantastik: 1 },
+    blurb: 'Kolezyum\'un gölgesinde kahve, kedi ve iki bin yıllık taşlar. Tarih okuru burada evinde.',
+    sky: ['#f6c9a0', '#fff0d8'], sea: ['#8cc6d0', '#5aa0b8'],
+  },
+  napoli: {
+    name: 'Napoli', country: 'it', geo: [14.27, 40.85], traffic: 27,
+    demand: { polisiye: 3, cocuk: 2, roman: 2, fantastik: 1, siir: 1, tarih: 1 },
+    blurb: 'Vezüv\'ün eteğinde gürültülü, sıcak, çamaşırlı sokaklar. Herkes konuşur, herkes bir hikâye bilir.',
+    sky: ['#f7c4a4', '#fde8d0'], sea: ['#78c0d8', '#3f92c0'],
+  },
+  palermo: {
+    name: 'Palermo', country: 'it', geo: [13.36, 38.12], traffic: 22,
+    demand: { fantastik: 3, siir: 2, tarih: 2, roman: 1, polisiye: 1, cocuk: 1 },
+    blurb: 'Kırmızı kubbeler, limon bahçeleri, kukla tiyatroları. Arap, Norman, Sicilyalı; her köşede başka bir masal.',
+    sky: ['#f8c39c', '#fff0d4'], sea: ['#6fc0d8', '#3a94c4'],
+  },
 };
 export const TOWN_KEYS = Object.keys(TOWNS);
 // oyunun başında açık olan kasabalar

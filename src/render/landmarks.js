@@ -20,7 +20,32 @@ const balloon = (x, y, s, c1, c2, d) => `<g class="bob" style="animation-delay:-
   <path d="M0 -40 C30 -40 34 -6 14 14 L-14 14 C-34 -6 -30 -40 0 -40Z" fill="${c1}"/><path d="M0 -40 C10 -40 12 -6 5 14 L-5 14 C-12 -6 -10 -40 0 -40Z" fill="${c2}"/>
   <path d="M-12 16 L-6 26 M12 16 L6 26" stroke="#7a5a48" stroke-width="1.5"/><rect x="-7" y="26" width="14" height="9" rx="2" fill="#a07448"/></g></g>`;
 
+// palmiye (Palermo, Mısır, İspanya kıyıları)
+const palm = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 0 C4 -60 -4 -120 6 -170" fill="none" stroke="#8a6a4f" stroke-width="7"/>
+  ${[-60, -20, 20, 60, 100].map(a => `<ellipse cx="${6 + Math.cos(a * Math.PI / 180) * 30}" cy="${-170 + Math.sin(a * Math.PI / 180) * 14}" rx="34" ry="9" fill="#7f9c5a" transform="rotate(${a} 6 -170)"/>`).join('')}</g>`;
+
 const LANDMARKS = {
+  // Venedik: San Marco kubbeleri, çan kulesi
+  venedik: () => `<g transform="translate(1240 470)" fill="#e9d2b0">
+      <rect x="-150" y="-80" width="300" height="80"/>${[-110, -40, 40, 110].map(dx => `<path d="M${dx - 34} -80 A34 30 0 0 1 ${dx + 34} -80Z" fill="#c9b08e"/><rect x="${dx - 2}" y="-118" width="4" height="10" fill="#c9a676"/>`).join('')}
+      ${[-120, -80, -40, 0, 40, 80, 120].map(dx => `<path d="M${dx - 14} 0 L${dx - 14} -40 A14 14 0 0 1 ${dx + 14} -40 L${dx + 14} 0Z" fill="#b8a07a"/>`).join('')}</g>
+    <g transform="translate(980 470)"><rect x="-24" y="-260" width="48" height="260" fill="#c96f5a"/><rect x="-28" y="-200" width="56" height="34" fill="#efe4cc"/>
+      ${[-16, -2, 12].map(dx => `<rect x="${dx - 4}" y="-196" width="8" height="26" rx="4" fill="#8a6a4f"/>`).join('')}<path d="M-26 -260 L0 -320 L26 -260Z" fill="#7f9c8a"/><circle cx="0" cy="-324" r="5" fill="#f2c45a"/></g>`,
+  // Roma: Kolezyum
+  roma: () => `<g transform="translate(1250 470)"><path d="M-250 0 L-250 -150 C-160 -176 160 -176 250 -150 L250 0Z" fill="#dcb98a"/>
+      <path d="M120 -160 C180 -160 230 -156 250 -150 L250 -40 C230 -60 170 -90 120 -100Z" fill="#c9a676"/>
+      ${[0, 1, 2].map(row => Array.from({ length: 12 }, (_, i) => `<path d="M${-230 + i * 38} ${-12 - row * 48} L${-230 + i * 38} ${-36 - row * 48} A12 12 0 0 1 ${-206 + i * 38} ${-36 - row * 48} L${-206 + i * 38} ${-12 - row * 48}Z" fill="#8a6a4f" opacity=".75"/>`).join('')).join('')}
+      <rect x="-250" y="-4" width="500" height="4" fill="#000" opacity=".08"/></g>`,
+  // Napoli: Vezüv (tepesinden duman)
+  napoli: () => `<path d="M800 470 C900 420 1000 330 1100 260 L1170 250 L1240 262 C1340 330 1460 420 1600 450 L1600 470Z" fill="#9a8aa0"/>
+    <path d="M1100 260 L1170 250 L1240 262 L1210 280 L1170 270 L1130 282Z" fill="#7d6e84"/>
+    <g class="steam"><ellipse cx="1170" cy="230" rx="26" ry="16" fill="#eee6ee" opacity=".8"/><ellipse cx="1195" cy="205" rx="30" ry="18" fill="#eee6ee" opacity=".6"/></g>`,
+  // Palermo: kırmızı kubbeli katedral, palmiyeler
+  palermo: () => `<g transform="translate(1260 470)" fill="#efd9b0"><rect x="-140" y="-100" width="280" height="100"/>
+      ${[-90, 0, 90].map(dx => `<path d="M${dx - 32} -100 A32 32 0 0 1 ${dx + 32} -100Z" fill="#d0503c"/>`).join('')}
+      <rect x="-170" y="-160" width="40" height="160" fill="#e3c99a"/><rect x="130" y="-160" width="40" height="160" fill="#e3c99a"/>
+      ${[-80, -40, 0, 40, 80].map(dx => `<path d="M${dx - 10} -20 L${dx - 10} -60 A10 10 0 0 1 ${dx + 10} -60 L${dx + 10} -20Z" fill="#8a6a4f"/>`).join('')}</g>`
+    + palm(1010, 470, .9) + palm(1500, 470, 1),
   // Bodrum: denizin içinde kale (St. Peter)
   bodrum: () => `<path d="M1120 470 C1150 440 1200 432 1260 430 C1350 428 1420 438 1480 470Z" fill="#b8a07a"/>` + castle(1300, 438, 1.05),
   // Antalya: karlı Toroslar ve Yivli Minare

@@ -55,6 +55,8 @@ export const EVENTS = {
     note: 'Beyazıt\'ta sahaflar tezgâhlarını sokağa taşıdı. İmza masaları, eski kitap avcıları.' },
   balon: { town: 'kapadokya', name: 'Balon Festivali', traffic: 1.6, ask: 1, demand: { fantastik: 1.5, cocuk: 1.3 },
     note: 'Yüzlerce balon aynı sabah havalanıyor. Vadiler turist dolu.' },
+  karnaval: { town: 'venedik', name: 'Venedik Karnavalı', traffic: 1.7, ask: 1.1, demand: { roman: 1.3, fantastik: 1.3 },
+    note: 'Maskeler, pelerinler, kanallarda süslü gondollar. Herkes bir başkası olmak için kitap arıyor.' },
   kitapfuari_gr: { town: 'atina', name: 'Atina Kitap Fuarı', traffic: 1.6, ask: 1.2, demand: { tarih: 1.4, roman: 1.2 },
     note: 'Zappeion bahçesinde yüzlerce kitap tezgâhı. Atina\'nın bütün okurları sokakta.' },
   otfest:  { town: 'alacati', name: 'Ot Festivali', traffic: 1.6, ask: 0.9, demand: { polisiye: 1.3, cocuk: 1.2 },
