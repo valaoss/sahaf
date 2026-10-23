@@ -10,7 +10,7 @@ import { mapSVG, proj } from '../render/map3d.js';
 import { createShelfPanel } from './shelf-panel.js';
 import { KOSTAS } from '../data/kostas.js';
 import { shelfCount, shelfCap, genreCount, seasonOf, dayOfSeason } from '../game/state.js';
-import { boxCost, canBuyBox, canTravel, topDemand } from '../game/shop.js';
+import { boxCost, canBuyBox, canTravel, topDemand, stallOf, COND_NAME } from '../game/shop.js';
 import { nextShelf } from '../game/decor.js';
 import { SPOTS } from '../data/spots.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX } from '../data/regulars.js';
@@ -136,14 +136,25 @@ export function createUI(root, act) {
         <button class="btn sm ${why ? 'off' : ''}" data-buy="${g}" title="${why || ''}">+ Koli (${BAL.boxSize}) · ₺${boxCost(g)}</button>
       </div>`;
     }).join('');
+    const stall = stallOf(S).map(x => {
+      const b = BOOK[x.id], G = GENRES[b.genre];
+      return `<div class="scard2 ${x.sold ? 'sold' : ''} c-${x.cond}" style="--c:${G.color}">
+        <div class="st-title">${G.icon} ${b.title}</div><div class="st-author">${b.author}</div>
+        <div class="btags">${tagChips(b.tags.slice(0, 3))}</div>
+        <div class="st-foot"><span class="cond2">${COND_NAME[x.cond]}</span>${x.rare ? '<span class="rarebadge">✨ İlk baskı</span>' : ''}
+          <button class="btn sm" data-stall="${x.i}" ${x.sold ? 'disabled' : ''}>${x.sold ? 'Alındı' : '₺' + x.cost}</button></div></div>`;
+    }).join('');
     const p = openPanel(`
       <h2>📦 Toptancı <button class="btn sm" data-inside>📚 Raflar${S.crate.length ? ` · 📦 ${S.crate.length}` : ''}</button></h2>
       <p class="hint">Bu kasabada çok aranan: <b>${hot}</b></p>${missed}
       ${S.quest ? `<p class="hint">📌 İlan: ${questText(S.quest)} <b>(${questProgress(S).have}/${questProgress(S).n})</b></p>` : ''}
       <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 Raflar <b>${shelfCount(S)}/${shelfCap(S)}</b></span></div>
       <div class="ggrid">${cards}</div>
+      <h3>🧺 Bugün pazar tezgâhında <span class="hint">· tek tek seç; yıpranmış ucuz ama ucuza satılır, temiz pahalı ama iyi kazandırır</span></h3>
+      <div class="stall2">${stall}</div>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`, 'wide');
     p.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => act('buy', b.dataset.buy));
+    p.querySelectorAll('[data-stall]').forEach(b => b.onclick = () => act('stall', +b.dataset.stall));
     p.querySelector('[data-inside]').onclick = () => interiorPanel(S);
     p.querySelector('[data-close]').onclick = closePanel;
   }
@@ -232,7 +243,9 @@ export function createUI(root, act) {
   }
 
   // Öneri: müşterinin isteği + raftaki farklı kitaplar (türe göre süzülebilir)
-  function recPanel(S, c, onPick, hints = true) {
+  // extra: { onTalk() → { text, genre }, tea: çay köşesi var mı, teaLine() → cümle }
+  function recPanel(S, c, onPick, hints = true, extra = {}) {
+    const opts = {};
     const ids = Object.keys(S.shelf);
     const genres = GENRE_KEYS.filter(g => ids.some(id => BOOK[id].genre === g));
     const tabs = `<button class="tab is-on" data-f="">Hepsi</button>` +
@@ -256,6 +269,11 @@ export function createUI(root, act) {
           ${chat ? `<p class="hello">“${chat}”</p>` : ''}
           <p class="say">“${hints ? markAsk(c.ask.text) : c.ask.text}”</p>${c.ask.rare ? '<p class="hint">✨ İlk baskı arıyor: ilk baskı verirsen kat kat öder.</p>' : ''}</div>
       </div>
+      <div class="talk2">
+        ${extra.onTalk && !c.talked ? '<button class="btn sm" data-talk>💬 Biraz daha anlatır mısın?</button>' : ''}
+        ${extra.tea ? '<button class="btn sm" data-tea>🍵 Çay ikram et</button>' : ''}
+        <button class="btn sm" data-disc title="Önerdiğin kitap isteğe uymazsa yine de %${Math.round((1 - BAL.discount) * 100)} indirimle satılır (bahşiş yok)">🏷️ Uymazsa indirim</button>
+      </div>
       <div class="tabs">${tabs}</div>
       <div class="bgrid">${cards || '<p class="hint">Rafta hiç kitap yok…</p>'}</div>
       <div class="row end"><button class="btn" data-none>🤷 Elimde yok</button></div>`, 'wide rec');
@@ -263,8 +281,19 @@ export function createUI(root, act) {
       p.querySelectorAll('.tab').forEach(x => x.classList.toggle('is-on', x === t));
       p.querySelectorAll('.bcard').forEach(b => { b.style.display = !t.dataset.f || b.dataset.g === t.dataset.f ? '' : 'none'; });
     });
-    p.querySelectorAll('[data-book]').forEach(b => b.onclick = () => { closePanel(); onPick(b.dataset.book); });
-    p.querySelector('[data-none]').onclick = () => { closePanel(); onPick(null); };
+    p.querySelectorAll('[data-book]').forEach(b => b.onclick = () => { closePanel(); onPick(b.dataset.book, opts); });
+    p.querySelector('[data-none]').onclick = () => { closePanel(); onPick(null, opts); };
+    const say = text => { const n = document.createElement('p'); n.className = 'hello'; n.textContent = '“' + text + '”'; p.querySelector('.rec-head > div:last-child').appendChild(n); };
+    p.querySelector('[data-talk]')?.addEventListener('click', e => {
+      const h = extra.onTalk();
+      e.currentTarget.remove();
+      if (!h) return;
+      say(h.text);
+      // söylediği türün sekmesi seçilir
+      p.querySelector(`.tab[data-f="${h.genre}"]`)?.click();
+    });
+    p.querySelector('[data-tea]')?.addEventListener('click', e => { opts.tea = true; e.currentTarget.disabled = true; e.currentTarget.textContent = '🍵 Çay ikram edildi'; say(extra.teaLine()); });
+    p.querySelector('[data-disc]').addEventListener('click', e => { opts.discount = !opts.discount; e.currentTarget.classList.toggle('hl', opts.discount); });
     p.querySelectorAll('mark[data-tag]').forEach(m => m.onclick = () => {
       const on = !m.classList.contains('is-on');
       p.querySelectorAll('mark[data-tag]').forEach(x => x.classList.toggle('is-on', x === m && on));

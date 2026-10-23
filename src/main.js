@@ -9,7 +9,7 @@ import { GENRES } from './data/genres.js';
 import { BOOK } from './data/books.js';
 import { DECOR, PAINTS, UPGRADES } from './data/decor.js';
 import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
-import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature } from './game/shop.js';
+import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature, buyStall, talkHint, teaLine } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
@@ -18,7 +18,7 @@ import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood, setA
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
 import { checkStory } from './game/story.js';
-import { placeAll, shelve, unshelve, moveBook, setLabel } from './game/shelving.js';
+import { placeAll, shelve, unshelve, moveBook, setLabel, setPrice } from './game/shelving.js';
 import { replyFor } from './game/replies.js';
 import { tutorialStep, tutorialEvent } from './game/tutorial.js';
 import { HAP, dueHappening, chooseHappening } from './game/happenings.js';
@@ -68,19 +68,19 @@ const crowd = createCrowd(scene.crowdView(), {
   // öneri isteyene dokunuldu: panel açılır, saat durur
   ask(c) {
     sfx('page');
-    ui.recPanel(S, c, id => {
-      const r = recommend(S, c, id);
+    ui.recPanel(S, c, (id, opts = {}) => {
+      const r = recommend(S, c, id, opts);
       tutorialEvent(S, 'rec');
       if (r.bought.length) { scene.setStock(S); tap(r.grade === 'perfect' ? 'MEDIUM' : 'LIGHT'); }
       crowd.answer(c, r);
       sfx(r.grade === 'perfect' || r.friend ? 'heart' : r.grade === 'good' ? 'coin' : 'sad');
       if (r.friend?.gift || r.friend?.coins) { saveGame(S); ui.confetti(); ui.giftPanel(r.friend); }
       // müşterinin karşılığı: konuşma kartı (kalp ya da bahşiş bilgisiyle)
-      const line = c.reg && r.grade === 'perfect' ? REGULARS[c.reg].thanks : replyFor(S, c, r, id);
-      const note = r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.grade === 'perfect' ? `Bahşiş ₺${r.tip}` : r.grade === 'good' ? `Bahşiş ₺${r.tip}` : '';
+      const line = c.reg && r.grade === 'perfect' ? REGULARS[c.reg].thanks : replyFor(S, c, r.discounted ? { grade: 'good' } : r, id);
+      const note = r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.discounted ? `İndirimle ₺${r.paid}` : r.grade !== 'miss' ? `Bahşiş ₺${r.tip}` : '';
       const a = crowd.anchor(c);
       if (!(r.friend?.gift || r.friend?.coins)) ui.speech(c, line, r.grade, note, a && toFrame(a.x, a.y));
-    }, settings.hints !== false);
+    }, settings.hints !== false, { onTalk: () => talkHint(S, c), tea: S.upgrades.includes('cay'), teaLine: () => teaLine(S) });
   },
   timeout: c => recommend(S, c, null),
   paid: x => { const at = toFrame(x, 540); ui.flyCoin(at.xf, at.yf); },
@@ -116,6 +116,7 @@ const act = (a, arg) => {
     let why = null;
     if (o.op === 'auto') { if (!placeAll(S)) why = 'Rafta boş yer yok.'; else { sfx('page'); tutorialEvent(S, 'shelve'); } }
     else if (o.op === 'label') why = setLabel(S, o.sec, o.g);
+    else if (o.op === 'price') why = setPrice(S, o.sec, o.tag);
     else if (o.op === 'drop') {
       const [k, x, y] = o.from.split(':').map((v, i) => i ? +v : v);
       if (o.to === 'vit') {
@@ -156,6 +157,11 @@ scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[ar
   }
   else if (a === 'decor') ui.decorPanel(S);
   else if (a === 'map') ui.mapPanel(S);
+  else if (a === 'stall') {
+    const why = buyStall(S, arg);
+    if (why) ui.toast(why); else { tap(); sfx('page'); saveGame(S); ui.toast('🧺 Kitap koliye kondu'); }
+    ui.stockPanel(S);
+  }
   else if (a === 'buy') {
     const why = buyBox(S, arg);
     if (why) ui.toast(why);
@@ -266,6 +272,8 @@ if (PREVIEW) {
   if (panel === 'spot') ui.spotPanel(S);
   if (panel === 'paper') ui.paperPanel(S);
   if (panel === 'settings') ui.settingsPanel(settings);
+  if (panel === 'stock') { S.coins = 120; ui.stockPanel(S); }
+  if (panel === 'oneri') { S.upgrades = ['cay']; let c; do c = makeCustomer(S); while (!c.ask); ui.recPanel(S, c, () => {}, true, { onTalk: () => talkHint(S, c), tea: true, teaLine: () => teaLine(S) }); if (q.has('konustur')) setTimeout(() => { document.querySelector('[data-talk]')?.click(); document.querySelector('[data-tea]')?.click(); }, 300); }
   if (panel === 'konus') { const c = makeCustomer(S); c.arch = 'balikci'; c.style = ARCHETYPES.balikci.style; c.ask = { tags: ['deniz'] }; ui.speech(c, replyFor(S, c, { grade: 'perfect' }, 'yasliadam'), 'perfect', 'Bahşiş ₺5', toFrame(1210, 470)); }
   if (panel === 'ic') { S.coins = 999; S.shelfLv = 1; buyBox(S, 'roman'); placeAll(S); buyBox(S, 'siir'); buyBox(S, 'fantastik'); S.featured = Object.keys(S.shelf).slice(2, 4); ui.interiorPanel(S); }
   // ?insanlar: farklı tiplerden on kişilik dizi (yürüyen, okuyan, sevinen)

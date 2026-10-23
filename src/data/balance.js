@@ -9,9 +9,18 @@ export const BAL = {
   buyChance: 0.85,     // aradığı tür raftaysa alma ihtimali
   extraChance: 0.2,    // aynı türden bir kitap daha alma ihtimali
   altChance: 0.3,      // aradığını bulamayınca başka bir şey alma ihtimali
-  trafficJitter: 3,
+  trafficJitter: 3,    // günlük ziyaretçi sayısı ± bu kadar oynar
   crateCap: 10,        // koli: rafa dizilmeyi bekleyen en fazla kitap
-  tidyBonus: 0.15,     // raf düzeni %100 iken kalabalık bu kadar artar    // günlük ziyaretçi sayısı ± bu kadar oynar
+  tidyBonus: 0.15,     // raf düzeni %100 iken kalabalık bu kadar artar
+  // raf bölümü fiyat etiketi: satış fiyatı çarpanı (mul) ve almaya karar verme çarpanı (chance)
+  priceTags: { ucuz: { mul: 0.8, chance: 1.15 }, normal: { mul: 1, chance: 1 }, pahali: { mul: 1.3, chance: 0.8 } },
+  // kitabın durumu: satış ve tezgâh alış çarpanı, tezgâhta çıkma ağırlığı
+  conds: { yipranmis: { sell: 0.7, buy: 0.5, w: 3 }, iyi: { sell: 1, buy: 1, w: 5 }, temiz: { sell: 1.3, buy: 1.6, w: 2 } },
+  stallSize: 9,        // pazar tezgâhında her sabah bu kadar kitap
+  stallRare: 0.08,     // tezgâhta ilk baskı olasılığı
+  talkMinutes: 10,     // "Biraz daha anlat" sohbeti saati bu kadar ilerletir
+  teaTip: 3,           // çay ikram edilen müşteri, alırsa bu kadar fazla bahşiş bırakır
+  discount: 0.7,       // indirim: uymayan öneri yine de bu fiyat oranıyla satılır
   travelCost: 6,       // kasabalar arası yakıt
   newTownTraffic: 5,   // dün başka kasabadaydıysan: yeni karavanı merak eden ek ziyaretçi
   askChance: 0.2,      // müşterinin öneri isteme ihtimali

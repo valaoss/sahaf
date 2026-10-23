@@ -15,7 +15,9 @@ import { dayMods, weatherOf } from './calendar.js';
 import { buildAsk } from './asks.js';
 import { kostasDrop } from './story.js';
 import { remember, pickFresh, weightedFresh } from './memory.js';
-import { crateAdd, crateFree } from './shelving.js';
+import { crateAdd, crateFree, takeCopy, chanceOf } from './shelving.js';
+import { TALK } from '../data/talk.js';
+import { seeded } from '../core/rng.js';
 export { askText } from './asks.js';
 
 export const boxCost = g => GENRES[g].cost * BAL.boxSize;
@@ -217,14 +219,16 @@ function pickBookOf(S, g) {
 }
 
 // rareCopy: ilk baskı kopyası satılıyor (koleksiyoncuya, kat kat fiyata)
-function sell(S, id, res, rareCopy = false) {
+function sell(S, id, res, rareCopy = false, mul = 1) {
+  // hangi kopya satıldı: bölümünün fiyat etiketi ve kitabın durumu fiyatı belirler
+  const cp = takeCopy(S, id, rareCopy || plainCopies(S, id) <= 0);
   takeBook(S, id);
   if (!S.shelf[id]) S.featured = S.featured.filter(x => x !== id);
   if (rareCopy || plainCopies(S, id) < 0) { S.rare[id]--; if (!S.rare[id]) delete S.rare[id]; }
   const g = BOOK[id].genre, T = S.today;
   S.soldBooks[id] = (S.soldBooks[id] || 0) + 1;
   res.bought.push(id);
-  res.paid += GENRES[g].price * (rareCopy ? BAL.rareMul : 1);
+  res.paid += Math.max(1, Math.round(GENRES[g].price * BAL.priceTags[cp.price].mul * BAL.conds[cp.cond].sell * (rareCopy ? BAL.rareMul : 1) * mul));
   if (rareCopy) { res.rare = true; S.totals.rareSold++; T.rareSold = (T.rareSold || 0) + 1; }
   T.sold[g] = (T.sold[g] || 0) + 1;
 }
@@ -240,7 +244,7 @@ function settle(S, res) {
 export function resolveCustomer(S, c) {
   const T = S.today;
   const res = { bought: [], paid: 0, happy: false };
-  if (plainOfGenre(S, c.wants) > 0 && rnd(S) < BAL.buyChance + (featuredOf(S, c.wants).length ? BAL.featureBuy : 0)) {
+  if (plainOfGenre(S, c.wants) > 0 && rnd(S) < (BAL.buyChance + (featuredOf(S, c.wants).length ? BAL.featureBuy : 0)) * chanceOf(S, c.wants)) {
     sell(S, pickBookOf(S, c.wants), res);
     res.happy = true;
     if (plainOfGenre(S, c.wants) > 0 && rnd(S) < BAL.extraChance) sell(S, pickBookOf(S, c.wants), res);
@@ -274,17 +278,23 @@ export function bestBook(S, ask) {
 
 // Öneri: oyuncu raftan bir kitap verdi (ya da null: "elimde yok" / müşteri beklemekten sıkıldı).
 // İlk baskı isteyen koleksiyoncu: ilk baskı verilirse kat kat öder; normal baskıda en fazla 'good'.
-export function recommend(S, c, id) {
+// opts.tea: çay ikram edildi (alırsa fazladan bahşiş; müdavim 'good'da da ısınır)
+// opts.discount: uymayan öneri bile indirimle satılır (bahşiş yok, mutlu değil)
+export function recommend(S, c, id, opts = {}) {
   const T = S.today;
   const res = { bought: [], paid: 0, tip: 0, happy: false, grade: 'miss' };
   if (id && S.shelf[id]) {
     res.grade = matchGrade(c.ask, id);
     const rareCopy = !!c.ask.rare && (S.rare[id] || 0) > 0;
     if (c.ask.rare && !rareCopy && res.grade === 'perfect') res.grade = 'good';
+    if (res.grade === 'miss' && opts.discount && plainCopies(S, id) > 0) {
+      sell(S, id, res, false, BAL.discount);
+      res.discounted = true;
+    }
     if (res.grade !== 'miss') {
       sell(S, id, res, rareCopy);
       res.happy = true;
-      res.tip = (res.grade === 'perfect' ? BAL.tipPerfect : BAL.tipGood) + effects(S).tip + dayMods(S.day, S.town).tip;
+      res.tip = (res.grade === 'perfect' ? BAL.tipPerfect : BAL.tipGood) + effects(S).tip + dayMods(S.day, S.town).tip + (opts.tea ? BAL.teaTip : 0);
       if (c.reg && (S.friends[c.reg] || 0) >= HEARTS_TIP) res.tip += REGULAR_TIP;
       res.paid += res.tip;
       T.tips += res.tip;
@@ -299,9 +309,61 @@ export function recommend(S, c, id) {
   }
   if (c.reg) {
     if (!S.met.includes(c.reg)) S.met.push(c.reg);
-    if (res.grade === 'perfect') befriend(S, c.reg, res);
+    if (res.grade === 'perfect' || (opts.tea && res.grade === 'good')) befriend(S, c.reg, res);
     (T.regulars = T.regulars || []).push({ id: c.reg, grade: res.grade });
   }
   T.recs[res.grade]++;
   return settle(S, res);
 }
+
+// --- Pazar tezgâhı: her sabah kasabada tek tek seçilen kitaplar ---
+// Liste gün ve kasabadan sabit üretilir (oyunun zarını harcamaz); alınanlar S.stall.sold'da tutulur.
+const COND_KEYS = ['yipranmis', 'iyi', 'temiz'];
+export const COND_NAME = { yipranmis: 'Yıpranmış', iyi: 'İyi', temiz: 'Temiz' };
+export function stallOf(S) {
+  const key = S.day + '/' + S.town;
+  if (!S.stall || S.stall.key !== key) S.stall = { key, sold: [] };
+  const r = seeded(S.day * 7919 + Object.keys(TOWNS).indexOf(S.town) * 131 + 17);
+  const d = demandOf(S), gs = GENRE_KEYS, tot = gs.reduce((n, g) => n + d[g], 0);
+  const items = [], used = new Set();
+  for (let i = 0; i < BAL.stallSize; i++) {
+    let x = r() * tot, g = gs[0];
+    for (const k of gs) { x -= d[k]; if (x <= 0) { g = k; break; } }
+    const pool = booksOf(g).filter(b => !used.has(b.id));
+    const b = pool[Math.floor(r() * pool.length)];
+    used.add(b.id);
+    let w = r() * COND_KEYS.reduce((n, k) => n + BAL.conds[k].w, 0), cond = 'iyi';
+    for (const k of COND_KEYS) { w -= BAL.conds[k].w; if (w <= 0) { cond = k; break; } }
+    const rare = r() < BAL.stallRare * dayMods(S.day, S.town).rare;
+    const cost = Math.max(1, Math.ceil(GENRES[g].cost * BAL.conds[cond].buy * (rare ? BAL.rareMul * 0.8 : 1)));
+    items.push({ i, id: b.id, cond, rare, cost, sold: S.stall.sold.includes(i) });
+  }
+  return items;
+}
+
+export function buyStall(S, i) {
+  if (S.phase !== 'morning') return 'Pazar yalnızca sabah kurulur.';
+  const it = stallOf(S)[i];
+  if (!it) return 'Böyle bir kitap yok.';
+  if (it.sold) return 'Bu kitap satıldı.';
+  if (crateFree(S) < 1) return 'Koli dolu: önce kitapları rafa diz.';
+  if (S.coins < it.cost) return 'Paran yetmiyor.';
+  S.coins -= it.cost;
+  S.totals.spent += it.cost;
+  S.stall.sold.push(i);
+  crateAdd(S, it.id, it.rare, it.cond);
+  return null;
+}
+
+// --- Sohbet: "Biraz daha anlatır mısın?" müşterinin sevdiği türü ve aradığının bir yönünü söyletir ---
+export function talkHint(S, c) {
+  if (c.talked) return null;
+  c.talked = true;
+  if (S.phase === 'open') S.clock = Math.min(BAL.dayEnd, S.clock + BAL.talkMinutes);
+  const voice = (c.arch && ARCHETYPES[c.arch]?.voice) || 'samimi';
+  const lines = TALK.genre[voice] || TALK.genre.samimi;
+  let text = pickFresh(S, 'talk', lines).replace(/\{g\}/g, GENRES[c.wants].name.toLowerCase());
+  remember(S, 'talk', text);
+  return { text, genre: c.wants };
+}
+export const teaLine = S => { const l = pickFresh(S, 'talk', TALK.tea); remember(S, 'talk', l); return l; };

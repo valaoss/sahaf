@@ -2,6 +2,7 @@
 // bölümlere tür etiketi asar. Yalnızca rafa konmuş kitap satılır: S.shelf (sayılar) rafın kendisidir,
 // S.layout ise o kopyaların hangi bölümde hangi sırada durduğunu tutar.
 // Satış, olay, hediye gibi S.shelf'i doğrudan değiştiren her şeyden sonra syncLayout düzeni sayılarla uzlaştırır.
+// Her kopyanın durumu (cond: yipranmis | iyi | temiz) ve her bölümün fiyat etiketi (price: ucuz | normal | pahali) satış fiyatını belirler.
 import { BOOK } from '../data/books.js';
 import { GENRE_KEYS } from '../data/genres.js';
 import { BAL } from '../data/balance.js';
@@ -12,7 +13,7 @@ export const sectionCap = S => Math.ceil(shelfCap(S) / SECTIONS);
 export const crateFree = S => BAL.crateCap - S.crate.length;
 
 function fresh() {
-  return { sections: GENRE_KEYS.slice(0, SECTIONS).map(g => ({ label: g, books: [] })) };
+  return { sections: GENRE_KEYS.slice(0, SECTIONS).map(g => ({ label: g, price: 'normal', books: [] })) };
 }
 
 // boş yer: önce etiketi uyan bölüm, sonra etiketsiz, sonra herhangi biri; yer yoksa -1
@@ -33,7 +34,9 @@ export function syncLayout(S) {
   const L = S.layout;
   const have = {};
   for (const sec of L.sections) {
+    if (!BAL.priceTags[sec.price]) sec.price = 'normal';
     sec.books = sec.books.filter(e => e && BOOK[e.id]);
+    for (const e of sec.books) if (!BAL.conds[e.cond]) e.cond = 'iyi';
     for (const e of sec.books) have[e.id] = (have[e.id] || 0) + 1;
   }
   for (const id in have) {
@@ -44,7 +47,7 @@ export function syncLayout(S) {
     }
   }
   for (const id of Object.keys(S.shelf).sort()) {
-    for (let n = have[id] || 0; n < S.shelf[id]; n++) L.sections[bestSection(S, id, true)].books.push({ id, rare: false });
+    for (let n = have[id] || 0; n < S.shelf[id]; n++) L.sections[bestSection(S, id, true)].books.push({ id, rare: false, cond: 'iyi' });
   }
   // ilk baskı işaretleri: her kitap için S.rare kadar kopya işaretli olsun
   const flags = {};
@@ -57,7 +60,7 @@ export function syncLayout(S) {
 }
 
 // koliye ekle (alışveriş)
-export function crateAdd(S, id, rare = false) { S.crate.push({ id, rare }); }
+export function crateAdd(S, id, rare = false, cond = 'iyi') { S.crate.push({ id, rare, cond }); }
 
 // koliden bölüme: pos verilmezse sona
 export function shelve(S, ci, sec, pos = null) {
@@ -66,7 +69,7 @@ export function shelve(S, ci, sec, pos = null) {
   if (!e || !b) return 'Böyle bir yer yok.';
   if (b.length >= sectionCap(S)) return 'Bu bölüm dolu.';
   S.crate.splice(ci, 1);
-  b.splice(pos === null ? b.length : Math.max(0, Math.min(pos, b.length)), 0, { id: e.id, rare: e.rare });
+  b.splice(pos === null ? b.length : Math.max(0, Math.min(pos, b.length)), 0, { id: e.id, rare: e.rare, cond: e.cond || 'iyi' });
   S.shelf[e.id] = (S.shelf[e.id] || 0) + 1;
   if (e.rare) S.rare[e.id] = (S.rare[e.id] || 0) + 1;
   return null;
@@ -79,7 +82,7 @@ export function unshelve(S, sec, i) {
   if (!e) return 'Böyle bir kitap yok.';
   if (crateFree(S) <= 0) return 'Koli dolu.';
   b.splice(i, 1);
-  S.crate.push({ id: e.id, rare: e.rare });
+  S.crate.push({ id: e.id, rare: e.rare, cond: e.cond });
   if (--S.shelf[e.id] <= 0) delete S.shelf[e.id];
   if (e.rare && --S.rare[e.id] <= 0) delete S.rare[e.id];
   if (!S.shelf[e.id]) S.featured = S.featured.filter(x => x !== e.id);
@@ -97,6 +100,37 @@ export function moveBook(S, from, i, to, pos = null) {
   if (from === to && pos !== null && pos > i) p--;
   B.splice(Math.max(0, Math.min(p, B.length)), 0, e);
   return null;
+}
+
+// bölümün fiyat etiketi
+export function setPrice(S, sec, tag) {
+  syncLayout(S);
+  if (!S.layout.sections[sec] || !BAL.priceTags[tag]) return 'Böyle bir etiket yok.';
+  S.layout.sections[sec].price = tag;
+  return null;
+}
+
+// Satılan kopyayı raftan al (S.shelf sayısını sell düşürür): müşteri ucuz bölümdekini önce görür.
+// wantRare: koleksiyoncuya ilk baskı. Dönüş: o kopyanın bölüm fiyat etiketi ve durumu.
+export function takeCopy(S, id, wantRare = false) {
+  syncLayout(S);
+  let best = null;
+  const rank = { ucuz: 0, normal: 1, pahali: 2 };
+  S.layout.sections.forEach((sec, si) => sec.books.forEach((e, i) => {
+    if (e.id !== id || e.rare !== wantRare) return;
+    if (!best || rank[sec.price] < rank[best.sec.price]) best = { sec, si, i };
+  }));
+  if (!best) return { price: 'normal', cond: 'iyi' };
+  const [e] = best.sec.books.splice(best.i, 1);
+  return { price: best.sec.price, cond: e.cond || 'iyi' };
+}
+
+// bir türün raftaki kopyalarının ortalama "almaya karar verme" çarpanı (fiyat etiketine göre)
+export function chanceOf(S, g) {
+  syncLayout(S);
+  let sum = 0, n = 0;
+  for (const sec of S.layout.sections) for (const e of sec.books) if (BOOK[e.id].genre === g && !e.rare) { sum += BAL.priceTags[sec.price].chance; n++; }
+  return n ? sum / n : 1;
 }
 
 export function setLabel(S, sec, genre) {

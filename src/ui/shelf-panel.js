@@ -6,6 +6,9 @@ import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { BOOK } from '../data/books.js';
 import { syncLayout, sectionCap, tidiness, crateFree } from '../game/shelving.js';
 
+const COND = { yipranmis: 'Yıpranmış', iyi: 'İyi', temiz: 'Temiz' };
+const PRICE_LABEL = { ucuz: '₺↓ ucuz', normal: '₺ normal', pahali: '₺↑ pahalı' };
+const NEXT_PRICE = { ucuz: 'normal', normal: 'pahali', pahali: 'ucuz' };
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const hash = str => [...str].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
 
@@ -15,8 +18,8 @@ export function createShelfPanel({ openPanel, closePanel, act, toast }) {
 
   function spine(S, e, from, pop) {
     const b = BOOK[e.id], G = GENRES[b.genre], h = hash(b.id);
-    const cls = ['spine2', e.rare ? 'rare' : '', S.featured.includes(e.id) && from[0] === 's' ? 'feat' : '', sel === from ? 'sel' : '', pop ? 'pop' : ''].join(' ');
-    return `<div class="${cls}" data-from="${from}" style="--c:${G.color};--h:${78 + h % 20};--d:${pop ? pop * 0.06 : 0}s" title="${esc(b.title)} — ${esc(b.author)}">
+    const cls = ['spine2', e.rare ? 'rare' : '', 'c-' + (e.cond || 'iyi'), S.featured.includes(e.id) && from[0] === 's' ? 'feat' : '', sel === from ? 'sel' : '', pop ? 'pop' : ''].join(' ');
+    return `<div class="${cls}" data-from="${from}" style="--c:${G.color};--h:${78 + h % 20};--d:${pop ? pop * 0.06 : 0}s" title="${esc(b.title)} — ${esc(b.author)} · ${COND[e.cond] || 'İyi'}">
       <span>${esc(b.title)}</span>${e.rare ? '<i class="r">✨</i>' : ''}</div>`;
   }
 
@@ -27,6 +30,7 @@ export function createShelfPanel({ openPanel, closePanel, act, toast }) {
     const sec = (s, i) => {
       const off = s.label ? s.books.filter(e => BOOK[e.id].genre !== s.label).length : 0;
       return `<div class="sec2 ${s.label ? '' : 'nolab'} ${sel && sel.startsWith('s:' + i + ':') ? 'from' : ''}" data-sec="${i}" style="--c:${s.label ? GENRES[s.label].color : '#c9b49a'}">
+        <button class="price2 p-${s.price}" data-price="${i}" title="Fiyat etiketi: ucuz daha çok satar, pahalı daha çok kazandırır">${PRICE_LABEL[s.price]}</button>
         <button class="lab2" data-lab="${i}">${s.label ? `${GENRES[s.label].icon} ${GENRES[s.label].name}` : '🏷️ Etiketsiz'}${off ? ` <b title="Etikete uymayan">· ${off} karışık</b>` : ''}</button>
         <div class="row2">${s.books.map((e, j) => spine(S, e, `s:${i}:${j}`)).join('')}${'<i class="slot2"></i>'.repeat(Math.max(0, cap - s.books.length))}</div>
       </div>`;
@@ -91,6 +95,7 @@ export function createShelfPanel({ openPanel, closePanel, act, toast }) {
   function wire(p, S) {
     p.querySelector('[data-close]').onclick = () => { sel = null; closePanel(); };
     p.querySelector('[data-auto]').onclick = () => { sel = null; act('shelf', { op: 'auto' }); };
+    p.querySelectorAll('[data-price]').forEach(b => b.onclick = e => { e.stopPropagation(); const i = +b.dataset.price; act('shelf', { op: 'price', sec: i, tag: NEXT_PRICE[S.layout.sections[i].price] }); });
     // etiket: dokununca tür seçici açılır
     p.querySelectorAll('[data-lab]').forEach(b => b.onclick = e => {
       e.stopPropagation();
@@ -150,7 +155,7 @@ export function createShelfPanel({ openPanel, closePanel, act, toast }) {
     });
     // seçiliyken bölüme, koliye ya da vitrine dokun
     p.querySelectorAll('[data-sec], [data-crate], [data-vit]').forEach(n => n.addEventListener('click', e => {
-      if (!sel || e.target.closest('.spine2, [data-lab], .labpick2')) return;
+      if (!sel || e.target.closest('.spine2, [data-lab], [data-price], .labpick2')) return;
       drop(S, sel, targetAt(e.clientX, e.clientY));
     }));
     // vitrindeki kitaba dokununca vitrinden çıkar

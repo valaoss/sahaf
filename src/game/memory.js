@@ -2,7 +2,7 @@
 // Seçimler bu pencereyi atlayarak yapılır; böylece oyuncu kısa aralıkla aynı şeyi görmez.
 import { rndPick, weighted } from '../core/rng.js';
 
-export const WINDOW = { text: 40, book: 20, arch: 4, hap: 12, letter: 30, reply: 6 };
+export const WINDOW = { text: 40, book: 20, arch: 4, hap: 12, letter: 30, reply: 6, talk: 5 };
 
 function bucket(S, kind) {
   S.recent = S.recent || {};

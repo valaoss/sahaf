@@ -20,7 +20,8 @@ import { PAGES, FINALE_REWARD } from '../src/data/story.js';
 import { composeBar, midiToHz, TEMPO, BEATS_PER_BAR, MOTIFS, THEMES } from '../src/audio/compose.js';
 import { TUT_STEPS, tutorialStep, tutorialEvent } from '../src/game/tutorial.js';
 import { statsOf } from '../src/game/stats.js';
-import { syncLayout, placeAll, shelve, unshelve, moveBook, setLabel, tidiness, sectionCap, crateFree, SECTIONS } from '../src/game/shelving.js';
+import { syncLayout, placeAll, shelve, unshelve, moveBook, setLabel, setPrice, tidiness, sectionCap, crateFree, SECTIONS } from '../src/game/shelving.js';
+import { stallOf, buyStall, talkHint } from '../src/game/shop.js';
 import { replyFor } from '../src/game/replies.js';
 import { REPLIES } from '../src/data/replies.js';
 import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
@@ -908,6 +909,71 @@ test('raf düzeni: kolide bekleyen kitap satılmaz, düzenli raf daha kalabalık
     openShop(B); messy += B.arrivals.length;
   }
   assert.ok(tidy > messy, `düzenli ${tidy} > dağınık ${messy}`);
+});
+
+test('fiyat etiketi ve kitabın durumu satış fiyatını belirler; ucuz bölüm daha çok satar', () => {
+  const sale = (tag, cond) => {
+    const S = newGame(2); S.shelf = { kurk: 1 }; S.rare = {}; S.crate = []; S.layout = null; syncLayout(S);
+    const si = S.layout.sections.findIndex(s => s.books.length);
+    S.layout.sections[si].books[0].cond = cond; setPrice(S, si, tag);
+    openShop(S);
+    const r = recommend(S, { id: 1, ask: { tags: BOOK.kurk.tags.slice(0, 1) } }, 'kurk');
+    return r.paid - r.tip;
+  };
+  const base = GENRES[BOOK.kurk.genre].price;
+  assert.equal(sale('normal', 'iyi'), base);
+  assert.equal(sale('pahali', 'iyi'), Math.round(base * 1.3));
+  assert.equal(sale('ucuz', 'yipranmis'), Math.max(1, Math.round(base * 0.8 * 0.7)));
+  assert.equal(sale('normal', 'temiz'), Math.round(base * 1.3));
+  // ucuz bölüm: aynı müşterilerden daha çok satış
+  const count = tag => { let n = 0; for (let seed = 1; seed <= 60; seed++) {
+    const S = newGame(seed); S.coins = 999; placeAll(S); syncLayout(S); S.layout.sections.forEach((_, i) => setPrice(S, i, tag)); openShop(S);
+    for (let k = 0; k < 10; k++) n += resolveCustomer(S, { id: k, wants: 'roman', look: k }).bought.length; } return n; };
+  assert.ok(count('ucuz') > count('pahali'), 'ucuz daha çok satar');
+});
+
+test('pazar tezgâhı: gün ve kasabaya göre sabit liste, tek tek alınır, koliye düşer', () => {
+  const S = newGame(6); S.coins = 999;
+  const a = stallOf(S).map(x => x.id + x.cond + x.cost).join(), b = stallOf(S).map(x => x.id + x.cond + x.cost).join();
+  assert.equal(a, b, 'aynı sabah aynı tezgâh');
+  assert.equal(stallOf(S).length, BAL.stallSize);
+  assert.equal(new Set(stallOf(S).map(x => x.id)).size, BAL.stallSize, 'tezgâhta aynı kitap iki kez yok');
+  const it = stallOf(S)[2], coins = S.coins;
+  assert.equal(buyStall(S, 2), null);
+  assert.equal(S.coins, coins - it.cost);
+  assert.deepEqual(S.crate.at(-1), { id: it.id, rare: it.rare, cond: it.cond });
+  assert.equal(buyStall(S, 2), 'Bu kitap satıldı.');
+  assert.ok(stallOf(S)[2].sold);
+  S.day++;
+  assert.notEqual(stallOf(S).map(x => x.id).join(), a.split(',').length && stallOf({ ...S, day: S.day - 1, stall: null }).map(x => x.id).join(), 'ertesi gün başka tezgâh');
+  // yıpranmış ucuz, temiz pahalı
+  let worn = 0, clean = 0, nw = 0, nc = 0;
+  for (let d = 1; d < 60; d++) for (const x of stallOf({ ...S, day: d, stall: null })) { if (x.rare) continue; if (x.cond === 'yipranmis') { worn += x.cost / GENRES[BOOK[x.id].genre].cost; nw++; } if (x.cond === 'temiz') { clean += x.cost / GENRES[BOOK[x.id].genre].cost; nc++; } }
+  assert.ok(worn / nw < clean / nc);
+});
+
+test('sohbet: tür ipucu verir, saati ilerletir, bir kez; çay bahşişi artırır; indirim uymayanı da satar', () => {
+  const S = newGame(7); openShop(S);
+  const c = { id: 1, arch: 'ogrenci', wants: 'polisiye', ask: { tags: ['gizem'] }, look: 3 };
+  const t0 = S.clock, h = talkHint(S, c);
+  assert.ok(h.text.includes('polisiye'), h.text);
+  assert.equal(S.clock, t0 + BAL.talkMinutes);
+  assert.equal(talkHint(S, c), null, 'bir kez');
+  const id = Object.keys(S.shelf).find(x => BOOK[x].tags.includes('gizem'));
+  if (id) {
+    const plain = recommend(S, { id: 2, ask: { tags: ['gizem'] } }, id);
+    S.shelf[id] = (S.shelf[id] || 0) + 1;
+    const tea = recommend(S, { id: 3, ask: { tags: ['gizem'] } }, id, { tea: true });
+    assert.equal(tea.tip - plain.tip, BAL.teaTip);
+  }
+  const miss = Object.keys(S.shelf).find(x => !BOOK[x].tags.includes('gizem') && S.shelf[x] > (S.rare[x] || 0));
+  const no = recommend(S, { id: 4, ask: { tags: ['gizem'] } }, miss);
+  assert.equal(no.bought.length, 0);
+  S.shelf[miss] = (S.shelf[miss] || 0) + 1;
+  const yes = recommend(S, { id: 5, ask: { tags: ['gizem'] } }, miss, { discount: true });
+  assert.equal(yes.bought.length, 1);
+  assert.equal(yes.grade, 'miss');
+  assert.ok(yes.paid < GENRES[BOOK[miss].genre].price && yes.tip === 0);
 });
 
 test('karşılıklar: dereceye ve konuya uygun, yer tutucusuz, kısa aralıkla tekrar etmez', () => {
