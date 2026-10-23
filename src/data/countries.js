@@ -7,7 +7,7 @@ export const COUNTRIES = {
     hint: 'Assos\'tan karşı kıyı görünüyor. Defter tamamlanınca feribot yolu açılır.' },
   it: { name: 'İtalya', greet: 'Ciao', flag: 'it', label: [13.2, 42.6], land: '#f1e6cf', unlock: { visited: { country: 'gr', n: 3 } },
     hint: 'Yunanistan\'da üç şehir gezince İtalya feribotu açılır.' },
-  fr: { name: 'Fransa', greet: 'Bonjour', flag: 'fr', label: [3.6, 45.2], land: '#ece8da', unlock: { visited: { country: 'it', n: 3 } },
+  fr: { name: 'Fransa', greet: 'Bonjour', flag: 'fr', label: [2.4, 44.4], land: '#ece8da', unlock: { visited: { country: 'it', n: 3 } },
     hint: 'İtalya\'da üç şehir gezince Fransa ve İspanya yolu açılır.' },
   es: { name: 'İspanya', greet: '¡Hola!', flag: 'es', label: [-3.6, 39.6], land: '#f2dfc0', unlock: { visited: { country: 'it', n: 3 } },
     hint: 'İtalya\'da üç şehir gezince Fransa ve İspanya yolu açılır.' },

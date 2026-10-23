@@ -401,7 +401,7 @@ export function buildScene(host) {
     setSpot(scene, town) {
       $('spotBack').innerHTML = spotArt(scene, town);
       $('landmark').innerHTML = landmarkArt(town);
-      $('ground').setAttribute('fill', GROUND[scene]);
+      $('ground').setAttribute('fill', TOWNS[town]?.country === 'eg' && scene === 'tepe' ? 'url(#sand)' : GROUND[scene]);
       $('curb').setAttribute('fill', scene === 'sahil' ? '#ecd3a4' : scene === 'tepe' ? '#c9d38f' : '#e3c597');
       $('houses').style.display = SHOW_HOUSES[scene] ? '' : 'none';
     },

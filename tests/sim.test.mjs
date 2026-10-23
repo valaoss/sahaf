@@ -1020,6 +1020,14 @@ test('ülkeler: Türkiye açık başlar, Yunanistan hikâyeyle, İtalya üç Yun
   S.visited.push('selanik');
   assert.ok(checkCountries(S).includes('it'));
   for (const c of COUNTRY_KEYS) assert.ok(COUNTRIES[c].name && COUNTRIES[c].greet && (c === 'tr' || COUNTRIES[c].hint), c);
+  // İtalya'da üç şehir: Fransa ve İspanya; beş damga: Mısır
+  S.visited.push('venedik', 'roma', 'napoli');
+  assert.deepEqual(checkCountries(S).sort(), ['es', 'fr']);
+  Object.assign(S.passport, { gr: 5, it: 9, fr: 12 });
+  assert.deepEqual(checkCountries(S), []);
+  S.passport.es = 15;
+  assert.deepEqual(checkCountries(S), ['eg']);
+  for (const c of COUNTRY_KEYS) assert.ok(TOWN_KEYS.filter(k => countryOf(k) === c).length >= 2, c + ' şehirleri');
 });
 
 test('yolculuk: yurt içi mesafeye göre yakıt; feribot pahalı, bir gün sürer, pasaporta damga', () => {

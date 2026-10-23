@@ -25,6 +25,37 @@ const palm = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><
   ${[-60, -20, 20, 60, 100].map(a => `<ellipse cx="${6 + Math.cos(a * Math.PI / 180) * 30}" cy="${-170 + Math.sin(a * Math.PI / 180) * 14}" rx="34" ry="9" fill="#7f9c5a" transform="rotate(${a} 6 -170)"/>`).join('')}</g>`;
 
 const LANDMARKS = {
+  // Marsilya: tepede Notre-Dame de la Garde (altın heykelli kule)
+  marsilya: () => hill(1020, 1600, 290, '#c9cfa0') + `<g transform="translate(1310 300)" fill="#efe4cc">
+    <rect x="-80" y="-50" width="160" height="50"/><rect x="-80" y="-50" width="160" height="50" fill="url(#cartVol)" opacity=".5"/>
+    <path d="M-60 -50 A30 30 0 0 1 0 -50Z M0 -50 A30 30 0 0 1 60 -50Z" fill="#d9c49e"/>
+    <rect x="-20" y="-140" width="40" height="90"/>${[-12, 0, 12].map(dx => `<rect x="${dx - 3}" y="-128" width="6" height="18" rx="3" fill="#8a7a6a"/>`).join('')}
+    <rect x="-24" y="-148" width="48" height="8"/><rect x="-6" y="-190" width="12" height="42" fill="#e3b84a"/><circle cx="0" cy="-196" r="7" fill="#e3b84a"/></g>`,
+  // Nis: palmiyeler ve tepede eski kale bahçesi
+  nis: () => hill(1100, 1600, 330, '#b9cf94') + castle(1360, 352, .55) + palm(900, 470, 1) + palm(1040, 470, .85) + palm(1240, 470, .95),
+  // Barselona: Sagrada Família'nın kuleleri
+  barselona: () => `<g transform="translate(1260 470)" fill="#d9c49e">
+    <rect x="-160" y="-90" width="320" height="90"/>
+    ${[[-120, 230], [-70, 280], [-20, 300], [30, 300], [80, 280], [130, 230]].map(([x, h]) => `<path d="M${x - 18} -90 L${x - 14} ${-h} C${x - 8} ${-h - 30} ${x + 8} ${-h - 30} ${x + 14} ${-h} L${x + 18} -90Z"/>
+      ${[0.3, 0.5, 0.7].map(k => `<ellipse cx="${x}" cy="${-90 - (h - 90) * k}" rx="5" ry="8" fill="#9a8460"/>`).join('')}<circle cx="${x}" cy="${-h - 30}" r="6" fill="#e57f73"/>`).join('')}
+    ${[-120, -40, 40, 120].map(dx => `<path d="M${dx - 22} 0 L${dx - 22} -50 A22 22 0 0 1 ${dx + 22} -50 L${dx + 22} 0Z" fill="#8a7458"/>`).join('')}</g>`,
+  // Valensiya: bembeyaz bilim şehri (kabuk biçimli yapılar)
+  valensiya: () => `<path d="M960 470 C1000 360 1150 330 1250 380 C1300 400 1320 440 1330 470Z" fill="#f6f7f2"/>
+    <path d="M1250 470 C1290 340 1430 300 1560 360 L1560 470Z" fill="#eef3f5"/>
+    ${Array.from({ length: 9 }, (_, i) => `<path d="M${1270 + i * 32} 470 L${1290 + i * 30} ${370 - i * 3}" stroke="#d6dde0" stroke-width="3"/>`).join('')}
+    <ellipse cx="1260" cy="470" rx="320" ry="10" fill="#7cc6d6" opacity=".6"/>`,
+  // Malaga: Alcazaba surları ve palmiyeler
+  malaga: () => hill(1050, 1600, 320, '#c9b98a') + castle(1330, 340, .85) + palm(980, 470, .9) + palm(1530, 470, .8),
+  // İskenderiye: denizdeki Kayıtbay kalesi
+  iskenderiye: () => `<path d="M1140 470 C1170 445 1220 438 1300 436 C1380 438 1440 448 1480 470Z" fill="#c9b48e"/>`
+    + `<g transform="translate(1310 440)" fill="#e6d3a8"><rect x="-120" y="-50" width="240" height="50"/>${[-120, -90, -60, -30, 0, 30, 60, 90].map(cx => `<rect x="${cx}" y="-62" width="20" height="12"/>`).join('')}
+      <rect x="-40" y="-120" width="80" height="70"/><rect x="-14" y="-160" width="28" height="40" fill="#efe0bc"/><path d="M-14 -160 A14 14 0 0 1 14 -160Z"/>
+      <rect x="-120" y="-80" width="30" height="80"/><rect x="90" y="-80" width="30" height="80"/></g>` + palm(980, 470, .9),
+  // Kahire: deniz yok; çöl, piramitler, palmiyeler
+  kahire: () => `<path d="M0 340 C300 320 600 336 900 330 C1200 324 1400 338 1600 332 L1600 562 L0 562Z" fill="#ecd3a2"/>
+    <path d="M0 400 C250 380 500 392 800 400 C1100 408 1350 390 1600 398 L1600 562 L0 562Z" fill="#e2c38c"/>
+    ${[[1100, 470, 1], [1330, 470, 1.3], [1520, 470, .8]].map(([x, y, s]) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M-130 0 L0 -150 L130 0Z" fill="#dcb878"/><path d="M0 -150 L130 0 L20 0Z" fill="#c9a060"/></g>`).join('')}
+    ${palm(260, 480, .9)}${palm(420, 470, .7)}`,
   // Venedik: San Marco kubbeleri, çan kulesi
   venedik: () => `<g transform="translate(1240 470)" fill="#e9d2b0">
       <rect x="-150" y="-80" width="300" height="80"/>${[-110, -40, 40, 110].map(dx => `<path d="M${dx - 34} -80 A34 30 0 0 1 ${dx + 34} -80Z" fill="#c9b08e"/><rect x="${dx - 2}" y="-118" width="4" height="10" fill="#c9a676"/>`).join('')}

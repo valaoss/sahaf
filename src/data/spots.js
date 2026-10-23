@@ -130,6 +130,48 @@ export const SPOTS = {
     ballaro: { name: 'Ballarò pazarı', scene: 'carsi', traffic: 1.25, ask: 1.1, demand: { fantastik: 1.4, cocuk: 1.2 }, tags: ['buyu', 'cocukluk'],
       desc: 'Bağıran satıcılar, limon yığınları, köşede kukla tiyatrosu.' },
   },
+  marsilya: {
+    vieuxport: { name: 'Eski Liman', scene: 'sahil', traffic: 1.2, ask: 0.9, demand: { polisiye: 1.4, roman: 1.2 }, tags: ['deniz', 'gizem'],
+      desc: 'Balıkçı tezgâhları, tekneler, sabah erkenden kalabalık.' },
+    panier: { name: 'Le Panier', scene: 'carsi', traffic: 1.15, ask: 1.1, demand: { roman: 1.3, tarih: 1.2 }, tags: ['sehir', 'yalniz'],
+      desc: 'Sabun dükkânları, duvar resimleri, yokuşlu dar sokaklar.' },
+  },
+  nis: {
+    promenade: { name: 'İngilizler Yolu', scene: 'sahil', traffic: 1.15, ask: 1, demand: { siir: 1.4, roman: 1.2 }, tags: ['deniz', 'ask'],
+      desc: 'Mavi sandalyelerde güneşlenenler, paten kayan çocuklar.' },
+    cours: { name: 'Çiçek pazarı', scene: 'carsi', traffic: 1.2, ask: 1, demand: { fantastik: 1.3, siir: 1.2 }, tags: ['doga', 'umut'],
+      desc: 'Cours Saleya: çiçekler, mimozalar, eski kitap tezgâhları.' },
+  },
+  barselona: {
+    ramblas: { name: 'Las Ramblas', scene: 'carsi', traffic: 1.35, ask: 0.9, demand: { roman: 1.3, fantastik: 1.2 }, tags: ['sehir', 'macera'],
+      desc: 'Sokak sanatçıları, kitap ve çiçek tezgâhları, durmayan bir kalabalık.' },
+    barceloneta: { name: 'Barceloneta', scene: 'sahil', traffic: 1.15, ask: 1, demand: { polisiye: 1.3, cocuk: 1.2 }, tags: ['deniz', 'komik'],
+      desc: 'Şehrin kumsalı: voleybol, paella, gün batımı.' },
+  },
+  valensiya: {
+    bahce: { name: 'Turia bahçeleri', scene: 'tepe', traffic: 0.95, ask: 1.4, demand: { cocuk: 1.4, fantastik: 1.3 }, tags: ['aile', 'doga'],
+      desc: 'Kuru nehir yatağında kilometrelerce park; dev Gulliver oyun alanı.' },
+    mercado: { name: 'Merkez pazarı', scene: 'carsi', traffic: 1.25, ask: 1, demand: { roman: 1.2, cocuk: 1.3 }, tags: ['komik', 'aile'],
+      desc: 'Portakal, safran, cam kubbenin altında bağıran satıcılar.' },
+  },
+  malaga: {
+    alcazaba: { name: 'Alcazaba yokuşu', scene: 'tepe', traffic: 0.9, ask: 1.6, demand: { tarih: 1.5, siir: 1.3 }, tags: ['savas', 'felsefe'],
+      desc: 'Mağribi surların altında, şehre bakan bahçeler.' },
+    malagueta: { name: 'Malagueta', scene: 'sahil', traffic: 1.1, ask: 1, demand: { siir: 1.3, roman: 1.2 }, tags: ['deniz', 'huzun'],
+      desc: 'Şehrin kumsalı, sardalya ızgaraları, akşam gezintisi.' },
+  },
+  iskenderiye: {
+    kordon: { name: 'Kordon', scene: 'sahil', traffic: 1.2, ask: 1.1, demand: { tarih: 1.3, siir: 1.3 }, tags: ['deniz', 'huzun'],
+      desc: 'Kilometrelerce kıyı, kahvehaneler, Kayıtbay\'a bakan dalgakıran.' },
+    attarin: { name: 'Attarin pazarı', scene: 'carsi', traffic: 1.2, ask: 1.2, demand: { tarih: 1.4, polisiye: 1.2 }, tags: ['gizem', 'sehir'],
+      desc: 'Antikacılar, eski haritalar, tozlu kitap yığınları.' },
+  },
+  kahire: {
+    hanhalili: { name: 'Han el-Halili', scene: 'carsi', traffic: 1.35, ask: 1, demand: { fantastik: 1.3, polisiye: 1.3 }, tags: ['buyu', 'sehir'],
+      desc: 'Fenerler, baharat, bakırcılar; kahvehanelerde nargile ve hikâye.' },
+    piramitler: { name: 'Piramit tepesi', scene: 'tepe', traffic: 0.9, ask: 1.5, demand: { tarih: 1.6, fantastik: 1.2 }, tags: ['gizem', 'yolculuk'],
+      desc: 'Çölün kıyısı. Turistler, develer ve dört bin yıllık sorular.' },
+  },
 };
 
 export const firstSpot = town => Object.keys(SPOTS[town])[0];

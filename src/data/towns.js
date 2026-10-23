@@ -131,6 +131,49 @@ export const TOWNS = {
     blurb: 'Kırmızı kubbeler, limon bahçeleri, kukla tiyatroları. Arap, Norman, Sicilyalı; her köşede başka bir masal.',
     sky: ['#f8c39c', '#fff0d4'], sea: ['#6fc0d8', '#3a94c4'],
   },
+  // Fransa ve İspanya: İtalya'da üç şehirden sonra · Mısır: pasaportta beş damgayla
+  marsilya: {
+    name: 'Marsilya', country: 'fr', geo: [5.37, 43.3], traffic: 27,
+    demand: { polisiye: 3, roman: 2, tarih: 2, cocuk: 1, siir: 1, fantastik: 1 },
+    blurb: 'Eski liman, balık pazarı, tepede altın Meryem heykelli bazilika. Fransa\'nın en eski ve en gürültülü şehri.',
+    sky: ['#f6c8a8', '#fde8d4'], sea: ['#6fb6d8', '#3a8cc0'],
+  },
+  nis: {
+    name: 'Nis', country: 'fr', geo: [7.27, 43.7], traffic: 23,
+    demand: { siir: 3, roman: 2, fantastik: 2, tarih: 1, cocuk: 1, polisiye: 1 },
+    blurb: 'İngilizler Yolu boyunca palmiyeler, mavi sandalyeler, turkuaz deniz. Ressamların ve şairlerin kıyısı.',
+    sky: ['#f8cdb4', '#fdecdc'], sea: ['#5fc0d8', '#2f98c4'],
+  },
+  barselona: {
+    name: 'Barselona', country: 'es', geo: [2.17, 41.39], traffic: 30,
+    demand: { roman: 3, fantastik: 2, polisiye: 2, siir: 2, cocuk: 1, tarih: 1 },
+    blurb: 'Gaudí\'nin şehri: eğri çatılar, mozaikler, bitmeyen bir kilise. Las Ramblas\'ta her gün kitap tezgâhları.',
+    sky: ['#f7c6a0', '#fff0d6'], sea: ['#74c0d8', '#3a92c0'],
+  },
+  valensiya: {
+    name: 'Valensiya', country: 'es', geo: [-0.38, 39.47], traffic: 22,
+    demand: { cocuk: 3, fantastik: 2, roman: 2, siir: 1, tarih: 1, polisiye: 1 },
+    blurb: 'Portakal bahçeleri, eski kuru nehir yatağında parklar, bembeyaz bir bilim şehri. Aileler kitap arar.',
+    sky: ['#f9c99a', '#fff2d6'], sea: ['#7cc6d6', '#46a0c0'],
+  },
+  malaga: {
+    name: 'Malaga', country: 'es', geo: [-4.42, 36.72], traffic: 21,
+    demand: { siir: 3, tarih: 2, roman: 2, fantastik: 1, cocuk: 1, polisiye: 1 },
+    blurb: 'Picasso\'nun doğduğu şehir: tepede Alcazaba, aşağıda kumsal ve palmiyeler. Endülüs\'ün kapısı.',
+    sky: ['#f8c4a0', '#fdecd4'], sea: ['#70c4d8', '#3a98c4'],
+  },
+  iskenderiye: {
+    name: 'İskenderiye', country: 'eg', geo: [29.92, 31.2], traffic: 26,
+    demand: { tarih: 3, siir: 2, roman: 2, polisiye: 1, fantastik: 1, cocuk: 1 },
+    blurb: 'Antik dünyanın büyük kütüphanesinin şehri. Kordonda kahvehaneler, ufukta Kayıtbay Kalesi.',
+    sky: ['#f6d0a6', '#fff2d8'], sea: ['#6fc6d0', '#3a9cb8'],
+  },
+  kahire: {
+    name: 'Kahire', country: 'eg', geo: [31.24, 30.1], traffic: 30, inland: true,
+    demand: { tarih: 3, fantastik: 2, polisiye: 2, roman: 1, siir: 1, cocuk: 1 },
+    blurb: 'Nil kıyısında dev bir şehir; çarşılar, minareler ve şehrin kıyısında piramitler. Kitap pazarı asırlık.',
+    sky: ['#f7cf9c', '#fff0d0'], sea: ['#d9c08e', '#c9ab78'],
+  },
 };
 export const TOWN_KEYS = Object.keys(TOWNS);
 // oyunun başında açık olan kasabalar
