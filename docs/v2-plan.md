@@ -87,7 +87,10 @@ Kod incelemesinde doğrulanan hatalar. Her biri ayrı commit, her birine bir tes
 
 **Bitti tanımı:** hepsinin testi var; bozuk kayıtla açılış yedeği koruyor; simülasyon oyunu baştan sona oynayabiliyor.
 
-## Faz 1: Telefon önce
+## Faz 1: Telefon önce ✅ (23 Ekim 2026)
+
+Yapıldı: yatayda çerçeve ekranı dolduruyor (4:3 ile 2.4:1 arası, siyah şerit yok, fazlası gökten kırpılır, çentik güvenli alanı); dikeyde canvas sahnesi ekranın tamamını kaplıyor (gök göstergenin arkasına, zemin aynalanarak düğmelerin altına uzar, kamera karavana ~1,4 kat yakın). Raf modu: yatayda koli karavanın sağında, kamera 2,6 kata kadar yaklaşıyor; dikeyde raflar ekranı enine dolduruyor, koli büyük; seçilen kitabın adı, yazarı, durumu üst çubukta, sürüklerken parmağın üstünde. Performans: raftaki ve masadaki kitaplar ayrı küçük bantta (satışta zemin yerine o pişer, alan 6 kat küçük, ölçülen süre ~22 → ~12 ms), yazısız parçalara gömülü yazı tipi eklenmez, panel açıkken sahne 15 kare/sn, tam ekran haritanın arkasında hiç çizilmez. Genç tiplere yaşlı yüz çıkmaz, ilk sabahın çift ipucu kalktı, gazete adı ülkeye/şehre göre. Basit görünüm (eski SVG motoru) dikeyde eski düzenini korur.
+
 
 En çok oynanacak yer telefon; şu an ekranın yarısı boş.
 

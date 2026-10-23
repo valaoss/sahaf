@@ -354,9 +354,6 @@ if (!PREVIEW && S.phase === 'morning' && checkStory(S)) { checkUnlocks(S); check
 if (loadProblem) setTimeout(() => ui.toast(loadProblem === 'yeni'
   ? 'Bu kayıt oyunun daha yeni bir sürümünden; yeni oyun başladı. Eski kaydın yedeği Ayarlar\'da saklı.'
   : 'Kayıt okunamadı; yeni oyun başladı. Eski kaydın yedeği Ayarlar\'da saklı.'), 1500);
-if (S.totals.days === 0 && S.phase === 'morning') {
-  setTimeout(() => ui.toast('Sabah toptancıdan koli al, istersen haritadan kasaba seç, sonra dükkânı aç.'), 700);
-}
 
 // tarayıcı sese ancak ilk dokunuştan sonra izin verir
 // iOS Safari sesi yalnızca gerçek bir dokunuş sonunda açar: pointerdown yetmezse touchend/click de dener
@@ -368,7 +365,7 @@ function applyScale() { document.getElementById('frame').style.setProperty('--ts
 applyScale();
 
 ui.hud(S, speed);
-let last = performance.now(), lastFocus = null;
+let last = performance.now(), lastFocus = null, idle = 0;
 const panelEl = document.getElementById('panel');
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
@@ -409,7 +406,10 @@ function frame(now) {
   // raflar açıkken kamera karavana yaklaşır
   const fc = ui.stageOn() ? 'shelf' : ui.isOpen() && panelEl.classList.contains('shelf2') ? 'cart' : null;
   if (fc !== lastFocus) { scene.focus(fc); if (PREVIEW) scene.snap(); lastFocus = fc; }
-  scene.tick?.(dt);
+  // panel sahneyi örterken (raf katmanı hariç) sahne saniyede 15 kez çizilir, tam ekran haritanın arkasında hiç çizilmez
+  idle += dt;
+  const covered = ui.isOpen() && !ui.stageOn() && fc !== 'cart';
+  if (!covered || (idle >= 1 / 15 && !panelEl.classList.contains('mapfull'))) { scene.tick?.(Math.min(idle, 0.1)); idle = 0; }
   // raf katmanı kameranın bu karedeki yerine oturur
   ui.stageTick();
   ui.hud(S, speed);

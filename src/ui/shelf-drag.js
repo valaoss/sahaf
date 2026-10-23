@@ -65,10 +65,16 @@ export function wireShelf(root, o) {
         drag.ghost.classList.add('ghost2');
         Object.assign(drag.ghost.style, { width: r.width + 'px', height: r.height + 'px', fontSize: (parseFloat(getComputedStyle(el).fontSize) * r.width / el.offsetWidth || 12) + 'px' });
         document.body.appendChild(drag.ghost);
+        // parmağın altında kalan küçük sırt yerine adı: parmağın üstünde okunur bir etiket
+        drag.tag = document.createElement('div');
+        drag.tag.className = 'dragtag';
+        drag.tag.textContent = (el.title || '').split(' — ')[0];
+        document.body.appendChild(drag.tag);
         drag.dx = drag.x0 - r.left; drag.dy = drag.y0 - r.top;
         el.classList.add('lifted');
       }
       drag.ghost.style.transform = `translate(${e.clientX - drag.dx}px, ${e.clientY - drag.dy}px) rotate(-4deg)`;
+      drag.tag.style.transform = `translate(calc(${e.clientX}px - 50%), ${e.clientY - 64}px)`;
       if (o.scrollEl) {
         const pr = o.scrollEl.getBoundingClientRect();
         if (e.clientY > pr.bottom - 40) o.scrollEl.scrollTop += 12; else if (e.clientY < pr.top + 40) o.scrollEl.scrollTop -= 12;
@@ -80,7 +86,7 @@ export function wireShelf(root, o) {
       if (!drag || drag.el !== el) return;
       const d = drag; drag = null;
       if (d.ghost) {
-        d.ghost.remove();
+        d.ghost.remove(); d.tag?.remove();
         el.classList.remove('lifted');
         drop(d.from, targetAt(e.clientX, e.clientY));
       } else {
@@ -92,7 +98,7 @@ export function wireShelf(root, o) {
       }
     };
     el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', () => { if (drag?.ghost) drag.ghost.remove(); drag = null; el.classList.remove('lifted'); });
+    el.addEventListener('pointercancel', () => { if (drag?.ghost) { drag.ghost.remove(); drag.tag?.remove(); } drag = null; el.classList.remove('lifted'); });
   });
   // seçiliyken bölüme, koliye ya da vitrine dokun
   root.querySelectorAll('[data-sec], [data-crate], [data-vit]').forEach(n => n.addEventListener('click', e => {

@@ -35,6 +35,8 @@ export function createAtmos() {
     const g = ctx.createLinearGradient(0, 0, 0, 560);
     g.addColorStop(0, rgb(top)); g.addColorStop(1, rgb(bot));
     ctx.fillStyle = g; ctx.fillRect(0, 0, 1600, 562);
+    // sahnenin üstü (dikey ekranda): gökyüzünün tepe rengi
+    ctx.fillStyle = rgb(top); ctx.fillRect(0, -1600, 1600, 1600);
     // yıldızlar
     if (night > .35) {
       const a = smooth(.35, .8, night);

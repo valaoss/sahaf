@@ -17,6 +17,12 @@ const BANDS = {
   bandG: { x: 0, y: 330, w: 1600, h: 570 },
 };
 const CART = { x: 620, y: 420, w: 430, h: 350 };     // karavana dokunma alanı (sahne birimi)
+// raftaki ve masadaki kitaplar ayrı, küçük bir bantta: her satışta yalnız bu bant yeniden pişer (zemin bandı değil)
+const STOCK = { x: 370, y: 500, w: 660, h: 230 };
+// dikey ekran: sahnenin bu genişliği (masa, karavan, kedi) ekrana sığar; (TALL_CX, TALL_CY) ekranın ortasına gelir
+const TALL_W = 820, TALL_CX = 800, TALL_CY = 600;
+// zemin uzantısı: sahnenin altındaki bu şerit aynalanarak aşağı döşenir
+const STRIP = 70;
 
 function mix(a, b, k) {
   const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
@@ -36,7 +42,19 @@ function grainTile() {
 export function buildScene2(host) {
   const base = buildScene(host);
   host.classList.add('motor2');
+  host.parentElement?.classList.add('m2');
   const svg = base.svg;
+  // stok bandı: raftaki kitaplar (ve üstlerindeki gölge) ile masadaki kitaplar, karavan ve masanın konumlarıyla birlikte
+  // ayrı bir gruba taşınır. SVG motor2'de görünmez; yalnız pişirme kaynağıdır.
+  {
+    const NS = 'http://www.w3.org/2000/svg', shelves = svg.querySelector('#shelves'), table = svg.querySelector('#tableBooks');
+    const shade = shelves.nextElementSibling;
+    const g = document.createElementNS(NS, 'g'); g.id = 'bandStock';
+    const a = document.createElementNS(NS, 'g'); a.setAttribute('transform', 'translate(610 420)'); a.append(shelves, shade);
+    const b = document.createElementNS(NS, 'g'); b.setAttribute('transform', 'translate(390 610)'); b.append(table);
+    g.append(a, b);
+    svg.querySelector('#bandG').after(g);
+  }
   const canvas = document.createElement('canvas');
   canvas.className = 'stage2';
   host.prepend(canvas);
@@ -61,8 +79,9 @@ export function buildScene2(host) {
   let glowOn = false;
 
   // ekran eşlemesi: svg'deki "xMidYMid slice" ile aynı
-  let W = 1, H = 1, dpr = 1, k = 1, ox = 0, oy = 0, bakeScale = 1;
-  const bands = {}, dirty = new Set(Object.keys(BANDS));
+  let W = 1, H = 1, dpr = 1, k = 1, ox = 0, oy = 0, bakeScale = 1, tall = false;
+  const BOX = { ...BANDS, bandStock: STOCK };
+  const bands = {}, dirty = new Set(Object.keys(BOX));
   let baking = false, ready = null, t = 0;
   const st = { windy: false, weather: 'gunesli', season: 'İlkbahar', day: 0, paint: true, festival: false, town: 'ayvalik', scene: 'sahil', open: false, openAt: -9 };
   // kamera: z yakınlık, (fx, fy) odak; hedefe doğru yumuşakça akar
@@ -79,12 +98,15 @@ export function buildScene2(host) {
   function aim(kind) {
     cam.kind = kind;
     if (kind === 'shelf') {
-      // raf penceresi, ön tezgâh ve önündeki koli ekrana sığsın (dikey telefonda daha az yakınlaşır)
-      const z = Math.max(1.02, Math.min(2.1, (W / k) / 420, (H / k) / 420));
-      // yakınlaşma noktası p öyle seçilir ki C=(cx, cy) ekranın ortasına gelsin: 800 = p + (C - p)·z → p = (800 - C·z) / (1 - z)
-      // cy: sahnenin alt kenarını aşmayacak kadar aşağıda (koli zemine yakın)
-      const cx = 835, cy = Math.min(720, 900 - (H / k) / (2 * z));
-      Object.assign(cam, { tz: z, tfx: (800 - cx * z) / (1 - z), tfy: (450 - cy * z) / (1 - z) });
+      // dikeyde: raf penceresi, ön tezgâh ve altındaki koli sığar. Yatayda koli karavanın sağında durur (ui/shelf-stage.js .side),
+      // bu yüzden kamera daha çok yaklaşır: pencere + tezgâh (546–756) ve yanındaki koli (1032–1228)
+      const z = tall ? Math.max(1.02, Math.min(2.3, (W / k) / 370))
+        : Math.max(1.02, Math.min(2.6, (W / k) / 640, (H / k) / 290));
+      const cx = tall ? 835 : 945, cy = tall ? 720 : 640;
+      // yakınlaşma noktası p öyle seçilir ki C ekranın ortasına gelsin: c0 = p + (C - p)·z → p = (c0 - C·z) / (1 - z)
+      // c0: yakınlaşmasız kamerada ekranın ortasındaki sahne noktası
+      const c0x = (W / 2 - ox) / k, c0y = (H / 2 - oy) / k;
+      Object.assign(cam, { tz: z, tfx: (c0x - cx * z) / (1 - z), tfy: (c0y - cy * z) / (1 - z) });
     } else if (kind === 'cart') Object.assign(cam, { tz: 1.32, tfx: 835, tfy: 560 });
     else Object.assign(cam, { tz: 1, tfx: 830, tfy: 600 });
   }
@@ -94,10 +116,22 @@ export function buildScene2(host) {
     W = Math.max(1, r.width); H = Math.max(1, r.height);
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = glowCanvas.width = Math.round(W * dpr); canvas.height = glowCanvas.height = Math.round(H * dpr);
-    k = Math.max(W / 1600, H / 900); ox = (W - 1600 * k) / 2; oy = (H - 900 * k) / 2;
+    tall = H > W;
+    if (tall) {
+      // dikey: sahne genişliğe göre ölçeklenir; gök yukarı, zemin aşağı uzar (frame() uzantıları çizer)
+      k = W / TALL_W; ox = W / 2 - TALL_CX * k; oy = H / 2 - TALL_CY * k;
+      // ipucu ve konuşmalar karavanın önündeki zeminin altına yerleşir (style.css --sb)
+      host.parentElement?.style.setProperty('--sb', (oy + 830 * k).toFixed(0) + 'px');
+    } else {
+      // yatay: ekranı kaplar; geniş ekranda fazlası gökten kırpılır (karavan ve müşteriler düğmelerin üstünde kalsın)
+      k = Math.max(W / 1600, H / 900); ox = (W - 1600 * k) / 2;
+      const spare = H - 900 * k;
+      oy = spare < 0 ? spare : spare / 2;
+      host.parentElement?.style.removeProperty('--sb');
+    }
     grainEl.style.backgroundSize = `${(192 * k).toFixed(1)}px`;
     const s = Math.min(2, dpr * k);
-    if (Math.abs(s - bakeScale) / bakeScale > .12) { bakeScale = s; for (const b in BANDS) dirty.add(b); schedule(); }
+    if (Math.abs(s - bakeScale) / bakeScale > .12) { bakeScale = s; for (const b in BOX) dirty.add(b); schedule(); }
     // ekran boyutu değişince odak yeniden hesaplanır (dikeyde raf modu sahneyi büyütür)
     if (cam.kind) { const snapped = Math.abs(cam.z - cam.tz) < 1e-3; aim(cam.kind); if (snapped) Object.assign(cam, { z: cam.tz, fx: cam.tfx, fy: cam.tfy }); }
   }
@@ -119,7 +153,7 @@ export function buildScene2(host) {
       while (dirty.size) {
         const id = [...dirty][0];
         dirty.delete(id);
-        const box = BANDS[id], sc = Math.min(bakeScale, box.maxScale || 9);
+        const box = BOX[id], sc = Math.min(bakeScale, box.maxScale || 9);
         const day = await snapshotBand(svg, id, box, sc, fixer(false));
         // evler görünüyorsa akşam için pencereleri yanık ikinci bir kopya
         const housesOn = id === 'bandH' && svg.querySelector('#houses').style.display !== 'none';
@@ -192,7 +226,22 @@ export function buildScene2(host) {
     life.drawBack(ctx, t);
     drawBand('bandH', opts);
     if (st.scene === 'sahil') atmos.seaNear(ctx, t);
-    drawBand('bandG', opts);
+    // zemin: önce durağan resim, sonra raf ve masa kitapları, en üstte zeminin hareketlileri (tente, süsler)
+    const G = bands.bandG;
+    if (G) {
+      ctx.drawImage(G.img, G.box.x, G.box.y, G.box.w, G.box.h);
+      // dikey ekranda sahnenin altı: zeminin son şeridi aynalanarak döşenir (dikiş görünmez)
+      const bottom = (H - v.ty) / v.s;
+      if (bottom > 900) {
+        const sy = (900 - STRIP - G.box.y) / G.box.h * G.img.height, sh = STRIP / G.box.h * G.img.height;
+        for (let y = 900, i = 0; y < bottom; y += STRIP, i++) {
+          if (i % 2) ctx.drawImage(G.img, 0, sy, G.img.width, sh, G.box.x, y, G.box.w, STRIP);
+          else { ctx.save(); ctx.translate(0, 2 * y + STRIP); ctx.scale(1, -1); ctx.drawImage(G.img, 0, sy, G.img.width, sh, G.box.x, y, G.box.w, STRIP); ctx.restore(); }
+        }
+      }
+    }
+    drawBand('bandStock', opts);
+    if (G) for (const a of G.anims) drawAnim(ctx, a, t, opts);
     if (!rainy) atmos.cloudShadows(ctx, t, st.windy);
     if (rainy) atmos.rainGround(ctx, t);
     // karavanın ışık zinciri: gündüz sönük, akşam yanıp söner
@@ -262,7 +311,7 @@ export function buildScene2(host) {
     crowdView: () => crowd,
     setTown(key) { base.setTown(key); st.town = key; rebake('bandSky', 'bandF', 'bandH'); },
     setSpot(scene, town) { base.setSpot(scene, town); st.scene = scene; rebake('bandH', 'bandG'); },
-    setStock(S) { base.setStock(S); rebake('bandG'); },
+    setStock(S) { base.setStock(S); rebake('bandStock'); },
     setDecor(on) { base.setDecor(on); rebake('bandG'); },
     setUpgrades(list) { base.setUpgrades(list); rebake('bandG'); },
     setPaint(key) { base.setPaint(key); rebake('bandG'); },

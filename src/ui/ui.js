@@ -8,6 +8,7 @@ import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
 import { THEMES } from '../audio/compose.js';
 import { worldSVG, routePath, townXY, declutter, flagSVG, WW, WH } from '../render/world.js';
 import { hasBackup } from '../core/save.js';
+import { paperName } from '../data/countries.js';
 import { COUNTRIES, COUNTRY_KEYS } from '../data/countries.js';
 import { travelInfo } from '../game/travel.js';
 import { createShelfPanel } from './shelf-panel.js';
@@ -512,7 +513,7 @@ export function createUI(root, act) {
       <p class="hint">Rafta ${qp.have}/${qp.n} · son gün: ${q.deadline - S.day === 0 ? 'bugün' : `${q.deadline - S.day} gün sonra`} · ödül ₺${q.coins}${q.rare ? ' + sürpriz' : ''}</p>` : '';
     const p = openPanel(`
       <div class="paper">
-        <div class="masthead"><h2>📰 Ege Postası</h2><small>${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün · fiyatı bir gülümseme</small></div>
+        <div class="masthead"><h2>📰 ${paperName(S.town, TOWNS[S.town].country || 'tr')}</h2><small>${seasonOf(S.day)}, ${dayOfSeason(S.day)}. gün · fiyatı bir gülümseme</small></div>
         ${letter}
         <div class="news">
           <div>${special}${today}${ad}</div>

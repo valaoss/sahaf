@@ -18,6 +18,12 @@ const WIN = { x: 660, w: 350 };
 const PRICE_LABEL = { ucuz: '₺↓', normal: '₺', pahali: '₺↑' };
 const COND = { yipranmis: 'Yıpranmış', iyi: 'İyi', temiz: 'Temiz' };
 
+// "c:3" (kolideki 3.) ya da "s:bölüm:sıra" → o kopya
+function entryOf(S, from) {
+  const [k, x, y] = from.split(':');
+  return k === 'c' ? S.crate[+x] : S.layout?.sections[+x]?.books[+y];
+}
+
 export function createShelfStage(root, { act, map }) {
   let el = null, bar = null, sel = null, seenBox = null, landed = null, lastT = '';
 
@@ -32,8 +38,10 @@ export function createShelfStage(root, { act, map }) {
 
   function render(S) {
     if (!el) return;
+    lastS = S;
     const L = syncLayout(S), cap = sectionCap(S), unit = Math.min(22, 164 / cap);
     const fresh = S.lastBox && S.lastBox !== seenBox;
+    setMode();
     seenBox = S.lastBox;
     let html = '<div class="st-win"></div>';
     L.sections.forEach((sec, i) => {
@@ -57,14 +65,18 @@ export function createShelfStage(root, { act, map }) {
     // koli: karavanın önünde yerde, kapağı açık
     html += `<div class="st-crate ${S.crate.length ? '' : 'empty'}" data-crate>
       <div class="st-flap l"></div><div class="st-flap r"></div>
-      <div class="st-in">${S.crate.map((e, j) => spine(S, e, `c:${j}`, 18, fresh ? j + 1 : 0)).join('') || '<em>koli boş</em>'}</div>
+      <div class="st-in">${S.crate.map((e, j) => spine(S, e, `c:${j}`, mode === 'tall' ? 27 : 18, fresh ? j + 1 : 0)).join('') || '<em>koli boş</em>'}</div>
       <div class="st-front">📦 ${S.crate.length}/${BAL.crateCap}</div>
     </div>`;
     el.innerHTML = html;
     landed = null;
     const tidy = Math.round(tidiness(S) * 100);
+    // seçili kitap: adı, yazarı ve durumu okunur büyüklükte (sahnedeki sırt telefonda çok küçük)
+    const pick = sel && entryOf(S, sel), pb = pick && BOOK[pick.id];
     bar.innerHTML = `<span class="st-tidy">Düzen %${tidy} · +%${Math.round(tidy * BAL.tidyBonus)} müşteri</span>
-      <span class="st-hint">${sel ? 'Şimdi bir rafa, koliye ya da ⭐ vitrine dokun' : 'Kitabı sürükle ya da dokunup seç'}</span>
+      ${pb ? `<span class="st-book"><i style="--c:${GENRES[pb.genre].color}"></i><b>${pick.rare ? '✨ ' : ''}${esc(pb.title)}</b><small>${esc(pb.author)} · ${COND[pick.cond] || 'İyi'}</small></span>
+        <span class="st-hint">→ rafa, koliye ya da ⭐ vitrine dokun</span>`
+        : '<span class="st-hint">Kitabı sürükle ya da dokunup seç</span>'}
       <button class="btn sm" data-auto ${S.crate.length ? '' : 'disabled'}>✨ Hepsini diz</button>
       <button class="btn hl" data-done>Bitti ✓</button>`;
     bar.querySelector('[data-done]').onclick = close;
@@ -97,10 +109,20 @@ export function createShelfStage(root, { act, map }) {
     el.remove(); bar.remove(); el = bar = null; sel = null;
   }
 
+  // yerleşim: yatayda (side) koli karavanın sağında, dikeyde (tall) altında ve büyük; kamera buna göre yaklaşır (render2/scene2.js aim)
+  let mode = 'side';
+  function setMode(rr = root.getBoundingClientRect()) {
+    const m = rr.height > rr.width ? 'tall' : 'side';
+    if (m !== mode || !el.classList.contains(m)) { el.classList.remove('side', 'tall'); el.classList.add(m); }
+    if (m !== mode) { mode = m; if (lastS) render(lastS); }
+  }
+  let lastS = null;
+
   // her kare: katmanı kameranın eşlemesine oturt
   function tick() {
     if (!el) return;
     const m = map(), rr = root.getBoundingClientRect();
+    setMode(rr);
     const t = `translate(${(m.left - rr.left).toFixed(1)}px, ${(m.top - rr.top).toFixed(1)}px) scale(${m.s.toFixed(4)})`;
     if (t !== lastT) { el.style.transform = t; lastT = t; }
   }

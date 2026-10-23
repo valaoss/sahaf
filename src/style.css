@@ -6,8 +6,9 @@
 html, body { margin: 0; height: 100%; background: #2b2320; color: var(--ink); font-family: Fredoka, system-ui, sans-serif; overflow: hidden; user-select: none; -webkit-user-select: none; }
 
 #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
-/* 16:9 sahne; tüm ölçüler em, em de sahne genişliğinin 1/64'ü */
-#frame { position: relative; width: min(100vw, 177.78vh); aspect-ratio: 16 / 9; overflow: hidden; font-size: calc(min(1.5625vw, 2.78vh) * var(--ts, 1)); }
+/* Yatay: ekranı doldurur (4:3 ile 2.4:1 arası; sahne kenarlardan ya da üstten kırpılır, siyah şerit kalmaz).
+   Tüm ölçüler em; em, 16:9'luk bir kutunun genişliğinin 1/64'ü (ekranın kısa kenarı belirler). */
+#frame { position: relative; width: min(100vw, 240vh); height: min(100vh, 75vw); height: min(100dvh, 75vw); overflow: hidden; font-size: calc(min(1.5625vw, 2.78vh) * var(--ts, 1)); }
 #scene, #scene svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* katmanlar ayrı birleştirme katmanı: yürüyen insanlar arka planı yeniden boyatmaz */
 #scene svg { will-change: transform; }
@@ -57,7 +58,7 @@ html, body { margin: 0; height: 100%; background: #2b2320; color: var(--ink); fo
 @keyframes float { 0% { opacity: 0; transform: translateY(10px) scale(.6); } 20% { opacity: 1; transform: translateY(-10px) scale(1.1); } 100% { opacity: 0; transform: translateY(-90px) scale(1); } }
 
 /* arayüz */
-#ui { position: absolute; inset: 0; pointer-events: none; padding: 1.4em 1.6em; z-index: 4; }
+#ui { position: absolute; inset: 0; pointer-events: none; padding: 1.4em calc(1.6em + env(safe-area-inset-right)) 1.4em calc(1.6em + env(safe-area-inset-left)); z-index: 4; }
 .top { display: flex; justify-content: space-between; align-items: flex-start; }
 .col { display: flex; flex-direction: column; gap: .5em; align-items: flex-start; }
 .col.right { align-items: flex-end; }
@@ -378,6 +379,10 @@ mark[data-tag].is-on { background: #ffd56b; }
   #scene { inset: auto; top: var(--st); left: 0; width: 100%; height: 76vw; }
   #scene::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 .6em .8em -.6em rgba(74, 58, 51, .25), inset 0 -.6em .8em -.6em rgba(74, 58, 51, .25); pointer-events: none; }
   #ui { padding: calc(env(safe-area-inset-top) + .9em) 1em 0; }
+  /* canvas motorunda sahne bütün ekranı kaplar: gök göstergenin arkasına, zemin düğmelerin altına uzar (render2/scene2.js) */
+  #frame.m2 { background: none; }
+  #frame.m2 #scene { top: 0; height: 100%; }
+  #frame.m2 #scene::after { display: none; }
   .top { flex-direction: column; gap: .5em; }
   .top .col { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .top .col.right { align-self: stretch; justify-content: flex-start; }
@@ -516,6 +521,8 @@ svg.map3d.zoomed { cursor: grab; touch-action: none; }
 .st-flap.r { right: -14px; transform: skewX(-30deg) rotate(8deg); }
 .st-in { position: absolute; left: 7px; right: 7px; top: 6px; bottom: 20px; display: flex; flex-wrap: wrap; align-content: flex-end; align-items: flex-end; gap: 2px; }
 .st-in em { font-size: 7px; color: #6b4a3a; margin: auto; }
+.stage-shelf.side .st-crate { left: 1032px; top: 610px; width: 196px; }
+.stage-shelf.tall .st-crate { left: 668px; top: 772px; width: 334px; height: 124px; }
 .st-front { position: absolute; left: 0; right: 0; bottom: 0; height: 26px; border-radius: 0 0 3px 3px; pointer-events: none;
   background: repeating-linear-gradient(90deg, #d9b07c 0 34px, #cfa36e 34px 35px); border-top: 1px solid #b98a5e;
   font-size: 9px; font-weight: 700; color: #6b4a3a; display: flex; align-items: center; justify-content: center; }
@@ -523,6 +530,13 @@ svg.map3d.zoomed { cursor: grab; touch-action: none; }
   display: flex; gap: .6em; align-items: center; background: var(--cream); border: .16em solid var(--edge); border-radius: 999px;
   padding: .35em .5em .35em 1em; box-shadow: 0 .25em 0 var(--edge-d); pointer-events: auto; white-space: nowrap; }
 .stage-bar.show { opacity: 1; transform: translate(-50%, 0); }
+/* seçilen ya da sürüklenen kitap: adı okunur büyüklükte */
+.st-book { display: inline-flex; align-items: center; gap: .4em; max-width: 24em; overflow: hidden; }
+.st-book b { overflow: hidden; text-overflow: ellipsis; }
+.st-book small { color: #8a7468; white-space: nowrap; }
+.st-book i { width: .7em; height: 1.4em; border-radius: .15em; background: var(--c); flex: none; }
+.dragtag { position: fixed; z-index: 30; left: 0; top: 0; pointer-events: none; background: var(--ink); color: var(--cream); font: 600 14px Fredoka, sans-serif;
+  padding: .3em .7em; border-radius: .8em; white-space: nowrap; box-shadow: 0 .2em .5em rgba(0,0,0,.3); }
 .st-tidy { font-weight: 700; color: #6d8a4a; }
 .st-hint { color: #8a7468; font-size: .85em; }
 #ui .top, #ui .bottom { transition: opacity .3s; }

@@ -120,7 +120,12 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Dükkân açıkken kayıt yazılmaz; akşam açılışı takılmaz; pişirme hatasında basit görünüm; feribot sabahı
 - Oyunu baştan Mısır'a kadar oynayan ilerleme testi
 
-Sırada: v2 Faz 1 (telefon önce düzen) — ayrıntı: docs/v2-plan.md.
+### v2 · Faz 1 ✅ (telefon önce)
+- Yatayda siyah şerit yok, dikeyde sahne bütün ekranı kaplıyor; karavan daha yakın
+- Raf modu telefonda büyük: yatayda koli yanda; seçilen/sürüklenen kitabın adı okunur
+- Satışta yalnız kitap katmanı yeniden çizilir; panel açıkken sahne seyrek çizilir
+
+Sırada: v2 Faz 2 (para ve kararlar) — ayrıntı: docs/v2-plan.md.
 
 ## Faz 3 — içerik ve cila
 - Elle çizilmiş illüstrasyonlar (kod çizimlerinin yerine), müzik ve ses, Türkçe + İngilizce, 200+ kitap

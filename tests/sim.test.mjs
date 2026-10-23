@@ -1234,4 +1234,24 @@ test('ilerleme: kurallarla oynayan oyuncu hikâyeyi bitirir, raf büyütür ve a
 });
 
 
+// ---------- Faz 1 ----------
+const { figureTraits } = await import('../src/render/figure.js');
+const { paperName } = await import('../src/data/countries.js');
+
+test('genç müşteri tipleri (öğrenci, anne, âşık, sörfçü) yaşlı yüzle çıkmaz', () => {
+  for (const k of ['ogrenci', 'anne', 'sevgili', 'sorfcu']) {
+    for (let look = 1; look < 400; look++) assert.notEqual(figureTraits(look, ARCHETYPES[k].style).age, 'elder', `${k} ${look}`);
+  }
+  // diğerlerinde arada bir yaşlı çıkabilir (çeşitlilik korunur)
+  assert.ok(Array.from({ length: 400 }, (_, i) => figureTraits(i + 1, ARCHETYPES.balikci.style).age).includes('elder'));
+});
+
+test('sabah gazetesinin adı ülkeye ve şehre göre', () => {
+  assert.equal(paperName('ayvalik', 'tr'), 'Ege Postası');
+  assert.equal(paperName('istanbul', 'tr'), 'Boğaz Postası');
+  for (const k of TOWN_KEYS) assert.ok(paperName(k, TOWNS[k].country || 'tr').length > 3, k);
+  assert.notEqual(paperName('roma', 'it'), paperName('atina', 'gr'));
+});
+
+
 console.log(`\n${passed} test geçti`);

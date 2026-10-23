@@ -26,7 +26,8 @@ export async function loadFonts() {
 export async function rasterize(inner, box, scale, defs = '') {
   const pw = Math.max(1, Math.ceil(box.w * scale)), ph = Math.max(1, Math.ceil(box.h * scale));
   const svg = `<svg xmlns="${NS}" width="${pw}" height="${ph}" viewBox="${box.x} ${box.y} ${box.w} ${box.h}" style="font-family:Fredoka,sans-serif">`
-    + `<style>${fontCss}</style>${defs}${inner}</svg>`;
+    // gömülü yazı tipi büyük (base64): yalnız yazı içeren parçalara eklenir (ör. raftaki kitaplarda yazı yok)
+    + `${(inner + defs).includes('<text') ? `<style>${fontCss}</style>` : ''}${defs}${inner}</svg>`;
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   try {
     const img = new Image();

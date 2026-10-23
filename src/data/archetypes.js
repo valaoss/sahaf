@@ -6,7 +6,7 @@ export const ARCHETYPES = {
   ogrenci: {
     name: 'Öğrenci', weight: 10, voice: 'genc', ask: 1.2,
     genres: { roman: 1.3, fantastik: 1.4, siir: 1.2 }, likes: ['felsefe', 'ask', 'yalniz', 'buyu'],
-    style: { hat: 0 }, where: { carsi: 1.3 }, when: { 'Yaz': 0.6 },
+    style: { hat: 0, age: 'adult' }, where: { carsi: 1.3 }, when: { 'Yaz': 0.6 },
   },
   emekli: {
     name: 'Emekli öğretmen', weight: 8, voice: 'resmi', ask: 1.3,
@@ -26,7 +26,7 @@ export const ARCHETYPES = {
   anne: {
     name: 'Çocuklu anne', weight: 7, voice: 'samimi', ask: 1.1,
     genres: { cocuk: 2.6 }, likes: ['cocukluk', 'hayvan', 'komik', 'buyu', 'aile'],
-    style: { long: true }, where: { sahil: 1.2, carsi: 1.2 }, when: { 'Yaz': 1.3 },
+    style: { long: true, age: 'adult' }, where: { sahil: 1.2, carsi: 1.2 }, when: { 'Yaz': 1.3 },
   },
   cocuk: {
     name: 'Çocuk', weight: 5, voice: 'cocuk', ask: 0.9,
@@ -36,7 +36,7 @@ export const ARCHETYPES = {
   sevgili: {
     name: 'Genç âşık', weight: 6, voice: 'genc', ask: 1.3,
     genres: { siir: 1.8, roman: 1.3 }, likes: ['ask', 'umut', 'huzun'],
-    style: {}, where: { tepe: 1.5, sahil: 1.2 }, when: { 'İlkbahar': 1.6 },
+    style: { age: 'adult' }, where: { tepe: 1.5, sahil: 1.2 }, when: { 'İlkbahar': 1.6 },
   },
   yazar: {
     name: 'Yazar adayı', weight: 4, voice: 'resmi', ask: 1.6,
@@ -56,7 +56,7 @@ export const ARCHETYPES = {
   sorfcu: {
     name: 'Sörfçü', weight: 4, voice: 'genc', ask: 0.9,
     genres: { fantastik: 1.5, polisiye: 1.2 }, likes: ['macera', 'deniz', 'umut'],
-    style: { coat: '#6fb1d6', hat: 0 }, where: { sahil: 2, carsi: 0.4, tepe: 0.5 }, when: { 'Yaz': 2, 'Kış': 0.3 },
+    style: { coat: '#6fb1d6', hat: 0, age: 'adult' }, where: { sahil: 2, carsi: 0.4, tepe: 0.5 }, when: { 'Yaz': 2, 'Kış': 0.3 },
   },
 };
 export const DEFAULT_NAMES = ['Deniz', 'Elif', 'Mert', 'Zeynep', 'Can', 'Ayşe', 'Emre', 'Selin', 'Kerem', 'Defne', 'Ali', 'Nehir', 'Barış', 'Ece', 'Umut', 'Lale', 'Oya', 'Kaan'];
