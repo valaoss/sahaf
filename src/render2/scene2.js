@@ -130,7 +130,8 @@ export function buildScene2(host) {
   }
   function schedule() {
     if (baking) { setTimeout(schedule, 30); return; }
-    ready = new Promise(res => setTimeout(() => bakeAll().then(res), 0));
+    // ready: pişirme bitince true, başarısız olursa false (main.js basit görünüme geçer); hiçbir zaman askıda kalmaz
+    ready = new Promise(res => setTimeout(() => bakeAll().then(() => res(true), e => { console.error('pişirme', e); res(false); }), 0));
   }
 
   // dokunma: önce öneri bekleyen kişi, sonra karavan

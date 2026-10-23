@@ -114,7 +114,13 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - 28 şehir: Türkiye 13 (Bodrum, Antalya, İstanbul, Kapadokya eklendi), Yunanistan 4, İtalya 4, Fransa 2, İspanya 3, Mısır 2;
   56 müdavim ve hikâyeleri, ülke festivalleri, şehir simgeleri, ülke mimarisi, yabancı selamlar
 
-Sırada: telefonda deneme ve geri bildirim, İngilizce, iOS paketleme (Mac).
+### v2 · Faz 0 ✅ (sağlamlık)
+- Raf büyütme düğmesi düzeltildi (hikâye ve ülkeler gerçek oyunda açılmıyordu)
+- Kayıt doğrulama ve yedek; okunamayan kayıt silinmez, Ayarlar'dan geri yüklenir
+- Dükkân açıkken kayıt yazılmaz; akşam açılışı takılmaz; pişirme hatasında basit görünüm; feribot sabahı
+- Oyunu baştan Mısır'a kadar oynayan ilerleme testi
+
+Sırada: v2 Faz 1 (telefon önce düzen) — ayrıntı: docs/v2-plan.md.
 
 ## Faz 3 — içerik ve cila
 - Elle çizilmiş illüstrasyonlar (kod çizimlerinin yerine), müzik ve ses, Türkçe + İngilizce, 200+ kitap

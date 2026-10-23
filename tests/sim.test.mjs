@@ -1074,4 +1074,164 @@ test('müdavim hikâyeleri: her kalp için bir satır', () => {
   for (const id of REGULAR_KEYS) assert.equal(REGULARS[id].story.length, HEARTS_MAX, id);
 });
 
+// ---------- Faz 0: sağlamlık ----------
+// core/save.js tarayıcı deposu ister: testte bellekte bir localStorage
+const store = new Map();
+globalThis.localStorage = { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+const SAVE = await import('../src/core/save.js');
+const { readFileSync, readdirSync } = await import('node:fs');
+const { kostasDrop, storyDone } = await import('../src/game/story.js');
+const { afterFerry } = await import('../src/game/day.js');
+const { distance } = await import('../src/game/travel.js');
+
+// bir hafta oynanmış, kolisi, düzeni, pasaportu dolu bir oyun
+function playedGame() {
+  const S = newGame(77);
+  for (let d = 0; d < 7; d++) { rescue(S); buyBox(S, 'roman'); placeAll(S); simulateDay(S); }
+  buyBox(S, 'siir');
+  setPrice(S, 0, 'pahali');
+  S.passport.gr = 5; S.countries.push('gr');
+  return S;
+}
+
+test('kayıt: JSON üzerinden kaydet-yükle koli, düzen, pasaport ve fiyatları korur', () => {
+  const S = playedGame();
+  const { S: T, problem } = SAVE.readSave(JSON.stringify(S));
+  assert.equal(problem, null);
+  for (const k of ['coins', 'day', 'town', 'shelf', 'crate', 'passport', 'countries', 'totals', 'soldBooks']) assert.deepEqual(T[k], S[k], k);
+  assert.equal(T.layout.sections[0].price, 'pahali');
+  assert.deepEqual(T.layout.sections.map(x => x.books.length), S.layout.sections.map(x => x.books.length));
+});
+
+test('kayıt: bozuk ya da daha yeni sürüm kayıt yedeğe alınır, silinmez; ayarlardan geri yüklenir', () => {
+  assert.equal(SAVE.readSave('{bozuk').problem, 'bozuk');
+  assert.equal(SAVE.readSave(JSON.stringify({ v: 99, coins: 5 })).problem, 'yeni');
+  assert.equal(SAVE.readSave('42').problem, 'bozuk');
+  assert.deepEqual(SAVE.readSave(null), { S: null, problem: null });
+  store.clear();
+  const raw = JSON.stringify({ v: 99, coins: 12345 });
+  store.set('sahaf.save.v1', raw);
+  assert.equal(SAVE.loadGame(), null);
+  assert.equal(store.get('sahaf.save.bak'), raw, 'yedek');
+  assert.ok(SAVE.hasBackup());
+  // yeni oyun kaydedilir, yedek yerinde kalır; geri yükleme yedeği asıl kayda koyar
+  SAVE.saveGame(newGame(3));
+  assert.equal(store.get('sahaf.save.bak'), raw);
+  // web'de depo eşzamanlı yazılır; söz yalnızca iOS kalıcı kopyasını bekler
+  SAVE.restoreBackup();
+  assert.equal(store.get('sahaf.save.v1'), raw);
+});
+
+test('kayıt: elle bozulmuş alanlar düzelir (kasaba, raf seviyesi, tipler, silinmiş kitaplar, düzen)', () => {
+  const S = playedGame();
+  Object.assign(S, { town: 'yokkasaba', shelfLv: 9, shelf: null, crate: 'x', featured: ['yok', 'yok'], recHistory: [null, { book: 'yok' }],
+    soldBooks: { yok: 3 }, unlocked: ['yokkasaba'], countries: ['zz'], coins: 'çok', layout: { sections: 'x' }, totals: { sold: 'a' } });
+  const { S: T, problem } = SAVE.readSave(JSON.stringify(S));
+  assert.equal(problem, null);
+  assert.equal(T.town, 'ayvalik');
+  assert.equal(T.shelfLv, SHELF_LEVELS.length - 1);
+  assert.equal(shelfCap(T), SHELF_LEVELS.at(-1).cap);
+  assert.ok(Object.keys(T.shelf).length && Object.keys(T.shelf).every(id => BOOK[id]), 'bozuk raf başlangıç rafına döner');
+  assert.deepEqual(T.crate, []);
+  assert.deepEqual(T.featured, []);
+  assert.deepEqual(T.recHistory, []);
+  assert.deepEqual(T.soldBooks, {});
+  assert.deepEqual(T.countries, ['tr']);
+  for (const k of START_TOWNS) assert.ok(T.unlocked.includes(k), k);
+  assert.equal(T.coins, BAL.startCoins);
+  assert.equal(T.totals.sold, 0);
+  assert.equal(T.layout, null);
+  syncLayout(T);
+  assert.equal(T.layout.sections.length, SECTIONS);
+});
+
+test('kayıt: açık ülkenin sonradan eklenen koşulsuz şehirleri eski kayıtta da yola açılır', () => {
+  const S = newGame(4);
+  S.countries = ['tr', 'gr'];
+  const T = restore(JSON.parse(JSON.stringify(S)));
+  for (const k of TOWN_KEYS) if (!TOWNS[k].unlock && ['tr', 'gr'].includes(TOWNS[k].country || 'tr')) assert.ok(T.unlocked.includes(k), k);
+});
+
+test('kayıt: dükkân açıkken yazılmaz; eski gün ortası kaydı o sabaha döner', () => {
+  store.clear();
+  const S = newGame(5);
+  buyBox(S, 'roman'); placeAll(S);
+  assert.ok(SAVE.saveGame(S));
+  const morning = store.get('sahaf.save.v1');
+  openShop(S);
+  for (const c of advanceClock(S, 300)) resolveCustomer(S, c);
+  assert.equal(SAVE.saveGame(S), false);
+  assert.equal(store.get('sahaf.save.v1'), morning, 'sabah kaydı yerinde');
+  const T = restore(JSON.parse(JSON.stringify(S)));
+  assert.equal(T.phase, 'morning');
+  assert.equal(T.today, null);
+  assert.deepEqual(T.arrivals, []);
+});
+
+test('feribot sabahı: yeni gazete, kaçan günün etkisi varış gününe kayar, kasa boşsa destek', () => {
+  const S = newGame(6);
+  S.countries = ['tr', 'gr']; S.unlocked.push('midilli');
+  S.coins = 200;
+  S.buffs.push({ day: S.day + 1, traffic: 1.5 });
+  S.post = { letter: 'dünkü', quest: null };
+  assert.equal(travel(S, 'midilli'), null);
+  assert.equal(S.day, 2);
+  afterFerry(S);
+  assert.notEqual(S.post.letter, 'dünkü');
+  assert.ok(S.buffs.some(b => b.day === S.day && b.traffic === 1.5));
+  const P = newGame(7);
+  P.countries = ['tr', 'gr']; P.unlocked.push('midilli');
+  P.shelf = {}; P.coins = 35;
+  assert.equal(travel(P, 'midilli'), null);
+  assert.ok(afterFerry(P) > 0, 'belediye desteği');
+});
+
+test('Kostas kitabı dolu koliye eklenmez', () => {
+  const k = KOSTAS[0];
+  let tries = 0;
+  for (let seed = 1; seed < 200; seed++) {
+    const S = newGame(seed);
+    S.pages = PAGES.map(p => p.id);
+    S.town = k.town;
+    S.crate = Array.from({ length: BAL.crateCap }, () => ({ id: 'garip', rare: false }));
+    assert.equal(kostasDrop(S, BOOK[k.book].genre), null);
+    assert.equal(S.crate.length, BAL.crateCap);
+    tries++;
+  }
+  assert.ok(tries > 100);
+});
+
+test('arayüzün her komutunun main.js\'te tek bir karşılığı var (çakışan dal yok)', () => {
+  const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  const ui = readdirSync(new URL('../src/ui/', import.meta.url)).map(n => readFileSync(new URL('../src/ui/' + n, import.meta.url), 'utf8')).join('\n') + main;
+  const calls = new Set([...ui.matchAll(/\bact\('([\w-]+)'/g), ...ui.matchAll(/data-a="([\w-]+)"/g)].map(m => m[1]));
+  const plain = [...main.matchAll(/a === '([\w-]+)'\)/g)].map(m => m[1]);
+  const any = new Set([...main.matchAll(/a === '([\w-]+)'/g)].map(m => m[1]));
+  for (const c of calls) assert.ok(any.has(c), `main.js'te karşılığı yok: ${c}`);
+  const dup = plain.filter((x, i) => plain.indexOf(x) !== i);
+  assert.deepEqual(dup, [], 'aynı adla iki dal');
+});
+
+test('ilerleme: kurallarla oynayan oyuncu hikâyeyi bitirir, raf büyütür ve altı ülkenin hepsini açar', () => {
+  const S = newGame(2024);
+  const go = k => { if (k !== S.town) travel(S, k); };
+  for (let d = 0; d < 500 && S.countries.length < COUNTRY_KEYS.length; d++) {
+    rescue(S);
+    if (S.coins > 60) upgradeShelf(S);
+    const need = nextPage(S) && Object.keys(nextPage(S).need)[0];
+    const e = eventOf(S.day), fest = e && EVENTS[e].town;
+    const fresh = S.unlocked.filter(k => !S.visited.includes(k)).sort((a, b) => distance(S.town, a) - distance(S.town, b));
+    if (need === 'finale') { go('cunda'); chooseSpot(S, 'tepe'); }
+    else if (need === 'festival' && fest && S.unlocked.includes(fest)) go(fest);
+    else if (need === 'hearts') { const best = Object.keys(S.friends).sort((a, b) => S.friends[b] - S.friends[a])[0]; if (best) go(REGULARS[best].town); }
+    else if (fresh.length && d % 2 === 0) go(fresh[0]);
+    for (let i = 0; i < 12; i++) { const g = GENRE_KEYS[i % GENRE_KEYS.length]; if (shelfCount(S) + S.crate.length + BAL.boxSize > shelfCap(S)) break; if (buyBox(S, g)) break; placeAll(S); }
+    simulateDay(S);
+  }
+  assert.ok(storyDone(S), `hikâye bitmedi: ${S.pages.length}/${PAGES.length} sayfa, raf ${S.shelfLv}`);
+  assert.equal(S.shelfLv, SHELF_LEVELS.length - 1);
+  assert.deepEqual([...S.countries].sort(), [...COUNTRY_KEYS].sort(), `açılan ülkeler: ${S.countries} (gün ${S.day})`);
+});
+
+
 console.log(`\n${passed} test geçti`);

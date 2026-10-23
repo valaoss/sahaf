@@ -30,7 +30,8 @@ export function bestSection(S, id, allowFull = false) {
 // Düzeni S.shelf / S.rare sayılarıyla uzlaştır: fazlaları sondan çıkar, eksikleri en uygun bölüme koy
 export function syncLayout(S) {
   S.crate = S.crate || [];
-  if (!S.layout || !Array.isArray(S.layout.sections) || S.layout.sections.length !== SECTIONS) S.layout = fresh();
+  if (!S.layout || !Array.isArray(S.layout.sections) || S.layout.sections.length !== SECTIONS
+    || S.layout.sections.some(sec => !sec || !Array.isArray(sec.books))) S.layout = fresh();
   const L = S.layout;
   const have = {};
   for (const sec of L.sections) {

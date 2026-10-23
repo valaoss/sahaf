@@ -4,7 +4,8 @@ import { GENRE_KEYS } from '../data/genres.js';
 import { BOOK, booksOf } from '../data/books.js';
 import { DEFAULT_DECOR, SHELF_LEVELS } from '../data/decor.js';
 import { SPOTS, firstSpot } from '../data/spots.js';
-import { START_TOWNS } from '../data/towns.js';
+import { TOWNS, TOWN_KEYS, START_TOWNS } from '../data/towns.js';
+import { COUNTRIES } from '../data/countries.js';
 import { seedRng, rndInt } from '../core/rng.js';
 
 export const SAVE_V = 2;
@@ -100,21 +101,52 @@ function migrateV1(saved) {
   return out;
 }
 
-// Kayıttan dönüş: eksik alanları yeni oyunun varsayılanıyla doldur
+const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+// Kayıttaki her alan yeni oyundaki tipine uymalı; uymayan alan (bozuk ya da elle değiştirilmiş kayıt) varsayılana döner.
+// Varsayılanı null olan alanlar (quest, post, layout, today, lastDay) ayrıca bakılır.
+function sanitize(S, fresh) {
+  for (const k in fresh) {
+    const d = fresh[k], v = S[k];
+    const ok = Array.isArray(d) ? Array.isArray(v) : isObj(d) ? isObj(v)
+      : typeof d === 'number' ? Number.isFinite(v) : d === null ? true : typeof v === typeof d;
+    if (!ok) S[k] = d;
+  }
+}
+
+// Kayıttan dönüş: eksik alanları yeni oyunun varsayılanıyla doldur, artık var olmayan kitap/kasaba/ülke izlerini temizle.
+// Okunamayan kayıtta null döner (çağıran yedekler); daha yeni bir sürümün kaydına dokunmaz.
 export function restore(saved) {
-  if (!saved) return null;
+  if (!isObj(saved)) return null;
   if (saved.v === 1) saved = migrateV1(saved);
   if (saved.v !== SAVE_V) return null;
+  const fresh = newGame(1);
   const S = Object.assign(newGame(1), saved);
-  S.totals = Object.assign(newGame(1).totals, saved.totals);
-  for (const id in S.shelf) if (!BOOK[id] || S.shelf[id] <= 0) delete S.shelf[id];
+  sanitize(S, fresh);
+  S.totals = Object.assign(fresh.totals, saved.totals);
+  sanitize(S.totals, newGame(1).totals);
+  if (!Array.isArray(S.decor.owned) || !isObj(S.decor.on)) S.decor = fresh.decor;
+  if (!TOWNS[S.town]) S.town = 'ayvalik';
+  if (!TOWNS[S.prevTown]) S.prevTown = S.town;
+  S.shelfLv = Math.max(0, Math.min(SHELF_LEVELS.length - 1, Math.floor(S.shelfLv)));
+  for (const id in S.shelf) if (!BOOK[id] || !(S.shelf[id] >= 1)) delete S.shelf[id]; else S.shelf[id] = Math.floor(S.shelf[id]);
+  S.featured = [...new Set(S.featured.filter(id => BOOK[id]))].slice(0, 3);
+  S.recHistory = S.recHistory.filter(e => isObj(e) && BOOK[e.book]);
+  for (const id in S.soldBooks) if (!BOOK[id]) delete S.soldBooks[id];
+  // ülkeler ve yollar: kaldırılan şehirler düşer; açık ülkelerin koşulsuz şehirleri (sonradan eklenenler dahil) yola açılır
+  S.countries = S.countries.filter(c => COUNTRIES[c]);
+  if (!S.countries.includes('tr')) S.countries.unshift('tr');
+  S.unlocked = S.unlocked.filter(k => TOWNS[k]);
+  for (const k of TOWN_KEYS) if (!TOWNS[k].unlock && S.countries.includes(TOWNS[k].country || 'tr') && !S.unlocked.includes(k)) S.unlocked.push(k);
+  if (!S.unlocked.includes(S.town)) S.unlocked.push(S.town);
+  if (!S.passport.tr) S.passport.tr = 1;
+  // raf düzeni: biçimi bozuksa yeniden kurulur (game/shelving.js syncLayout)
+  const L = S.layout;
+  if (L && !(isObj(L) && Array.isArray(L.sections) && L.sections.every(sec => isObj(sec) && Array.isArray(sec.books)))) S.layout = null;
   for (const id in S.rare) if (!S.shelf[id] || S.rare[id] <= 0) delete S.rare[id]; else S.rare[id] = Math.min(S.rare[id], S.shelf[id]);
   if (!SPOTS[S.town]?.[S.spot]) S.spot = firstSpot(S.town);
-  S.regArrivals = S.regArrivals || [];
-  S.crate = (S.crate || []).filter(e => e && BOOK[e.id]);
-  S.countries = S.countries || ['tr'];
-  S.passport = S.passport || { tr: 1 };
-  // gün ortasında kapanan oyun o sabaha döner (sabah kaydı stok ve parayı zaten tutuyor)
+  S.crate = S.crate.filter(e => isObj(e) && BOOK[e.id]);
+  // dükkân açıkken kayıt yazılmaz (core/save.js); eski sürümlerden kalma gün ortası kaydı o sabaha döner
   // rehber eklenmeden önce başlamış oyunlarda rehber gösterilmez
   if (saved.tut === undefined && S.totals.days > 0) S.tut = -1;
   if (S.phase === 'open') { S.phase = 'morning'; S.arrivals = []; S.regArrivals = []; S.haps = []; S.today = null; S.clock = BAL.dayStart; }

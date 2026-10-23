@@ -60,7 +60,10 @@ Bunların altında iki zemin var: kayıtlar asla kaybolmasın, oyun telefonda ek
 
 ---
 
-## Faz 0: Sağlamlık (v2'den önce, küçük ve acil)
+## Faz 0: Sağlamlık ✅ (23 Ekim 2026)
+
+Yapıldı: kayıt doğrulama ve yedek (Ayarlar'dan geri yükleme), dükkân açıkken kayıt yazılmaz, akşam açılışında sayfa verilmez, pişirme hatasında basit görünüme geçiş ve en geç 6 sn'de kalkan perde, dolu koliye Kostas kitabı girmez, feribot sabahı (gazete, mektup, ilan, kaçan günün etkisi), mekân adı önbelleği, harita gözlemcisi, iOS ses kilidi, sıfırlamada kalıcı kopyanın beklenmesi. 9 yeni test (toplam 67): kayıt gidiş-dönüşü, bozuk ve yeni sürüm kayıt, gün ortası kayıt, feribot sabahı, Kostas kolisi, arayüz komutlarının karşılığı, Mısır'a kadar ilerleme.
+
 
 Kod incelemesinde doğrulanan hatalar. Her biri ayrı commit, her birine bir test.
 

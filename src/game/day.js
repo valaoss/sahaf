@@ -3,7 +3,7 @@ import { BAL } from '../data/balance.js';
 import { TOWNS } from '../data/towns.js';
 import { rnd, rndInt } from '../core/rng.js';
 import { REGULARS, REGULAR_KEYS, VISIT_CHANCE } from '../data/regulars.js';
-import { makeCustomer, makeRegular, resolveCustomer, recommend, bestBook, spotOf } from './shop.js';
+import { makeCustomer, makeRegular, resolveCustomer, recommend, bestBook, spotOf, rescue } from './shop.js';
 import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
 import { checkStory, checkUnlocks } from './story.js';
@@ -91,6 +91,14 @@ export function nextMorning(S) {
   S.clock = BAL.dayStart;
   // sabah postası: geçmiş önerilerden mektup, gazetede yeni ilan
   S.post = { letter: morningLetter(S), quest: offerQuest(S) };
+}
+
+// Feribotla varış: denizde bir gün geçti (game/travel.js crossBorder), bu sabahın işleri yapılır.
+// Yolda kaçan günün "yarın kalabalık" etkisi varış gününe kayar. Dönüş: kasa boşsa belediye desteği (₺)
+export function afterFerry(S) {
+  for (const b of S.buffs) if (b.day === S.day - 1) b.day = S.day;
+  S.post = { letter: morningLetter(S), quest: offerQuest(S) };
+  return rescue(S);
 }
 
 // Başsız tam gün: test ve denge simülasyonu için

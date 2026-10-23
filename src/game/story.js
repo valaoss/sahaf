@@ -4,6 +4,7 @@ import { TOWNS, TOWN_KEYS } from '../data/towns.js';
 import { BOOK } from '../data/books.js';
 import { KOSTAS, KOSTAS_REWARD, KOSTAS_CHANCE } from '../data/kostas.js';
 import { rnd, rndPick } from '../core/rng.js';
+import { BAL } from '../data/balance.js';
 
 const CHECK = {
   start: () => true,
@@ -33,10 +34,11 @@ export function checkUnlocks(S) {
 export function kostasDrop(S, genre) {
   if (!storyDone(S)) return null;
   const cand = KOSTAS.filter(k => !S.kostasFound.includes(k.book) && k.town === S.town && BOOK[k.book].genre === genre);
-  if (!cand.length || rnd(S) >= KOSTAS_CHANCE) return null;
+  // koli doluysa bu sefer çıkmaz (sonraki kolilerde yine şansı var)
+  if (!cand.length || (S.crate || []).length >= BAL.crateCap || rnd(S) >= KOSTAS_CHANCE) return null;
   const k = rndPick(S, cand);
   S.kostasFound.push(k.book);
-  // kolinin içinden çıkar: diğer kitaplarla birlikte koliye (koli doluysa da sığar)
+  // kolinin içinden çıkar: diğer kitaplarla birlikte koliye
   (S.crate = S.crate || []).push({ id: k.book, rare: false });
   const done = S.kostasFound.length === KOSTAS.length;
   if (done) S.coins += KOSTAS_REWARD;

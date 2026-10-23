@@ -7,6 +7,7 @@ import { BOOK, booksOf, TAGS } from '../data/books.js';
 import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
 import { THEMES } from '../audio/compose.js';
 import { worldSVG, routePath, townXY, declutter, flagSVG, WW, WH } from '../render/world.js';
+import { hasBackup } from '../core/save.js';
 import { COUNTRIES, COUNTRY_KEYS } from '../data/countries.js';
 import { travelInfo } from '../game/travel.js';
 import { createShelfPanel } from './shelf-panel.js';
@@ -108,7 +109,7 @@ export function createUI(root, act) {
     put('coins', String(S.coins));
     put('shelf', `${shelfCount(S)}/${shelfCap(S)}`);
     const b = $('bottom');
-    const want = S.phase + speed + S.spot + S.crate.length;
+    const want = S.phase + speed + S.town + S.spot + S.crate.length;
     if (b.dataset.k === want) return;
     b.dataset.k = want;
     if (S.phase === 'morning') {
@@ -430,7 +431,9 @@ export function createUI(root, act) {
     svg.addEventListener('click', e => { if (moved > 8) { e.stopPropagation(); e.preventDefault(); } }, true);
     svg.addEventListener('dblclick', e => zoomAt(e.clientX, e.clientY, vb.w < W - 1 ? vb.w / W : 2));
     apply();
-    new ResizeObserver(apply).observe(svg);
+    // panel kapanınca harita belgeden çıkar: gözlemci de bırakılır
+    const ro = new ResizeObserver(() => { if (svg.isConnected) apply(); else ro.disconnect(); });
+    ro.observe(svg);
     // düğmelerle: haritanın ortasına göre · flyTo: (cx, cy) merkezli w genişliğinde görünüme yumuşakça geçer
     return {
       zoom(k) { const r = svg.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, k); },
@@ -690,13 +693,20 @@ export function createUI(root, act) {
       <h3>🔠 Yazı boyutu</h3><div class="swatches">${[[1, 'Normal'], [1.15, 'Büyük'], [1.3, 'Çok büyük']].map(([v, n]) => `<button class="swatch ${set.textScale === v ? 'is-on' : ''}" data-scale="${v}"><span style="font-size:${v}em">Aa</span><small>${n}</small></button>`).join('')}</div>
       ${S?.upgrades.includes('plak') ? `<h3>📻 Plak çalar</h3><div class="swatches">${Object.keys(THEMES).map(k => `<button class="swatch ${set.theme === k ? 'is-on' : ''}" data-theme="${k}"><span>${THEMES[k].name}</span><small>${set.theme === k ? '✓ çalıyor' : 'Çal'}</small></button>`).join('')}</div>` : ''}
       <h3>Kayıt</h3>
-      <div class="dcard"><div class="dicon">🗑️</div><div><div class="gname">Baştan başla</div><div class="gmeta">Bütün ilerleme silinir, geri alınamaz.</div></div>
+      <div class="dcard"><div class="dicon">🗑️</div><div><div class="gname">Baştan başla</div><div class="gmeta">Bütün ilerleme silinir; son kayıt yedek olarak saklanır.</div></div>
         <button class="btn sm" data-reset>Sıfırla</button></div>
+      ${hasBackup() ? `<div class="dcard"><div class="dicon">↩️</div><div><div class="gname">Yedek kaydı geri yükle</div><div class="gmeta">Okunamayan ya da sıfırlanan son kayıt. Şimdiki oyunun yerine geçer.</div></div>
+        <button class="btn sm" data-bak>Geri yükle</button></div>` : ''}
       <p class="hint">Sahaf · müzik ve sesler oyunun içinde üretilir, hiçbir veri toplanmaz.</p>
       <div class="row end"><button class="btn hl" data-close>Tamam</button></div>`);
     p.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => act('toggle', b.dataset.toggle));
     p.querySelectorAll('[data-theme]').forEach(b => b.onclick = () => act('theme', b.dataset.theme));
     p.querySelectorAll('[data-scale]').forEach(b => b.onclick = () => act('scale', +b.dataset.scale));
+    const bak = p.querySelector('[data-bak]');
+    if (bak) bak.onclick = () => {
+      if (bak.dataset.armed) return act('restore-bak');
+      bak.dataset.armed = '1'; bak.textContent = 'Emin misin? Dokun'; bak.classList.add('danger');
+    };
     const r = p.querySelector('[data-reset]');
     r.onclick = () => {
       if (r.dataset.armed) return act('reset');

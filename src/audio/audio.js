@@ -10,7 +10,7 @@ export const settings = Object.assign({ music: true, sfx: true, theme: 'akustik'
 export function saveSettings() {
   const j = JSON.stringify(settings);
   try { localStorage.setItem(SET_KEY, j); } catch (e) { /* yok */ }
-  persist(SET_KEY, j);
+  return persist(SET_KEY, j);
 }
 
 let ctx = null, master, musicBus, sfxBus, ambBus, noiseBuf, verb;
@@ -39,7 +39,7 @@ function makeVerb() {
 }
 
 export function unlock() {
-  if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+  if (ctx) { if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume().catch(() => {}); return; }
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
   ctx = new AC();
@@ -54,17 +54,18 @@ export function unlock() {
   if (rainOn) startRain();
   startBeds();
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) ctx.suspend(); else ctx.resume();
+    if (document.hidden) ctx.suspend(); else ctx.resume().catch(() => {});
   });
 }
 
 export function applySettings() {
-  saveSettings();
-  if (!ctx) return;
+  const saved = saveSettings();
+  if (!ctx) return saved;
   const t = ctx.currentTime;
   musicBus.gain.setTargetAtTime(settings.music ? 0.55 : 0, t, 0.3);
   sfxBus.gain.setTargetAtTime(settings.sfx ? 0.9 : 0, t, 0.05);
   ambBus.gain.setTargetAtTime(settings.sfx ? 0.5 : 0, t, 0.3);
+  return saved;
 }
 
 export function setSeason(s) { season = s; }

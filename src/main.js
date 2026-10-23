@@ -13,12 +13,13 @@ import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
 import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature, buyStall, talkHint, teaLine } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from './game/decor.js';
-import { openShop, advanceClock, closingTime, closeShop, nextMorning } from './game/day.js';
-import { loadGame, saveGame as persistGame, clearGame } from './core/save.js';
+import { openShop, advanceClock, closingTime, closeShop, nextMorning, afterFerry } from './game/day.js';
+import { loadGame, loadProblem, saveGame as persistGame, clearGame, restoreBackup } from './core/save.js';
 import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood, setAmbience } from './audio/audio.js';
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
-import { checkStory } from './game/story.js';
+import { checkStory, checkUnlocks } from './game/story.js';
+import { checkCountries } from './game/travel.js';
 import { roadEvent, chooseRoad, ROAD_BY_ID } from './game/road.js';
 import { placeAll, shelve, unshelve, moveBook, setLabel, setPrice } from './game/shelving.js';
 import { replyFor } from './game/replies.js';
@@ -148,9 +149,10 @@ const act = (a, arg) => {
 scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[arg].icon} ${UPGRADES[arg].name} karavana eklendi`); stampCheck(); }
     ui.decorPanel(S);
   }
-  else if (a === 'toggle' && arg === 'simple') { settings.simple = !settings.simple; applySettings(); location.reload(); }
+  else if (a === 'toggle' && arg === 'simple') { settings.simple = !settings.simple; Promise.resolve(applySettings()).then(() => location.reload()); }
   else if (a === 'toggle') { settings[arg] = !settings[arg]; applySettings(); scene.setPaintFx(settings.paint !== false); ui.settingsPanel(settings, S); }
-  else if (a === 'reset') { clearGame(); location.reload(); }
+  else if (a === 'reset') clearGame().then(() => location.reload());
+  else if (a === 'restore-bak') restoreBackup().then(ok => ok ? location.reload() : ui.toast('Yedek kayıt yok.'));
   else if (a === 'spot') {
     if (!arg) { if (tutorialEvent(S, 'spot')) saveGame(S); return ui.spotPanel(S); }
     const why = chooseSpot(S, arg);
@@ -197,15 +199,18 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
     if (why) return ui.toast(why);
     // yolda arada bir küçük bir karşılaşma (varınca kartı açılır); feribotta değil
     const trip = S.lastTrip || {}, road = trip.abroad ? null : roadEvent(S);
+    if (trip.abroad) { const gift = afterFerry(S); if (gift) setTimeout(() => ui.toast(`Belediyeden ₺${gift} destek: kasa boştu, bir koli alabilirsin.`), 2600); }
     saveGame(S);
     sfx('whoosh');
     changeTown(() => {
       ui.closePanel();
       if (trip.abroad) {
+        // denizde geçen günün ertesi sabahı: yeni gazete, mektup ve ilan
         const C = COUNTRIES[TOWNS[S.town].country];
         ui.toast(trip.stamp ? `⛴️ Bir gün süren yolculuktan sonra: ${C.greet}, ${TOWNS[S.town].name}! 🛂 Pasaportuna ${C.name} damgası basıldı.` : `⛴️ Feribot yanaştı: ${C.greet}, ${TOWNS[S.town].name}!`);
         if (trip.stamp) { sfx('letter'); ui.confetti(); }
         refreshDay();
+        setTimeout(() => { if (!ui.isOpen()) { if (S.post?.letter) sfx('letter'); ui.paperPanel(S); } }, 1400);
       } else ui.toast(`Hoş geldin: ${TOWNS[S.town].name}!`);
       if (road) setTimeout(() => { sfx('hap'); ui.hapPanel(ROAD_BY_ID[road], i => {
         const r = chooseRoad(S, road, i);
@@ -334,17 +339,28 @@ if (PREVIEW) {
   if (panel === 'rec') ui.recPanel(S, makeRegular(S, q.get('kim') || 'hasan'), () => {});
   if (panel === 'gift') ui.giftPanel({ id: 'hasan', hearts: 5, gift: 'zeytin' });
 }
-// perde: yazı tipleri ve (yeni motorda) ilk pişirme hazır olunca kalkar
-Promise.all([document.fonts.ready, scene.ready]).then(() => setTimeout(() => document.getElementById('fade').classList.remove('boot'), 50));
+// perde: yazı tipleri ve (yeni motorda) ilk pişirme hazır olunca kalkar.
+// Pişirme başarısız olursa (ör. tarayıcı SVG'yi çözemezse) basit görünüme geçilir; perde ne olursa olsun en geç 6 sn'de kalkar.
+const lift = () => document.getElementById('fade').classList.remove('boot');
+Promise.all([document.fonts.ready, scene.ready]).then(([, baked]) => {
+  if (baked === false && MOTOR2 && !MOTOR_Q && !PREVIEW) { settings.simple = true; Promise.resolve(applySettings()).then(() => location.reload()); }
+  else setTimeout(lift, 50);
+}, () => setTimeout(lift, 50));
+setTimeout(lift, 6000);
 if (S.phase === 'evening' && S.lastDay) { scene.setDaylight(1); ui.summaryPanel(S, S.lastDay); }
-// hikâyenin ilk sayfası (teyzenin mektubu) oyunun başında açılır
-if (!PREVIEW && checkStory(S)) { saveGame(S); ui.bookPanel(S); }
+// hikâyenin ilk sayfası (teyzenin mektubu) oyunun başında açılır. Akşam açılışında sayfa verilmez:
+// özet panelinin yerine geçip "ertesi sabah" düğmesini kaybettirirdi (sayfalar zaten gün kapanırken kontrol edilir).
+if (!PREVIEW && S.phase === 'morning' && checkStory(S)) { checkUnlocks(S); checkCountries(S); saveGame(S); ui.bookPanel(S); }
+if (loadProblem) setTimeout(() => ui.toast(loadProblem === 'yeni'
+  ? 'Bu kayıt oyunun daha yeni bir sürümünden; yeni oyun başladı. Eski kaydın yedeği Ayarlar\'da saklı.'
+  : 'Kayıt okunamadı; yeni oyun başladı. Eski kaydın yedeği Ayarlar\'da saklı.'), 1500);
 if (S.totals.days === 0 && S.phase === 'morning') {
   setTimeout(() => ui.toast('Sabah toptancıdan koli al, istersen haritadan kasaba seç, sonra dükkânı aç.'), 700);
 }
 
 // tarayıcı sese ancak ilk dokunuştan sonra izin verir
-document.addEventListener('pointerdown', unlock, { capture: true });
+// iOS Safari sesi yalnızca gerçek bir dokunuş sonunda açar: pointerdown yetmezse touchend/click de dener
+for (const ev of ['pointerdown', 'touchend', 'click']) document.addEventListener(ev, unlock, { capture: true });
 document.addEventListener('click', e => { if (e.target.closest('.btn, .tab, .ptab, .swatch, [data-town]')) sfx('tap'); }, { capture: true });
 
 // yazı boyutu ayarı: bütün arayüz em ile ölçeklenir
