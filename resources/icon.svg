@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Sahaf uygulama simgesi: gün batımında kıyıda nane yeşili kitap karavanı (köşeler iOS'ta kendiliğinden yuvarlanır) -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6c1b0"/><stop offset="1" stop-color="#fde9cf"/></linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93d3d8"/><stop offset="1" stop-color="#5eb3c2"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <circle cx="770" cy="300" r="120" fill="#fff3c9" opacity=".9"/>
+  <path d="M0 520 C200 470 360 500 520 480 C700 455 860 470 1024 450 L1024 610 L0 610Z" fill="#c9b6d8" opacity=".55"/>
+  <rect y="560" width="1024" height="140" fill="url(#sea)"/>
+  <path d="M60 600 q30 -16 60 0 q30 16 60 0 M640 640 q30 -16 60 0 q30 16 60 0" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="10" stroke-linecap="round"/>
+  <rect y="690" width="1024" height="334" fill="#f3e2bf"/>
+  <ellipse cx="512" cy="900" rx="330" ry="34" fill="#c9a676" opacity=".55"/>
+  <!-- karavan -->
+  <g transform="translate(232 380)">
+    <path d="M10 470 L10 170 C10 60 95 0 210 0 L350 0 C465 0 550 60 550 170 L550 470 C550 487 537 500 520 500 L40 500 C23 500 10 487 10 470Z" fill="#9fd8c4" stroke="#5ea592" stroke-width="12"/>
+    <path d="M30 420 L530 420 L530 465 C530 474 523 480 514 480 L46 480 C37 480 30 474 30 465Z" fill="#87c7b2"/>
+    <rect x="70" y="160" width="420" height="225" rx="24" fill="#6b4a3a"/>
+    <rect x="70" y="252" width="420" height="10" fill="#a8704a"/>
+    <rect x="70" y="352" width="420" height="10" fill="#a8704a"/>
+    <!-- kitap sırtları -->
+    <g>
+      <rect x="92" y="180" width="30" height="72" rx="4" fill="#e57f73"/><rect x="126" y="192" width="26" height="60" rx="4" fill="#f2a65a"/>
+      <rect x="156" y="176" width="34" height="76" rx="4" fill="#5b8bd0"/><rect x="194" y="188" width="28" height="64" rx="4" fill="#b98ad6"/>
+      <rect x="226" y="182" width="30" height="70" rx="4" fill="#7fb77e"/><rect x="300" y="186" width="30" height="66" rx="4" fill="#f4c95d"/>
+      <rect x="334" y="178" width="34" height="74" rx="4" fill="#e57f73"/><rect x="372" y="190" width="26" height="62" rx="4" fill="#5b8bd0"/>
+      <rect x="402" y="182" width="32" height="70" rx="4" fill="#b98ad6"/><rect x="438" y="194" width="30" height="58" rx="4" fill="#f2a65a"/>
+      <rect x="92" y="282" width="30" height="70" rx="4" fill="#f4c95d"/><rect x="126" y="290" width="34" height="62" rx="4" fill="#7fb77e"/>
+      <rect x="164" y="278" width="28" height="74" rx="4" fill="#e57f73"/><rect x="250" y="286" width="32" height="66" rx="4" fill="#5b8bd0"/>
+      <rect x="286" y="280" width="30" height="72" rx="4" fill="#b98ad6"/><rect x="320" y="292" width="34" height="60" rx="4" fill="#f2a65a"/>
+      <rect x="400" y="282" width="30" height="70" rx="4" fill="#7fb77e"/><rect x="434" y="288" width="34" height="64" rx="4" fill="#f4c95d"/>
+    </g>
+    <!-- tente -->
+    <path d="M60 150 L500 150 L500 168 Q478 196 456 168 Q434 196 412 168 Q390 196 368 168 Q346 196 324 168 Q302 196 280 168 Q258 196 236 168 Q214 196 192 168 Q170 196 148 168 Q126 196 104 168 Q82 196 60 168Z" fill="#fff6e8"/>
+    <path d="M104 150 L148 150 L148 168 Q126 196 104 168Z M192 150 L236 150 L236 168 Q214 196 192 168Z M280 150 L324 150 L324 168 Q302 196 280 168Z M368 150 L412 150 L412 168 Q390 196 368 168Z M456 150 L500 150 L500 168 Q478 196 456 168Z" fill="#f08a7e"/>
+    <!-- tekerlekler -->
+    <circle cx="140" cy="505" r="62" fill="#5b4636"/><circle cx="140" cy="505" r="26" fill="#efe1c8"/>
+    <circle cx="420" cy="505" r="62" fill="#5b4636"/><circle cx="420" cy="505" r="26" fill="#efe1c8"/>
+  </g>
+</svg>

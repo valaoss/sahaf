@@ -249,13 +249,26 @@ test('kayıt: gün ortası sabaha döner, v1 kayıt göç eder, bilinmeyen sür�
   const old = { v: 1, day: 4, phase: 'morning', coins: 90, town: 'foca', stock: { roman: 3, tarih: 12, siir: 0 },
     totals: { days: 3, sold: 30, revenue: 200, spent: 80 } };
   const M = restore(old);
-  assert.equal(M.v, 2);
+  assert.equal(M.v, newGame(1).v, 'v1 → v2 → güncel sürüm');
   assert.equal(genreCount(M, 'roman'), 3);
   assert.equal(genreCount(M, 'tarih'), 12);
   assert.equal(M.coins, 90);
   assert.equal(M.prevTown, 'foca');
   assert.deepEqual(M.decor.on, newGame(1).decor.on);
   assert.ok(Object.keys(M.shelf).every(id => BOOK[id]));
+});
+
+test('kayıt: v2 kaydı (v2 Faz 0 öncesi alanlarla) güncel sürüme taşınır, yeni alanlar dolar', () => {
+  const S = newGame(9); buyBox(S, 'roman'); placeAll(S); S.townDays = { ayvalik: 12 }; S.gifts = ['melis']; S.soldBooks = { hobbit: 1 };
+  const v2 = JSON.parse(JSON.stringify(S));
+  v2.v = 2;
+  for (const k of ['known', 'rep', 'favors', 'orders', 'keepsakes', 'voyage', 'grandDone', 'sat', 'donated', 'sponsor', 'readsToday']) delete v2[k];
+  const M = restore(v2);
+  assert.equal(M.v, newGame(1).v);
+  assert.equal(M.rep.ayvalik, 12, 'itibar dükkân günlerinden');
+  assert.deepEqual(M.keepsakes, ['melis']);
+  assert.ok(M.known.hobbit && M.voyage && M.voyage.stats);
+  assert.deepEqual(M.shelf, S.shelf);
 });
 
 test('iflas koruması: kasa ve raf boşsa en ucuz koli kadar destek', () => {
@@ -1220,15 +1233,16 @@ test('Kostas kitabı dolu koliye eklenmez', () => {
   assert.ok(tries > 100);
 });
 
-test('arayüzün her komutunun main.js\'te tek bir karşılığı var (çakışan dal yok)', () => {
+test('arayüzün her komutunun main.js komut tablosunda tek bir karşılığı var', () => {
   const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
-  const ui = readdirSync(new URL('../src/ui/', import.meta.url)).map(n => readFileSync(new URL('../src/ui/' + n, import.meta.url), 'utf8')).join('\n') + main;
+  // ui/ altındaki bütün dosyalar (panels/ dahil)
+  const files = dir => readdirSync(new URL(dir, import.meta.url), { withFileTypes: true }).flatMap(d => d.isDirectory() ? files(dir + d.name + '/') : [readFileSync(new URL(dir + d.name, import.meta.url), 'utf8')]);
+  const ui = files('../src/ui/').join('\n') + main;
   const calls = new Set([...ui.matchAll(/\bact\('([\w-]+)'/g), ...ui.matchAll(/data-a="([\w-]+)"/g)].map(m => m[1]));
-  const plain = [...main.matchAll(/a === '([\w-]+)'\)/g)].map(m => m[1]);
-  const any = new Set([...main.matchAll(/a === '([\w-]+)'/g)].map(m => m[1]));
-  for (const c of calls) assert.ok(any.has(c), `main.js'te karşılığı yok: ${c}`);
-  const dup = plain.filter((x, i) => plain.indexOf(x) !== i);
-  assert.deepEqual(dup, [], 'aynı adla iki dal');
+  const table = main.slice(main.indexOf('const COMMANDS = {'), main.indexOf('\n};', main.indexOf('const COMMANDS = {')));
+  const keys = [...table.matchAll(/^  (?:'([\w-]+)'|([\w]+)):/gm)].map(m => m[1] || m[2]);
+  for (const c of calls) assert.ok(keys.includes(c), `komut tablosunda karşılığı yok: ${c}`);
+  assert.deepEqual(keys.filter((x, i) => keys.indexOf(x) !== i), [], 'aynı adla iki komut');
 });
 
 const BONDS = await import('../src/game/bonds.js');

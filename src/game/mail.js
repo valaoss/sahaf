@@ -15,8 +15,11 @@ import { pickFresh, remember } from './memory.js';
 import { learnAll } from './knowledge.js';
 import { EVENTS } from '../data/calendar.js';
 import { eventOf } from './calendar.js';
+import { T, tw, isEn } from '../i18n/i18n.js';
 
-const ago = d => d <= 7 ? 'Geçen hafta' : d <= 14 ? 'İki hafta önce' : d <= 21 ? 'Üç hafta önce' : 'Geçen ay';
+// metin dili: küçük harfe çevirirken Türkçede İ→i, I→ı; İngilizcede olağan kural
+const LOC = () => isEn() ? 'en' : 'tr';
+const ago = d => d <= 7 ? tw('Geçen hafta') : d <= 14 ? tw('İki hafta önce') : d <= 21 ? tw('Üç hafta önce') : tw('Geçen ay');
 
 // --- mektuplar ---
 export function writeLetter(S, r) {
@@ -28,7 +31,7 @@ export function writeLetter(S, r) {
   const where = `${TOWNS[r.town].name}, ${SPOTS[r.town]?.[r.spot]?.name || ''}`.replace(/, $/, '');
   // zaman ifadesi cümle başındaysa büyük, ortadaysa küçük harfle
   const text = tpl.text.replace('{book}', b.title).replace('{where}', where)
-    .replace(/(^|[.!?] ){ago}/, (m, p) => p + when).replace('{ago}', when.toLocaleLowerCase('tr'));
+    .replace(/(^|[.!?] ){ago}/, (m, p) => p + when).replace('{ago}', when.toLocaleLowerCase(LOC()));
   const from = r.reg ? REGULARS[r.reg].name : nameOf(r.look || 0, ARCHETYPES[r.arch]?.names);
   return { id: tpl.id, from, text, book: r.book, day: S.day, recDay: r.day, recTown: r.town };
 }
@@ -51,12 +54,12 @@ export function morningLetter(S) {
 }
 
 // --- ilanlar ---
-const lower = s => s.toLocaleLowerCase('tr');
+const lower = s => s.toLocaleLowerCase(LOC());
 
 // üretilen ilanların metni (müdavim ve festival ilanları)
 const GEN_TEXT = {
-  reg: q => `${REGULARS[q.reg].name} arkadaşlarıyla bir okuma akşamı yapacak: {days} gün içinde {town} kasabasında {n} tane {tag} kitap istiyor.`,
-  fest: q => `${EVENTS[q.ev].name} için {town} belediyesi bir kitap köşesi kuruyor: festival gününe kadar {n} {genre} kitabı, teslim o gün orada.`,
+  reg: q => T`${REGULARS[q.reg].name} arkadaşlarıyla bir okuma akşamı yapacak: {days} gün içinde {town} kasabasında {n} tane {tag} kitap istiyor.`,
+  fest: q => T`${EVENTS[q.ev].name} için {town} belediyesi bir kitap köşesi kuruyor: festival gününe kadar {n} {genre} kitabı, teslim o gün orada.`,
 };
 export function questText(q) {
   const V = GEN_TEXT[q.vid] ? { text: GEN_TEXT[q.vid](q) } : VISITORS.find(v => v.id === q.vid);

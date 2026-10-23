@@ -7,6 +7,7 @@ import { rnd, rndPick, weighted } from '../core/rng.js';
 import { shelfCount, shelfCap, takeBook, seasonOf } from './state.js';
 import { spotOf, plainCopies, addHeart } from './shop.js';
 import { dayMods, weatherOf } from './calendar.js';
+import { tw } from '../i18n/i18n.js';
 import { pickFresh, remember } from './memory.js';
 
 export const HAP = Object.fromEntries(HAPPENINGS.map(h => [h.id, h]));
@@ -116,7 +117,7 @@ export function chooseHappening(S, id, idx) {
   if (fx.rare) { const r = gainRare(S); if (r) { out.rare = r; out.tags.push(`✨ ${BOOK[r].title}`); } }
   if (fx.friends) for (const fid of fx.friends) { const fr = addHeart(S, fid); if (fr) { out.friend = out.friend?.gift || out.friend?.coins ? out.friend : fr; out.tags.push(`💛 ${REGULARS[fid].name}`); } }
   if (fx.heart) { const f = heartForSomeone(S); if (f) { out.friend = f; out.tags.push(`💛 ${REGULARS[f.id].name}`); } }
-  if (fx.buff) { S.buffs.push({ day: S.day + 1, traffic: fx.buff }); out.tags.push('📣 yarın kalabalık'); }
+  if (fx.buff) { S.buffs.push({ day: S.day + 1, traffic: fx.buff }); out.tags.push(tw('📣 yarın kalabalık')); }
   if (!S.hapDone.includes(id)) S.hapDone.push(id);
   S.hapLast[id] = S.day;
   if (S.today) (S.today.haps = S.today.haps || []).push(id);

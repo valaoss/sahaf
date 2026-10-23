@@ -30,6 +30,7 @@ import { checkStamps } from './game/stamps.js';
 import { STAMPS } from './data/stamps.js';
 import { PAGES } from './data/story.js';
 import { tap } from './core/native.js';
+import { T, setLang } from './i18n/i18n.js';
 import { readBook } from './game/knowledge.js';
 import { orderBook, favorOpen, makeFavor } from './game/bonds.js';
 import { auctionLot, rentBq, fillBq, buyRoses, restoreCopy } from './game/voyage.js';
@@ -83,10 +84,10 @@ const crowd = createCrowd(scene.crowdView(), {
       crowd.answer(c, r);
       sfx(r.grade === 'perfect' || r.friend ? 'heart' : r.grade === 'good' ? 'coin' : 'sad');
       if (r.friend?.gift || r.friend?.coins || r.friend?.keepsake) { saveGame(S); ui.confetti(); ui.giftPanel(r.friend); }
-      if (r.friend?.favor) setTimeout(() => ui.toast(`🎁 ${REGULARS[c.reg].name} senden bir ricada bulundu: «${BOOK[r.friend.favor].title}». Bir dahaki gelişinde rafında olsun.`), 1800);
+      if (r.friend?.favor) setTimeout(() => ui.toast(T`🎁 ${REGULARS[c.reg].name} senden bir ricada bulundu: «${BOOK[r.friend.favor].title}». Bir dahaki gelişinde rafında olsun.`), 1800);
       // müşterinin karşılığı: konuşma kartı (kalp ya da bahşiş bilgisiyle)
       const line = c.reg && r.grade === 'perfect' ? REGULARS[c.reg].thanks : replyFor(S, c, r.discounted ? { grade: 'good' } : r, id);
-      const base = r.waiting ? '🎁 Ricasını bekliyor' : r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.discounted ? `İndirimle ₺${r.paid}` : r.grade !== 'miss' ? `Bahşiş ₺${r.tip}` : '';
+      const base = r.waiting ? T`🎁 Ricasını bekliyor` : r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.discounted ? T`İndirimle ₺${r.paid}` : r.grade !== 'miss' ? T`Bahşiş ₺${r.tip}` : '';
       // öneriden öğrenilen etiket: kart bir sonraki sefer onu gösterir
       const note = [base, (r.learned || []).length ? '📚 ' + r.learned.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ') : ''].filter(Boolean).join(' · ');
       const a = crowd.anchor(c);
@@ -101,7 +102,7 @@ const crowd = createCrowd(scene.crowdView(), {
         crowd.answer(c, { bought: [d.book], paid: d.coins, tip: 0, happy: true, grade: 'perfect' });
         if (d.friend?.gift || d.friend?.keepsake) return ui.giftPanel(d.friend);
         const a = crowd.anchor(c);
-        ui.speech(c, `«${BOOK[d.book].title}»! Bunu nereden buldun? Yıllardır arıyordum.`, 'perfect', `+₺${d.coins}${d.friend ? ` · 💛 ${d.friend.hearts}/${HEARTS_MAX}` : ''}`, a && toFrame(a.x, a.y));
+        ui.speech(c, T`«${BOOK[d.book].title}»! Bunu nereden buldun? Yıllardır arıyordum.`, 'perfect', `+₺${d.coins}${d.friend ? ` · 💛 ${d.friend.hearts}/${HEARTS_MAX}` : ''}`, a && toFrame(a.x, a.y));
       } });
   },
   timeout: c => recommend(S, c, null),
@@ -121,150 +122,111 @@ function stampCheck() {
   sfx('heart');
   const st = STAMPS.find(x => x.id === won[0]);
   ui.confetti();
-  setTimeout(() => ui.toast(`🏅 Yeni pul: ${st.icon} ${st.name}`), 600);
+  setTimeout(() => ui.toast(T`🏅 Yeni pul: ${st.icon} ${st.name}`), 600);
 }
 
 let openWarned = false;
-const act = (a, arg) => {
-  if (a === 'stock') ui.stockPanel(S);
-  else if (a === 'inside') ui.interiorPanel(S);
-  else if (a === 'feature') {
-    const why = toggleFeature(S, arg);
-    if (why) ui.toast(why); else { tap(); sfx('tap'); saveGame(S); }
-    ui.interiorPanel(S);
-  }
-  else if (a === 'shelf') {
-    // raf düzenleyiciden gelen hamle: diz, taşı, koliye geri al, vitrine koy, etiket as
-    const o = arg;
+// Ortak kalıp: kural bir uyarı döndürürse göster; döndürmezse başarı adımlarını çalıştır; her durumda paneli tazele
+const attempt = (why, ok, refresh) => { if (why) ui.toast(why); else ok(); refresh?.(); };
+// Akdeniz'in işleri: müzayede, bukinist kutusu, gül, onarım (onarım raf katmanından gelir, ötekiler mekân panelinden)
+const voyageCmd = (run, done, sound = 'page', panel = () => ui.spotPanel(S)) => arg => attempt(run(arg), () => { tap(); sfx(sound); saveGame(S); scene.setStock(S); ui.toast(done()); }, panel);
+
+// Komut tablosu: arayüzün her eylemi (act(ad, arg)) burada tek bir işleve karşılık gelir.
+// Kurallar game/*'ta; buradaki işlevler kuralı çağırır, sesi, kaydı ve paneli yönetir.
+const COMMANDS = {
+  stock: () => ui.stockPanel(S),
+  inside: () => ui.interiorPanel(S),
+  feature: id => attempt(toggleFeature(S, id), () => { tap(); sfx('tap'); saveGame(S); }, () => ui.interiorPanel(S)),
+  // raf düzenleyiciden gelen hamle: diz, taşı, koliye geri al, vitrine koy, etiket as
+  shelf: o => {
     let why = null;
-    if (o.op === 'auto') { if (!placeAll(S)) why = 'Rafta boş yer yok.'; else { sfx('page'); tutorialEvent(S, 'shelve'); } }
+    if (o.op === 'auto') { if (!placeAll(S)) why = T`Rafta boş yer yok.`; else { sfx('page'); tutorialEvent(S, 'shelve'); } }
     else if (o.op === 'label') why = setLabel(S, o.sec, o.g);
     else if (o.op === 'price') why = setPrice(S, o.sec, o.tag);
     else if (o.op === 'drop') {
       const [k, x, y] = o.from.split(':').map((v, i) => i ? +v : v);
       if (o.to === 'vit') {
         const id = k === 's' ? S.layout.sections[x]?.books[y]?.id : null;
-        why = !id ? 'Önce rafa koy, sonra vitrine.' : S.featured.includes(id) ? null : toggleFeature(S, id);
+        why = !id ? T`Önce rafa koy, sonra vitrine.` : S.featured.includes(id) ? null : toggleFeature(S, id);
       } else if (o.to === 'crate') why = k === 'c' ? null : unshelve(S, x, y);
       else if (o.to === 'sec') {
         why = k === 'c' ? shelve(S, x, o.sec, o.pos) : moveBook(S, x, y, o.sec, o.pos);
         if (!why && k === 'c') tutorialEvent(S, 'shelve');
       }
     }
-    if (why) ui.toast(why); else { tap(); sfx('tap'); saveGame(S); scene.setStock(S); }
-    ui.interiorPanel(S);
-  }
-  else if (a === 'decor' && tutorialEvent(S, 'decor')) { saveGame(S); ui.decorPanel(S); }
-  else if (a === 'paper') { sfx('page'); ui.paperPanel(S); }
-  else if (a === 'book') { sfx('page'); if (tutorialEvent(S, 'book')) saveGame(S); ui.bookPanel(S); }
-  else if (a === 'settings') ui.settingsPanel(settings, S);
-  else if (a === 'scale') { settings.textScale = arg; applySettings(); applyScale(); ui.settingsPanel(settings, S); }
-  else if (a === 'tutskip') { tutorialEvent(S, 'skip'); saveGame(S); }
-  else if (a === 'theme') { settings.theme = arg; applySettings(); ui.settingsPanel(settings, S); }
-  else if (a === 'upgrade') {
-    const why = buyUpgrade(S, arg);
-    if (why) ui.toast(why);
-    else { tap('MEDIUM'); sfx('box'); scene.setUpgrades(S.upgrades);
-scene.setPaintFx(settings.paint !== false); saveGame(S); ui.toast(`${UPGRADES[arg].icon} ${UPGRADES[arg].name} karavana eklendi`); stampCheck(); }
-    ui.decorPanel(S);
-  }
-  else if (a === 'toggle' && arg === 'simple') { settings.simple = !settings.simple; Promise.resolve(applySettings()).then(() => location.reload()); }
-  else if (a === 'toggle') { settings[arg] = !settings[arg]; applySettings(); scene.setPaintFx(settings.paint !== false); ui.settingsPanel(settings, S); }
-  else if (a === 'reset') clearGame().then(() => location.reload());
-  else if (a === 'restore-bak') restoreBackup().then(ok => ok ? location.reload() : ui.toast('Yedek kayıt yok.'));
-  else if (a === 'spot') {
-    if (!arg) { if (tutorialEvent(S, 'spot')) saveGame(S); return ui.spotPanel(S); }
-    const why = chooseSpot(S, arg);
+    attempt(why, () => { tap(); sfx('tap'); saveGame(S); scene.setStock(S); }, () => ui.interiorPanel(S));
+  },
+  decor: () => { if (tutorialEvent(S, 'decor')) saveGame(S); ui.decorPanel(S); },
+  paper: () => { sfx('page'); ui.paperPanel(S); },
+  book: () => { sfx('page'); if (tutorialEvent(S, 'book')) saveGame(S); ui.bookPanel(S); },
+  settings: () => ui.settingsPanel(settings, S),
+  scale: v => { settings.textScale = v; applySettings(); applyScale(); ui.settingsPanel(settings, S); },
+  tutskip: () => { tutorialEvent(S, 'skip'); saveGame(S); },
+  theme: v => { settings.theme = v; applySettings(); ui.settingsPanel(settings, S); },
+  // dil değişince oyun yeniden açılır: içerik açılışta yerleşir (i18n/en)
+  lang: v => { setLang(v); location.reload(); },
+  upgrade: key => attempt(buyUpgrade(S, key), () => {
+    tap('MEDIUM'); sfx('box'); scene.setUpgrades(S.upgrades); scene.setPaintFx(settings.paint !== false); saveGame(S);
+    ui.toast(T`${UPGRADES[key].icon} ${UPGRADES[key].name} karavana eklendi`); stampCheck();
+  }, () => ui.decorPanel(S)),
+  toggle: key => {
+    if (key === 'simple') { settings.simple = !settings.simple; Promise.resolve(applySettings()).then(() => location.reload()); return; }
+    settings[key] = !settings[key]; applySettings(); scene.setPaintFx(settings.paint !== false); ui.settingsPanel(settings, S);
+  },
+  reset: () => clearGame().then(() => location.reload()),
+  'restore-bak': () => restoreBackup().then(ok => ok ? location.reload() : ui.toast(T`Yedek kayıt yok.`)),
+  spot: key => {
+    if (!key) { if (tutorialEvent(S, 'spot')) saveGame(S); return ui.spotPanel(S); }
+    const why = chooseSpot(S, key);
     if (why) return ui.toast(why);
     saveGame(S);
-    changeTown(() => { ui.closePanel(); ui.toast(`📍 Karavan kuruldu: ${spotOf(S).name}`); });
-  }
-  else if (a === 'decor') ui.decorPanel(S);
-  else if (a === 'map') ui.mapPanel(S);
-  else if (a === 'stall') {
-    const why = buyStall(S, arg);
-    if (why) ui.toast(why); else { tap(); sfx('page'); saveGame(S); ui.toast('🧺 Kitap koliye kondu'); }
-    ui.stockPanel(S);
-  }
-  else if (a === 'auction' || a === 'bq-rent' || a === 'bq-fill' || a === 'roses' || a === 'restore') {
-    // Akdeniz'in işleri: müzayede, bukinist kutusu, gül, onarım
-    const why = a === 'auction' ? auctionLot(S, arg) : a === 'bq-rent' ? rentBq(S) : a === 'roses' ? buyRoses(S, arg) : a === 'restore' ? restoreCopy(S, arg)
-      : (fillBq(S) ? null : 'Koliye konacak kitap yok ya da kutu dolu.');
-    if (why) ui.toast(why);
-    else {
-      tap(); sfx(a === 'roses' ? 'tap' : 'page'); saveGame(S); scene.setStock(S);
-      ui.toast({ auction: '🔨 Kitap müzayedede: akşam açık artırmada satılacak.', 'bq-rent': '📦 Bukinist kutusu senin: koliden kitap koy, her gece satsın.', 'bq-fill': '📦 Kitaplar kutuya kondu.', roses: '🌹 Güller kovada: her satışın yanına bir gül.', restore: '🪶 Usta kopyayı onardı: artık temiz.' }[a]);
-    }
-    // onarım raf katmanından gelir, ötekiler mekân panelinden
-    (a === 'restore' ? ui.interiorPanel : ui.spotPanel)(S);
-  }
-  else if (a === 'order') {
-    const why = orderBook(S, arg);
-    if (why) ui.toast(why); else { sfx('letter'); saveGame(S); ui.toast(`📮 «${BOOK[arg].title}» sipariş edildi: yarın sabah kolide.`); }
-    ui.stockPanel(S);
-  }
-  else if (a === 'read') {
-    // okuma köşesi: kitabın bütün etiketleri açılır
-    const why = readBook(S, arg);
-    if (why) ui.toast(why);
-    else { sfx('page'); saveGame(S); ui.toast(`📖 ${BOOK[arg].title}: ${BOOK[arg].tags.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ')}`); }
-    ui.interiorPanel(S);
-  }
-  else if (a === 'refill') {
-    // rafı tamamla: etiketli bölümlerin boşluklarını kendi türünden kolilerle doldurup dizer
+    changeTown(() => { ui.closePanel(); ui.toast(T`📍 Karavan kuruldu: ${spotOf(S).name}`); });
+  },
+  map: () => ui.mapPanel(S),
+  stall: i => attempt(buyStall(S, i), () => { tap(); sfx('page'); saveGame(S); ui.toast(T`🧺 Kitap koliye kondu`); }, () => ui.stockPanel(S)),
+  auction: voyageCmd(id => auctionLot(S, id), () => T`🔨 Kitap müzayedede: akşam açık artırmada satılacak.`),
+  'bq-rent': voyageCmd(() => rentBq(S), () => T`📦 Bukinist kutusu senin: koliden kitap koy, her gece satsın.`),
+  'bq-fill': voyageCmd(() => fillBq(S) ? null : T`Koliye konacak kitap yok ya da kutu dolu.`, () => T`📦 Kitaplar kutuya kondu.`),
+  roses: voyageCmd(n => buyRoses(S, n), () => T`🌹 Güller kovada: her satışın yanına bir gül.`, 'tap'),
+  restore: voyageCmd(from => restoreCopy(S, from), () => T`🪶 Usta kopyayı onardı: artık temiz.`, 'page', () => ui.interiorPanel(S)),
+  order: id => attempt(orderBook(S, id), () => { sfx('letter'); saveGame(S); ui.toast(T`📮 «${BOOK[id].title}» sipariş edildi: yarın sabah kolide.`); }, () => ui.stockPanel(S)),
+  // okuma köşesi: kitabın bütün etiketleri açılır
+  read: id => attempt(readBook(S, id), () => { sfx('page'); saveGame(S); ui.toast(`📖 ${BOOK[id].title}: ${BOOK[id].tags.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ')}`); }, () => ui.interiorPanel(S)),
+  // rafı tamamla: etiketli bölümlerin boşluklarını kendi türünden kolilerle doldurup dizer
+  refill: () => {
     const got = refillShelves(S);
-    if (!got.length) ui.toast('Tamamlanacak boşluk yok ya da paran yetmiyor (etiketli bölümlere bak).');
+    if (!got.length) ui.toast(T`Tamamlanacak boşluk yok ya da paran yetmiyor (etiketli bölümlere bak).`);
     else {
       tap(); sfx('box'); tutorialEvent(S, 'buy'); tutorialEvent(S, 'shelve'); scene.setStock(S); saveGame(S);
-      ui.toast(`🔁 ${got.length} koli alındı ve dizildi: ${got.map(g => GENRES[g].icon).join(' ')}`);
+      ui.toast(T`🔁 ${got.length} koli alındı ve dizildi: ${got.map(g => GENRES[g].icon).join(' ')}`);
     }
     ui.stockPanel(S);
-  }
-  else if (a === 'donate') {
-    const why = donate(S);
-    if (why) ui.toast(why);
-    else { sfx('heart'); ui.confetti(); saveGame(S); ui.toast(`📖 ${TOWNS[S.town].name} meydanına bir okuma köşesi kuruldu!`); stampCheck(); }
-    ui.spotPanel(S);
-  }
-  else if (a === 'sponsor') {
-    const why = sponsor(S, arg);
-    if (why) ui.toast(why);
-    else { sfx('bell'); saveGame(S); ui.toast('🎪 Sponsor oldun: o gün orada dükkân açarsan kalabalık daha büyük olur.'); }
-    ui.paperPanel(S);
-  }
-  else if (a === 'buy') {
-    const why = buyBox(S, arg);
+  },
+  donate: () => attempt(donate(S), () => { sfx('heart'); ui.confetti(); saveGame(S); ui.toast(T`📖 ${TOWNS[S.town].name} meydanına bir okuma köşesi kuruldu!`); stampCheck(); }, () => ui.spotPanel(S)),
+  sponsor: day => attempt(sponsor(S, day), () => { sfx('bell'); saveGame(S); ui.toast(T`🎪 Sponsor oldun: o gün orada dükkân açarsan kalabalık daha büyük olur.`); }, () => ui.paperPanel(S)),
+  buy: g => {
+    const why = buyBox(S, g);
     if (why) ui.toast(why);
     else {
       tap(); sfx('box'); tutorialEvent(S, 'buy'); scene.setStock(S); saveGame(S);
       const rare = S.lastBox.rare;
       if (S.lastBox.kostas) { sfx('letter'); ui.confetti(); ui.kostasFoundPanel(S.lastBox.kostas); return; }
-      if (rare.length) { sfx('heart'); ui.toast(`✨ Kolide bir ilk baskı çıktı: ${BOOK[rare[0]].title}! Koleksiyoncuya sakla.`); }
-      else ui.toast(`${GENRES[arg].icon} ${BAL.boxSize} kitap koliye kondu — 📚 Raflar'dan diz`);
+      if (rare.length) { sfx('heart'); ui.toast(T`✨ Kolide bir ilk baskı çıktı: ${BOOK[rare[0]].title}! Koleksiyoncuya sakla.`); }
+      else ui.toast(T`${GENRES[g].icon} ${BAL.boxSize} kitap koliye kondu — 📚 Raflar'dan diz`);
     }
     ui.stockPanel(S);
-  } else if (a === 'decor-on') {
-    const why = equipDecor(S, arg);
-    if (why) ui.toast(why);
-    else { tap(); scene.setDecor(S.decor.on);
-scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR[arg].name} yerine kondu`); stampCheck(); }
-    ui.decorPanel(S);
-  } else if (a === 'shelf-up') {
-    const why = upgradeShelf(S);
-    if (why) ui.toast(why);
-    else { tap('MEDIUM'); sfx('box'); scene.setStock(S); saveGame(S); ui.toast(`Raflar büyüdü: ${shelfCap(S)} kitap`); stampCheck(); }
-    ui.decorPanel(S);
-  } else if (a === 'paint') {
-    const why = choosePaint(S, arg);
-    if (why) ui.toast(why);
-    else { tap(); scene.setPaint(S.paint); saveGame(S); stampCheck(); }
-    ui.decorPanel(S);
-  } else if (a === 'travel') {
-    const why = travel(S, arg);
+  },
+  'decor-on': key => attempt(equipDecor(S, key), () => {
+    tap(); scene.setDecor(S.decor.on); scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(T`${DECOR[key].icon} ${DECOR[key].name} yerine kondu`); stampCheck();
+  }, () => ui.decorPanel(S)),
+  'shelf-up': () => attempt(upgradeShelf(S), () => { tap('MEDIUM'); sfx('box'); scene.setStock(S); saveGame(S); ui.toast(T`Raflar büyüdü: ${shelfCap(S)} kitap`); stampCheck(); }, () => ui.decorPanel(S)),
+  paint: key => attempt(choosePaint(S, key), () => { tap(); scene.setPaint(S.paint); saveGame(S); stampCheck(); }, () => ui.decorPanel(S)),
+  travel: key => {
+    const why = travel(S, key);
     if (why) return ui.toast(why);
     // yolda arada bir küçük bir karşılaşma (varınca kartı açılır); feribotta değil
     const trip = S.lastTrip || {}, road = trip.abroad ? null : roadEvent(S);
-    if (trip.abroad) { const gift = afterFerry(S); if (gift) setTimeout(() => ui.toast(`Belediyeden ₺${gift} destek: kasa boştu, bir koli alabilirsin.`), 2600); }
+    if (trip.abroad) { const gift = afterFerry(S); if (gift) setTimeout(() => ui.toast(T`Belediyeden ₺${gift} destek: kasa boştu, bir koli alabilirsin.`), 2600); }
     saveGame(S);
     sfx('whoosh');
     changeTown(() => {
@@ -272,11 +234,11 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
       if (trip.abroad) {
         // denizde geçen günün ertesi sabahı: yeni gazete, mektup ve ilan
         const C = COUNTRIES[TOWNS[S.town].country];
-        ui.toast(trip.stamp ? `⛴️ Bir gün süren yolculuktan sonra: ${C.greet}, ${TOWNS[S.town].name}! 🛂 Pasaportuna ${C.name} damgası basıldı.` : `⛴️ Feribot yanaştı: ${C.greet}, ${TOWNS[S.town].name}!`);
+        ui.toast(trip.stamp ? T`⛴️ Bir gün süren yolculuktan sonra: ${C.greet}, ${TOWNS[S.town].name}! 🛂 Pasaportuna ${C.name} damgası basıldı.` : T`⛴️ Feribot yanaştı: ${C.greet}, ${TOWNS[S.town].name}!`);
         if (trip.stamp) { sfx('letter'); ui.confetti(); }
         refreshDay();
         setTimeout(() => { if (!ui.isOpen()) { if (S.post?.letter) sfx('letter'); ui.paperPanel(S); } }, 1400);
-      } else ui.toast(`Hoş geldin: ${TOWNS[S.town].name}!`);
+      } else ui.toast(T`Hoş geldin: ${TOWNS[S.town].name}!`);
       if (road) setTimeout(() => { sfx('hap'); ui.hapPanel(ROAD_BY_ID[road], i => {
         const r = chooseRoad(S, road, i);
         saveGame(S); scene.setStock(S);
@@ -284,9 +246,10 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
         return r;
       }); }, 700);
     });
-  } else if (a === 'open') {
+  },
+  open: () => {
     // kolide kitap varken ilk dokunuş uyarır: dizilmeyen kitap satılmaz
-    if (S.crate.length && !openWarned) { openWarned = true; return ui.toast(`📦 Kolide ${S.crate.length} kitap var, rafa dizilmeyen satılmaz. Yine de açmak için tekrar dokun.`); }
+    if (S.crate.length && !openWarned) { openWarned = true; return ui.toast(T`📦 Kolide ${S.crate.length} kitap var, rafa dizilmeyen satılmaz. Yine de açmak için tekrar dokun.`); }
     openWarned = false;
     const why = openShop(S);
     if (why) return ui.toast(why);
@@ -294,10 +257,11 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
     sfx('bell');
     tutorialEvent(S, 'open');
     scene.setOpen(true);
-    if (!shelfCount(S)) ui.toast('Raflar boş! Müşteriler eli boş dönecek.');
-    else if (S.day === 1) ui.toast('❓ balonlu müşteriye dokun: senden kitap önerisi istiyor.');
-  } else if (a === 'speed') speed = speed > 1 ? 1 : FAST;
-  else if (a === 'next') {
+    if (!shelfCount(S)) ui.toast(T`Raflar boş! Müşteriler eli boş dönecek.`);
+    else if (S.day === 1) ui.toast(T`❓ balonlu müşteriye dokun: senden kitap önerisi istiyor.`);
+  },
+  speed: () => { speed = speed > 1 ? 1 : FAST; },
+  next: () => {
     // hikâye bittiyse önce kapanış ekranı
     if (S.pages.length >= PAGES.length && !S.finaleShown) {
       S.finaleShown = true;
@@ -308,15 +272,16 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
     nextMorning(S);
     tutorialEvent(S, 'next');
     const gift = rescue(S);
-    if (gift) ui.toast(`Belediyeden ₺${gift} destek: kasa boştu, bir koli alabilirsin.`);
+    if (gift) ui.toast(T`Belediyeden ₺${gift} destek: kasa boştu, bir koli alabilirsin.`);
     speed = 1;
     scene.setDaylight(0);
     refreshDay();
     saveGame(S);
     if (S.post?.letter) sfx('letter');
     ui.paperPanel(S);
-  }
+  },
 };
+const act = (a, arg) => COMMANDS[a]?.(arg);
 const ui = createUI(document.getElementById('ui'), act);
 // yeni motorda raflar karavanın kendisinde dizilir
 if (MOTOR2) ui.useStage(() => scene.screenMap());
@@ -438,12 +403,15 @@ if (S.phase === 'evening' && S.lastDay) { scene.setDaylight(1); ui.summaryPanel(
 // özet panelinin yerine geçip "ertesi sabah" düğmesini kaybettirirdi (sayfalar zaten gün kapanırken kontrol edilir).
 if (!PREVIEW && S.phase === 'morning' && checkStory(S)) { checkUnlocks(S); checkCountries(S); saveGame(S); ui.bookPanel(S); }
 if (loadProblem) setTimeout(() => ui.toast(loadProblem === 'yeni'
-  ? 'Bu kayıt oyunun daha yeni bir sürümünden; yeni oyun başladı. Eski kaydın yedeği Ayarlar\'da saklı.'
-  : 'Kayıt okunamadı; yeni oyun başladı. Eski kaydın yedeği Ayarlar\'da saklı.'), 1500);
+  ? T`Bu kayıt oyunun daha yeni bir sürümünden; yeni oyun başladı. Eski kaydın yedeği Ayarlar'da saklı.`
+  : T`Kayıt okunamadı; yeni oyun başladı. Eski kaydın yedeği Ayarlar'da saklı.`), 1500);
 
 // tarayıcı sese ancak ilk dokunuştan sonra izin verir
 // iOS Safari sesi yalnızca gerçek bir dokunuş sonunda açar: pointerdown yetmezse touchend/click de dener
 for (const ev of ['pointerdown', 'touchend', 'click']) document.addEventListener(ev, unlock, { capture: true });
+// iOS uygulamayı arka plana atınca ya da sayfa kapanırken kaydet (dükkân açıkken saveGame yazmaz: gün o sabaha döner)
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(S); });
+addEventListener('pagehide', () => saveGame(S));
 document.addEventListener('click', e => { if (e.target.closest('.btn, .tab, .ptab, .swatch, [data-town]')) sfx('tap'); }, { capture: true });
 
 // yazı boyutu ayarı: bütün arayüz em ile ölçeklenir
@@ -480,12 +448,12 @@ function frame(now) {
     setAmbience({ crowd: crowd.busy, night: dayT > 0.85 });
     setMood({ night: dayT > 0.82 });
     if (closingTime(S) && crowd.busy === 0) {
-      const T = closeShop(S);
+      const D = closeShop(S);
       scene.setOpen(false);
       saveGame(S);
-      sfx(T.page ? 'heart' : 'bell');
-      if (T.page || (T.stamps || []).length || T.quest?.done) ui.confetti();
-      ui.summaryPanel(S, T);
+      sfx(D.page ? 'heart' : 'bell');
+      if (D.page || (D.stamps || []).length || D.quest?.done) ui.confetti();
+      ui.summaryPanel(S, D);
     }
   }
   ambient?.update(dt, { season: seasonOf(S.day), weather: weatherOf(S.day) });

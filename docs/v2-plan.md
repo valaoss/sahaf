@@ -217,7 +217,17 @@ Her ülke yeni bir şey oynatsın:
 - **Oyun sonu:** "Deniz görmeyen kitaplar" kütüphanesinin yeniden kurulması. Her ülkeden toplanan kitaplarla dolan bir kütüphane, açılış töreni, sonrasında serbest oyun.
 - **Ülkelerin açılması sabitlensin:** "festival peşinde" simülasyonu ve bütünleşik ilerleme testi her ülkenin oyun içi yollarla açıldığını kanıtlasın.
 
-## Faz 6: Mimari, İngilizce, iOS
+## Faz 6: Mimari, İngilizce, iOS ✅ (23 Ekim 2026)
+
+Yapıldı:
+- Komut katmanı: main.js'teki uzun if/else zinciri bir komut tablosu (COMMANDS) oldu; test her arayüz eyleminin tabloda tek bir karşılığı olduğunu denetler.
+- ui.js (980 satır) bölündü: ui/kit.js (ortak durum, panel açma/kapama, uyarı, yardımcılar) + ui/panels/ (shop, rec, map, day, book, settings); ui.js yalnız gösterge, rehber, raf katmanı, konuşma ve konfeti.
+- Kayıt şeması sürüm 3: adım adım geçişler (MIGRATIONS 1→2→3), v1 ve v2 kayıtları için testler; uygulama arka plana atılınca ve sayfa kapanırken kayıt.
+- İngilizce: Türkçe asıl; içerik (240 kitap adı ve tanıtımı, 56 müdavim, 52 hatıra, mektuplar, olaylar, hikâye ve Akdeniz sayfaları, şehirler, mekânlar, müşteri cümle dilbilgisi) açılışta kimliğe göre üstüne yazılır (src/i18n/en/content); arayüz T`…` ve tw() ile (393 anahtar, src/i18n/en/ui). Ayarlar → Dil · Language; ilk açılışta cihaz dili. Denetimler: `npm run i18n`, tests/en.test.mjs (npm test'in parçası).
+- iOS hazırlığı: uygulama simgesi ve açılış görseli (resources/, `npm run icons`), web için ana ekran simgesi, Mac'te adım adım docs/ios.md.
+
+Sınırlar: İngilizce metinleri bir anadil konuşuru okumadı; Türkçe kişi adları ve unvanları (Meral Hanım, Rıza Reis) bilerek korundu. iOS paketi Mac'te üretilecek; gerçek cihazda denenmedi.
+
 
 - **Komut katmanı:** `main.js`'deki `act` zinciri bir komut tablosuna dönüşsün. Faz kontrolleri kurallarda olsun. Testler ve simülasyon arayüzle aynı komutları kullansın.
 - **`ui.js` (779 satır) panel modüllerine bölünsün.** Her panelin açılış ve kapanışı olsun; dinleyici ve gözlemci temizliği orada yapılsın.

@@ -17,8 +17,8 @@ export const COUNTRIES = {
 export const COUNTRY_KEYS = Object.keys(COUNTRIES);
 
 // sabah gazetesinin adı: ülkeye göre, Ege dışındaki Türk şehirlerinde şehre göre
-const PAPER = { tr: 'Ege Postası', gr: 'Kalimera Gazetesi', it: 'La Gazzetta', fr: 'Le Petit Journal', es: 'El Diario', eg: 'Nil Postası' };
-const PAPER_TOWN = { istanbul: 'Boğaz Postası', antalya: 'Akdeniz Postası', kapadokya: 'Anadolu Postası' };
+export const PAPER = { tr: 'Ege Postası', gr: 'Kalimera Gazetesi', it: 'La Gazzetta', fr: 'Le Petit Journal', es: 'El Diario', eg: 'Nil Postası' };
+export const PAPER_TOWN = { istanbul: 'Boğaz Postası', antalya: 'Akdeniz Postası', kapadokya: 'Anadolu Postası' };
 export const paperName = (town, country) => PAPER_TOWN[town] || PAPER[country] || PAPER.tr;
 
 // küçük bayraklar (emoji bayrakları her cihazda görünmüyor): 30×20

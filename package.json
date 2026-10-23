@@ -7,9 +7,11 @@
     "dev": "vite --host --port 8770",
     "build": "vite build",
     "preview": "vite preview --port 8770",
-    "test": "node tests/sim.test.mjs",
+    "test": "node tests/sim.test.mjs && node tests/en.test.mjs",
     "sim": "node scripts/balance-sim.mjs",
-    "ios": "vite build && cap sync ios"
+    "ios": "vite build && cap sync ios",
+    "i18n": "node scripts/i18n-check.mjs && node scripts/i18n-ui-check.mjs",
+    "icons": "node scripts/make-icons.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",

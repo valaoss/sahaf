@@ -12,6 +12,7 @@ import { BLURBS } from '../data/blurbs.js';
 import { knownTags, knowsAll, readsLeft } from '../game/knowledge.js';
 import { settings } from '../audio/audio.js';
 import { TOWNS } from '../data/towns.js';
+import { T, tw } from '../i18n/i18n.js';
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const hash = str => [...str].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
@@ -38,7 +39,7 @@ export function createShelfStage(root, { act, map }) {
       sel === from ? 'sel' : '', pop ? 'pop' : '', landed === from ? 'land' : ''].join(' ');
     // gerçekçi oran: kitabın kendi boyu ve kalınlığı, aynı türde farklı tonlar
     const w = unit * (0.74 + (h % 17) / 100), hh = 34 + (h % 13);
-    return `<div class="${cls}" data-from="${from}" style="--c:${shade(base, .82 + (h % 30) / 100)};width:${w.toFixed(1)}px;height:${hh}px;--d:${pop ? pop * .06 : 0}s" title="${esc(b.title)} — ${esc(b.author)} · ${COND[e.cond] || 'İyi'}"><span>${esc(b.title)}</span>${e.rare ? '<i class="r">✨</i>' : ''}</div>`;
+    return `<div class="${cls}" data-from="${from}" style="--c:${shade(base, .82 + (h % 30) / 100)};width:${w.toFixed(1)}px;height:${hh}px;--d:${pop ? pop * .06 : 0}s" title="${esc(b.title)} — ${esc(b.author)} · ${tw(COND[e.cond] || 'İyi')}"><span>${esc(b.title)}</span>${e.rare ? '<i class="r">✨</i>' : ''}</div>`;
   }
 
   function render(S) {
@@ -57,20 +58,20 @@ export function createShelfStage(root, { act, map }) {
         ${Array.from({ length: Math.max(0, cap - sec.books.length) }, () => `<i class="st-slot" style="width:${(unit * .8).toFixed(1)}px"></i>`).join('')}
       </div>
       <div class="st-tags" style="left:${x + 2}px;top:${r.plank + .5}px">
-        <button class="st-lab" data-lab="${i}" style="--c:${sec.label ? GENRES[sec.label].color : '#c9b49a'}">${sec.label ? GENRES[sec.label].icon + ' ' + GENRES[sec.label].name : '🏷️ etiket'}${off ? ` · ${off}≠` : ''}</button>
-        <button class="st-price p-${sec.price}" data-price="${i}" title="Fiyat etiketi · ucuz: öğrenci, anne, teyze daha kolay alır, çoğu zaman iki kitap · pahalı: turist ve koleksiyoncu sever, cebine bakan vazgeçer (ve konuşur)">${PRICE_LABEL[sec.price]}</button>
+        <button class="st-lab" data-lab="${i}" style="--c:${sec.label ? GENRES[sec.label].color : '#c9b49a'}">${sec.label ? GENRES[sec.label].icon + ' ' + GENRES[sec.label].name : '🏷️ ' + T`etiket`}${off ? ` · ${off}≠` : ''}</button>
+        <button class="st-price p-${sec.price}" data-price="${i}" title="${T`Fiyat etiketi · ucuz: öğrenci, anne, teyze daha kolay alır, çoğu zaman iki kitap · pahalı: turist ve koleksiyoncu sever, cebine bakan vazgeçer (ve konuşur)`}">${PRICE_LABEL[sec.price]}</button>
       </div>`;
     });
     // ön tezgâh: vitrin (kapağı öne dönük üç kitap)
     html += `<div class="st-ledge">${[0, 1, 2].map(k => {
       const id = S.featured[k];
       return id ? `<div class="st-vit on" data-vit="${esc(id)}" style="--c:${GENRES[BOOK[id].genre].color}"><b>${GENRES[BOOK[id].genre].icon}</b><span>${esc(BOOK[id].title)}</span></div>`
-        : '<div class="st-vit" data-vit=""><span>⭐ vitrin</span></div>';
+        : `<div class="st-vit" data-vit=""><span>⭐ ${T`vitrin`}</span></div>`;
     }).join('')}</div>`;
     // koli: karavanın önünde yerde, kapağı açık
     html += `<div class="st-crate ${S.crate.length ? '' : 'empty'}" data-crate>
       <div class="st-flap l"></div><div class="st-flap r"></div>
-      <div class="st-in">${S.crate.map((e, j) => spine(S, e, `c:${j}`, mode === 'tall' ? 27 : 18, fresh ? j + 1 : 0)).join('') || '<em>koli boş</em>'}</div>
+      <div class="st-in">${S.crate.map((e, j) => spine(S, e, `c:${j}`, mode === 'tall' ? 27 : 18, fresh ? j + 1 : 0)).join('') || `<em>${T`koli boş`}</em>`}</div>
       <div class="st-front">📦 ${S.crate.length}/${BAL.crateCap}</div>
     </div>`;
     el.innerHTML = html;
@@ -78,14 +79,14 @@ export function createShelfStage(root, { act, map }) {
     const tidy = Math.round(tidiness(S) * 100);
     // seçili kitap: adı, yazarı ve durumu okunur büyüklükte (sahnedeki sırt telefonda çok küçük)
     const pick = sel && entryOf(S, sel), pb = pick && BOOK[pick.id];
-    bar.innerHTML = `<span class="st-tidy">Düzen %${tidy} · +%${Math.round(tidy * BAL.tidyBonus)} müşteri</span>
-      ${pb ? `<span class="st-book"><i style="--c:${GENRES[pb.genre].color}"></i><b>${pick.rare ? '✨ ' : ''}${esc(pb.title)}</b><small>${esc(pb.author)} · ${COND[pick.cond] || 'İyi'}</small></span>
-        <span class="st-hint">→ rafa, koliye ya da ⭐ vitrine dokun</span>
+    bar.innerHTML = `<span class="st-tidy">${T`Düzen %${tidy} · +%${Math.round(tidy * BAL.tidyBonus)} müşteri`}</span>
+      ${pb ? `<span class="st-book"><i style="--c:${GENRES[pb.genre].color}"></i><b>${pick.rare ? '✨ ' : ''}${esc(pb.title)}</b><small>${esc(pb.author)} · ${tw(COND[pick.cond] || 'İyi')}</small></span>
+        <span class="st-hint">→ ${T`rafa, koliye ya da ⭐ vitrine dokun`}</span>
         <span class="st-about">${BLURBS[pb.id] ? `<em>${esc(BLURBS[pb.id])}</em>` : ''}
-          <span class="st-tags2">${(settings.allTags ? pb.tags : knownTags(S, pb.id)).map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(' · ') || ''}${!settings.allTags && !knowsAll(S, pb.id) ? ` <button class="btn sm" data-read ${readsLeft(S) ? '' : 'disabled'} title="Okursan bütün etiketlerini öğrenirsin">📖 Oku · ${readsLeft(S)}</button>` : ''}${TOWNS[S.town].country === 'eg' && pick.cond !== 'temiz' ? ` <button class="btn sm" data-restore title="Kâğıt ustası bu kopyayı temize çevirir: daha pahalı satılır">🪶 Onar · ₺${BAL.restoreCost}</button>` : ''}</span></span>`
-        : '<span class="st-hint">Kitabı sürükle ya da dokunup seç</span>'}
-      <button class="btn sm" data-auto ${S.crate.length ? '' : 'disabled'}>✨ Hepsini diz</button>
-      <button class="btn hl" data-done>Bitti ✓</button>`;
+          <span class="st-tags2">${(settings.allTags ? pb.tags : knownTags(S, pb.id)).map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(' · ') || ''}${!settings.allTags && !knowsAll(S, pb.id) ? ` <button class="btn sm" data-read ${readsLeft(S) ? '' : 'disabled'} title="${T`Okursan bütün etiketlerini öğrenirsin`}">📖 ${T`Oku`} · ${readsLeft(S)}</button>` : ''}${TOWNS[S.town].country === 'eg' && pick.cond !== 'temiz' ? ` <button class="btn sm" data-restore title="${T`Kâğıt ustası bu kopyayı temize çevirir: daha pahalı satılır`}">🪶 ${T`Onar`} · ₺${BAL.restoreCost}</button>` : ''}</span></span>`
+        : `<span class="st-hint">${T`Kitabı sürükle ya da dokunup seç`}</span>`}
+      <button class="btn sm" data-auto ${S.crate.length ? '' : 'disabled'}>✨ ${T`Hepsini diz`}</button>
+      <button class="btn hl" data-done>${T`Bitti ✓`}</button>`;
     bar.querySelector('[data-done]').onclick = close;
     bar.querySelector('[data-read]')?.addEventListener('click', () => act('read', pb.id));
     bar.querySelector('[data-restore]')?.addEventListener('click', () => act('restore', sel));

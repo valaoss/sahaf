@@ -2,6 +2,7 @@
 // DOM kuralı: sırtlar .spine2[data-from="c:i" | "s:bölüm:i"], bölümler [data-sec], koli [data-crate], vitrin [data-vit],
 // etiket düğmesi [data-lab], fiyat düğmesi [data-price], "Hepsini diz" [data-auto].
 import { GENRES, GENRE_KEYS } from '../data/genres.js';
+import { T } from '../i18n/i18n.js';
 
 export const NEXT_PRICE = { ucuz: 'normal', normal: 'pahali', pahali: 'ucuz' };
 
@@ -44,7 +45,7 @@ export function wireShelf(root, o) {
     root.querySelectorAll('.labpick2').forEach(n => n.remove());
     const pickEl = document.createElement('div');
     pickEl.className = 'labpick2';
-    pickEl.innerHTML = GENRE_KEYS.map(g => `<button data-g="${g}" style="--c:${GENRES[g].color}">${GENRES[g].icon} ${GENRES[g].name}</button>`).join('') + '<button data-g="">🏷️ Etiketsiz</button>';
+    pickEl.innerHTML = GENRE_KEYS.map(g => `<button data-g="${g}" style="--c:${GENRES[g].color}">${GENRES[g].icon} ${GENRES[g].name}</button>`).join('') + `<button data-g="">🏷️ ${T`Etiketsiz`}</button>`;
     pickEl.addEventListener('click', ev => { ev.stopPropagation(); const g = ev.target.closest('[data-g]'); if (g) o.act('shelf', { op: 'label', sec: i, g: g.dataset.g || null }); });
     box.appendChild(pickEl);
   }));

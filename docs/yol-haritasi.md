@@ -146,7 +146,12 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 - Beş yan hikâye (15 sayfa), Akdeniz defteri sekmesi
 - Kütüphanenin açılış töreni ve serbest oyun
 
-Sırada: v2 Faz 6 (mimari, İngilizce, iOS) — ayrıntı: docs/v2-plan.md.
+### v2 · Faz 6 ✅ (mimari, İngilizce, iOS)
+- Komut tablosu, ui.js panellere bölündü, kayıt şeması sürüm 3
+- İngilizce sürüm: bütün içerik ve arayüz; Ayarlar'da dil seçimi
+- Uygulama simgesi, açılış görseli, Mac'te iOS paketleme rehberi (docs/ios.md)
+
+v2 planının bütün fazları tamam. Sırada: gerçek iPhone'da deneme ve TestFlight (Mac), oyuncu geri bildirimi.
 
 ## Faz 3 — içerik ve cila
 - Elle çizilmiş illüstrasyonlar (kod çizimlerinin yerine), müzik ve ses, Türkçe + İngilizce, 200+ kitap

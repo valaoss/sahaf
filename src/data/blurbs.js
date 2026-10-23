@@ -77,7 +77,7 @@ export const BLURBS = {
   davinci: "Louvre'da öldürülen bir küratörün bıraktığı şifreler; Robert Langdon ile Sophie Paris'ten Londra'ya kaçarken peşlerinde tehlike.",
   kayipkiz: "Beşinci evlilik yıldönümünde ortadan kaybolan Amy ve şüphelerin odağındaki kocası Nick; tutkulu bir evliliğin ürpertici yüzü.",
   ripley: "Zengin bir babanın oğlunu geri getirmek için İtalya'ya gönderilen Tom Ripley; güneşli kıyılar, tekneler ve tehlikeli bir sır.",
-  elveda: "Los Angeles'ta sarhoş Terry Lennox'la kurulan tuhaf bir dostluk, Marlowe'u kirli bir cinayetin ve zenginlerin sırlarının içine çeker.",
+  elveda: "Hapisten yeni çıkan Moose Malloy, Los Angeles sokaklarında Velma'yı arar; Marlowe bir cinayetin ve kirli sırların içine düşer.",
   aytasi: "Hindistan'daki bir tapınaktan alınmış lanetli bir elmas bir İngiliz malikânesinde kaybolur; peşinde Çavuş Cuff ve esrarlı Hintliler.",
   beyazlikadin: "Gece yarısı ıssız bir yolda karşılaşılan beyazlı bir kadın; resim öğretmeni Walter'ın Laura'ya sevdası ve tekinsiz bir sırrın gölgesi.",
   hakimcellat: "İsviçre'de bir polisin öldürülmesini araştıran hasta komiser Bärlach; adalet ve vicdan üzerine düşündüren, ince bir kitap.",

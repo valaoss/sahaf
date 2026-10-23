@@ -10,7 +10,9 @@ import { REGULARS } from '../data/regulars.js';
 import { seedRng, rndInt } from '../core/rng.js';
 import { learnAll } from './knowledge.js';
 
-export const SAVE_V = 2;
+// Kayıt şeması sürümü. Yeni sürümde: SAVE_V'yi artır, MIGRATIONS'a bir önceki sürümden taşıyan adımı ekle,
+// tests/sim.test.mjs'te o sürümün örnek kaydını yükleyen bir test yaz. Eksik alanları restore() doğrulaması doldurur.
+export const SAVE_V = 3;
 
 // Başlangıç rafı: her türden farklı kitaplar
 function startShelf(S) {
@@ -110,10 +112,22 @@ function migrateV1(saved) {
       shelf[id] = (shelf[id] || 0) + 1;
     }
   }
-  const out = { ...saved, v: SAVE_V, shelf, prevTown: saved.town };
+  const out = { ...saved, v: 2, shelf, prevTown: saved.town };
   delete out.stock;
   if (out.lastDay) out.lastDay.recs = out.lastDay.recs || { perfect: 0, good: 0, miss: 0 };
   return out;
+}
+
+// Adım adım geçişler: sürüm → bir sonrakine taşıyan işlev
+const MIGRATIONS = {
+  1: migrateV1,
+  // v2 → v3 (v2 Faz 0–6: kitap bilgisi, itibar, ricalar, Akdeniz'in işleri…): yeni alanlar restore()'da varsayılanla dolar,
+  // eski oyuncu için anlamlı başlangıçlar (bilinen kitaplar, itibar, hatıralar) orada türetilir
+  2: saved => ({ ...saved, v: 3 }),
+};
+export function migrate(saved) {
+  while (saved.v < SAVE_V && MIGRATIONS[saved.v]) saved = MIGRATIONS[saved.v](saved);
+  return saved;
 }
 
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -133,7 +147,7 @@ function sanitize(S, fresh) {
 // Okunamayan kayıtta null döner (çağıran yedekler); daha yeni bir sürümün kaydına dokunmaz.
 export function restore(saved) {
   if (!isObj(saved)) return null;
-  if (saved.v === 1) saved = migrateV1(saved);
+  saved = migrate(saved);
   if (saved.v !== SAVE_V) return null;
   const fresh = newGame(1);
   const S = Object.assign(newGame(1), saved);
