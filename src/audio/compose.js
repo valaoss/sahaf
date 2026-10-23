@@ -20,6 +20,9 @@ export const MOTIFS = {
   alacati: [2, 4, 3, 4],
   bozcaada: [1, 3, 4, 3],
   sirince: [4, 2, 1, 2],
+  dikili: [0, 4, 2, 0],
+  urla: [2, 1, 3, 1],
+  assos: [4, 1, 0, 3],
 };
 
 // Plak çalar temaları: akor dizisi, tempo farkı, arpej yoğunluğu (rest: tıngırtıyı atlama ihtimali)

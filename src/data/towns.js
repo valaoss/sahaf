@@ -37,6 +37,24 @@ export const TOWNS = {
     blurb: 'Zeytin ve incir bahçeleri arasında taş bir dağ köyü. Masallar ve eski hikâyeler burada yaşar.',
     sky: ['#e8d3a8', '#fbefd6'], sea: ['#a7d3c9', '#7bb5ad'], map: { x: 1260, y: 470 },
   },
+  dikili: {
+    name: 'Dikili', traffic: 19, unlock: { pages: 2 },
+    demand: { polisiye: 3, cocuk: 2, roman: 2, siir: 1, tarih: 1, fantastik: 1 },
+    blurb: 'Geniş kumsal, ılık sular, sakin bir kordon. Emekliler ve aileler çok; polisiye ve çocuk kitabı sorulur.',
+    sky: ['#f7c2a2', '#fde9cf'], sea: ['#93d3d8', '#5eb3c2'], map: { x: 850, y: 335 },
+  },
+  urla: {
+    name: 'Urla', traffic: 18, unlock: { pages: 5 },
+    demand: { siir: 3, roman: 2, fantastik: 2, tarih: 1, polisiye: 1, cocuk: 1 },
+    blurb: 'Bağlar, enginar tarlaları ve sanatçı atölyeleri. Okurları meraklı; şiir ve düşündüren romanlar sorulur.',
+    sky: ['#f2c9b6', '#fbe8da'], sea: ['#9fd2cf', '#6cb8b8'], map: { x: 1060, y: 640 },
+  },
+  assos: {
+    name: 'Assos', traffic: 15, unlock: { pages: 8 },
+    demand: { tarih: 3, siir: 2, roman: 2, fantastik: 1, cocuk: 1, polisiye: 1 },
+    blurb: 'Athena tapınağının gölgesinde taş bir köy; karşıda Midilli. Tarih ve felsefe okurlarının son durağı.',
+    sky: ['#e9c6c2', '#fbe4d8'], sea: ['#86c4dc', '#4f98bd'], map: { x: 700, y: 92 },
+  },
 };
 export const TOWN_KEYS = Object.keys(TOWNS);
 // oyunun başında açık olan kasabalar

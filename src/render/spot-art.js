@@ -50,7 +50,7 @@ const CHAPEL = `<g transform="translate(1240 560) scale(.85)">
 function tepe(town) {
   const hill = `<path d="M0 470 C200 400 420 380 640 410 C860 440 1080 380 1300 390 C1440 396 1540 420 1600 440 L1600 562 L0 562Z" fill="#b9d58f"/>
     <path d="M0 520 C260 480 520 470 800 490 C1080 510 1340 470 1600 490 L1600 562 L0 562Z" fill="#a6c97c"/>`;
-  if (town === 'foca' || town === 'bozcaada') return hill + CASTLE;
+  if (town === 'foca' || town === 'bozcaada' || town === 'assos') return hill + CASTLE;
   if (town === 'alacati') return hill + windmill(320, 480, .75, -1.2) + windmill(1210, 450, 1, 0) + windmill(1450, 490, .7, -2.1);
   return hill + CHAPEL + windmill(330, 490, .65, -.6);
 }

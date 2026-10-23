@@ -40,6 +40,24 @@ export const SPOTS = {
     tepe: { name: 'Kilise yokuşu', scene: 'tepe', traffic: 0.8, ask: 1.6, demand: { tarih: 1.5, siir: 1.2 }, tags: ['felsefe', 'gizem'],
       desc: 'Taş merdivenlerin sonunda eski bir kilise. Az kişi, derin sohbetler.' },
   },
+  dikili: {
+    kumsal: { name: 'Geniş kumsal', scene: 'sahil', traffic: 1.1, ask: 1, demand: { cocuk: 1.4, polisiye: 1.2 }, tags: ['aile', 'komik'],
+      desc: 'Şemsiyeler, kumdan kaleler, gölgede kitap okuyan büyükanneler.' },
+    kordon: { name: 'Kordon', scene: 'carsi', traffic: 1.15, ask: 0.9, demand: { polisiye: 1.4, roman: 1.2 }, tags: ['gizem', 'sehir'],
+      desc: 'Akşamüstü yürüyüşü, dondurmacılar. Polisiye meraklıları buradan geçer.' },
+  },
+  urla: {
+    iskele: { name: 'Urla iskelesi', scene: 'sahil', traffic: 1, ask: 1.2, demand: { siir: 1.3, roman: 1.2 }, tags: ['deniz', 'felsefe'],
+      desc: 'Ahşap iskele, balıkçı kahvesi. Uzun sohbetler, derin sorular.' },
+    bag: { name: 'Bağ yolu', scene: 'tepe', traffic: 0.85, ask: 1.5, demand: { roman: 1.3, fantastik: 1.3 }, tags: ['doga', 'ask'],
+      desc: 'Asmalar ve rüzgârgülleri arasında atölyelere giden yol.' },
+  },
+  assos: {
+    liman: { name: 'Antik liman', scene: 'sahil', traffic: 0.95, ask: 1.3, demand: { tarih: 1.4, siir: 1.2 }, tags: ['deniz', 'yolculuk'],
+      desc: 'Taş evler suyun kıyısında. Midilli feribotunu bekleyenler kitap arar.' },
+    tapinak: { name: 'Tapınak tepesi', scene: 'tepe', traffic: 0.75, ask: 1.7, demand: { tarih: 1.5, siir: 1.3 }, tags: ['felsefe', 'savas'],
+      desc: 'Aristoteles\'in yürüdüğü yamaç. Az kişi gelir, gelen de uzun konuşur.' },
+  },
 };
 
 export const firstSpot = town => Object.keys(SPOTS[town])[0];

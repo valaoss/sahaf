@@ -18,6 +18,7 @@ import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood, setA
 import { SPOTS } from './data/spots.js';
 import { weatherOf, dayMods } from './game/calendar.js';
 import { checkStory } from './game/story.js';
+import { roadEvent, chooseRoad, ROAD_BY_ID } from './game/road.js';
 import { placeAll, shelve, unshelve, moveBook, setLabel, setPrice } from './game/shelving.js';
 import { replyFor } from './game/replies.js';
 import { tutorialStep, tutorialEvent } from './game/tutorial.js';
@@ -193,9 +194,20 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
   } else if (a === 'travel') {
     const why = travel(S, arg);
     if (why) return ui.toast(why);
+    // yolda arada bir küçük bir karşılaşma (varınca kartı açılır)
+    const road = roadEvent(S);
     saveGame(S);
     sfx('whoosh');
-    changeTown(() => { ui.closePanel(); ui.toast(`Hoş geldin: ${TOWNS[S.town].name}!`); });
+    changeTown(() => {
+      ui.closePanel();
+      ui.toast(`Hoş geldin: ${TOWNS[S.town].name}!`);
+      if (road) setTimeout(() => { sfx('hap'); ui.hapPanel(ROAD_BY_ID[road], i => {
+        const r = chooseRoad(S, road, i);
+        saveGame(S); scene.setStock(S);
+        if (r.friend?.gift || r.friend?.coins) r.after = () => ui.giftPanel(r.friend);
+        return r;
+      }); }, 700);
+    });
   } else if (a === 'open') {
     // kolide kitap varken ilk dokunuş uyarır: dizilmeyen kitap satılmaz
     if (S.crate.length && !openWarned) { openWarned = true; return ui.toast(`📦 Kolide ${S.crate.length} kitap var, rafa dizilmeyen satılmaz. Yine de açmak için tekrar dokun.`); }
@@ -293,7 +305,7 @@ if (PREVIEW) {
     ui.statsPanel(S);
   }
   if (q.has('gelistir')) { S.upgrades = ['cay', 'plak']; scene.setUpgrades(S.upgrades); }
-  if (panel === 'harita') ui.mapPanel(S);
+  if (panel === 'harita') { if (q.has('acik')) S.unlocked = Object.keys(TOWNS); ui.mapPanel(S); }
   if (panel === 'kostas') { S.pages = PAGES.map(p => p.id); S.unlocked.push('bozcaada'); S.kostasFound = ['yasliadam', 'odysseia', 'korfez']; ui.kostasPanel(S); }
   if (q.has('hava')) scene.setWeather(q.get('hava'));
   if (q.has('aksam')) setTimeout(() => scene.setDaylight(+q.get('aksam') || 0.95), 100);

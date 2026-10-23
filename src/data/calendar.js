@@ -45,6 +45,12 @@ export const EVENTS = {
     note: 'Ressamlar sokağa iniyor. Şiir okuru çok, herkes sohbete hazır.' },
   fokgunu: { town: 'foca', name: 'Fok Gözlem Günü', traffic: 1.5, ask: 1, demand: { cocuk: 1.6, fantastik: 1.2 },
     note: 'Okullar Foça\'ya gezi düzenledi. Çocuk kitapları kapışılır.' },
+  kumsal:  { town: 'dikili', name: 'Kumsal Kitap Şenliği', traffic: 1.5, ask: 1, demand: { cocuk: 1.5, polisiye: 1.2 },
+    note: 'Kumsala şemsiyeler ve kitap sepetleri kuruldu. Aileler ve çocuklar akın akın geliyor.' },
+  bagbozumu: { town: 'urla', name: 'Bağbozumu', traffic: 1.5, ask: 1.2, demand: { siir: 1.4, roman: 1.2 },
+    note: 'Bağlarda üzüm toplanıyor, atölyeler kapılarını açıyor. Şiir ve roman okurları sokakta.' },
+  tapinak: { town: 'assos', name: 'Tapınakta Gün Batımı', traffic: 1.4, ask: 1.5, demand: { tarih: 1.5, siir: 1.2 },
+    note: 'Herkes Athena tapınağına güneşin Midilli\'nin ardına batışını izlemeye çıkıyor.' },
   otfest:  { town: 'alacati', name: 'Ot Festivali', traffic: 1.6, ask: 0.9, demand: { polisiye: 1.3, cocuk: 1.2 },
     note: 'Tezgâhlar, müzik, kalabalık. Tatilciler hafif okumalık arıyor.' },
 };

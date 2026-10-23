@@ -56,6 +56,31 @@ export const REGULARS = {
     hello: 'Efes kazısından dönüyorum. Toprağın altındakiler kadar kitapların içindekiler de ilgimi çekiyor.',
     thanks: 'Kazı çadırında okunacak tam kitap.',
     gift: null, giftNote: 'Kazıda bulduğumuz bir sikkenin kopyası (aslı müzede!) ve ₺40.' },
+  // dünyanın büyümesiyle açılanlar
+  riza: { name: 'Emekli Komiser Rıza', town: 'dikili', look: 702, genre: 'polisiye', likes: ['gizem', 'sehir', 'yalniz'],
+    hello: 'Otuz yıl İzmir emniyetinde çalıştım. Şimdi katilleri yalnızca kitaplarda kovalıyorum.',
+    thanks: 'Hah, kokusundan anladım: bu kitapta sağlam bir dava var.',
+    gift: null, giftNote: 'Eski rozetimi veremem ama şu ₺40 kasanda dursun. Dosya kapandı.' },
+  deniz: { name: 'Cankurtaran Deniz', town: 'dikili', look: 744, genre: 'cocuk', likes: ['macera', 'hayvan', 'komik'],
+    hello: 'Yaz boyu kumsalda nöbetteyim. Kuleden çocuklara sesli kitap okuyorum, inanır mısın?',
+    thanks: 'Bunu kulede okuyacağım; dalga sesi fon müziği olur.',
+    gift: null, giftNote: 'Çocuklar senin için kumdan bir karavan yaptı, fotoğrafı burada. Bir de ₺40.' },
+  leyla: { name: 'Seramikçi Leyla', town: 'urla', look: 818, genre: 'siir', likes: ['doga', 'umut', 'ask'],
+    hello: 'Atölyede çamurla uğraşırken biri bana şiir okusun isterim. Şimdilik kendim okuyorum.',
+    thanks: 'Bu dizeleri bir vazonun üstüne kazıyacağım.',
+    gift: null, giftNote: 'Fırından yeni çıktı: üstünde senin karavanın olan bir kâse. Bir de ₺40.' },
+  orhan: { name: 'Orhan Hoca', town: 'urla', look: 866, genre: 'roman', likes: ['felsefe', 'yalniz', 'sehir'],
+    hello: 'Kırk yıl felsefe öğrettim, şimdi enginar yetiştiriyorum. İkisi de sabır ister.',
+    thanks: 'Güzel seçim. Bu kitabın üstüne uzun bir yürüyüş yapmam gerek.',
+    gift: null, giftNote: 'Bahçemin ilk enginarları ve ₺40. Sorular bitmesin.' },
+  atlas: { name: 'Kaptan Atlas', town: 'assos', look: 921, genre: 'tarih', likes: ['deniz', 'yolculuk', 'savas'],
+    hello: 'Midilli\'ye günde iki sefer yaparım. Karşı kıyının hikâyesi bitmez.',
+    thanks: 'Bu kitap beni güverteden Midilli\'ye kadar götürür.',
+    gift: null, giftNote: 'Feribotun eski dümen çarkından bir parça ve ₺40. Rüzgârın bol olsun.' },
+  eleni: { name: 'Eleni Hanım', town: 'assos', look: 977, genre: 'siir', likes: ['huzun', 'aile', 'yolculuk'],
+    hello: 'Anneannem karşı kıyıdan gelmiş. Ben burada doğdum, iki dilde rüya görürüm.',
+    thanks: 'Çok güzel. Bunu anneannemin sandığına, onun kitaplarının yanına koyacağım.',
+    gift: null, giftNote: 'Anneannemin sandığından bir dantel ve ₺40. Artık sen de bu kıyıdansın.' },
 };
 // Hikâyeler: kalp sayısı arttıkça müdavim biraz daha açılır (story[n-1], n kalpteyken söylenir)
 const STORIES = {
@@ -144,6 +169,48 @@ STORIES.cem = [
   'Bir makale yazıyorum: "Seyyar kitapçıların kısa tarihi". Seni de yazacağım.',
   'Makale yayımlandı! Dipnotta adın var: "Ege\'nin son seyyar sahafı."',
 ];
+STORIES.riza = [
+  'İlk davamı bir sahafta çözmüştüm, biliyor musun? Kayıp bir kitabın sayfa arasına saklanmış bir makbuz.',
+  'Hanım "bu kadar polisiye okuma, gece kâbus görüyorsun" diyor. Haklı da. Ama bırakamıyorum.',
+  'Kordonda her akşam aynı bankta oturan bir adam var. Otuz yıllık alışkanlık işte, onu izliyorum. Sadece kitap okuyormuş.',
+  'Torunum dedektif olmak istiyormuş. Ona ilk polisiyesini senden alalım, ne dersin?',
+  'Anılarımı yazıyorum: "Bir Komiserin Kütüphanesi." Son bölüm senin karavanında geçiyor.',
+];
+STORIES.deniz = [
+  'Bu yaz kimse boğulmadı. Kitap okuyan çocuk denize dalmıyor, onu fark ettim.',
+  'Kuleye bir kaplumbağa geldi dün gece. Caretta! Çocuklar ona isim koydu: Kitap.',
+  'Kış gelince İzmir\'de yüzme öğretmenliği yapıyorum. Soyunma odasına küçük bir kütüphane kurdum.',
+  'Bir çocuk bugün "abla, okuduğun kitabın sonu ne oldu?" diye sordu. Kendi okusun diye söylemedim.',
+  'Belediye kumsala kitap kulübesi kuracakmış. Fikir benden, kitaplar senden olacak!',
+];
+STORIES.leyla = [
+  'Bir vazo kırıldığında atmam. Parçalarını altınla birleştiririm. Kitapların da öyle bir yanı var.',
+  'Atölyeme bir kedi geldi, rafın en üstünde uyuyor. Adını Melih Cevdet koydum.',
+  'Bağbozumunda sergi açacağım. Her eserin yanında bir dize olacak, çoğunu senin kitaplarından seçtim.',
+  'Sergide bir çocuk bir kâseye bakıp ağladı. "Annem gibi" dedi. Daha ne isterim.',
+  'Karavanın için bir tabela yaptım: seramik, mavi harfler. Assos\'a giderken asarsın.',
+];
+STORIES.orhan = [
+  'Öğrencilerime hep "kitabı bitirmek değil, kitabın sizi bitirmesi önemli" derdim.',
+  'Enginar bahçesinde Sokrates gibi dolaşıyorum. Enginarlar pek cevap vermiyor.',
+  'Eski bir öğrencim yazar olmuş. Kitabının teşekkür kısmında adım geçiyor. Utandım, sevindim.',
+  'Köy kahvesinde akşamları felsefe sohbeti başlattık. İlk hafta üç kişiydik, şimdi on iki.',
+  'Sohbetlerimize "Karavan Akademisi" adını verdik. Kurucu üye sensin, itiraz istemem.',
+];
+STORIES.atlas = [
+  'Babam da kaptandı, dedem de. Bu boğaz bizim ailenin mahallesi gibi.',
+  'Fırtınalı bir gecede bir kitap okuyarak sabahı ettim. Gemi sallandıkça satırlar dans etti.',
+  'Karşı kıyıda bir kitapçı var, Yorgos. Sana selamı var, seni duymuş.',
+  'Yorgos\'la bir anlaşma yaptık: her sefer bir kitap götürüyorum, bir kitap getiriyorum. Kıyılar arası kütüphane.',
+  'Feribotun salonuna bir raf astık. Yolcular okuyor, inerken bırakıyor. Adını "Sahaf\'ın Rafı" koyduk.',
+];
+STORIES.eleni = [
+  'Anneannem 1923\'te gelmiş. Yanında sadece bir sandık, sandıkta üç kitap varmış.',
+  'O üç kitabın biri şiir, biri yemek tarifi, biri incil. Hepsi bende, sayfaları sararmış.',
+  'Karşı kıyıya hiç gitmedim. Atlas beni bir gün götürecek, söz verdi.',
+  'Gittim! Anneannemin köyünü buldum. Kilisenin yanında yaşlı bir kadın onun adını hatırladı.',
+  'Oradan bir kitap getirdim, anneannemin köyünden. Senin rafında dursun; iki kıyı bir arada.',
+];
 for (const id in STORIES) REGULARS[id].story = STORIES[id];
 
 // Sabit görünüşler (render/people.js personSVG): kim olduklarına uysun
@@ -160,6 +227,12 @@ const STYLES = {
   inci:   { hair: '#2e2422', long: true, hat: 1, hatC: '#3d2b24', coat: '#fff1d6', skin: '#f6d2b4' },
   nine:   { hair: '#ececec', long: true, hat: 0, coat: '#c96f5a', skin: '#eec09c', glasses: true, tall: 0.9 },
   cem:    { hair: '#a0643c', glasses: true, hat: 2, hatC: '#c9a676', coat: '#c9a676', skin: '#d9a07a', long: false },
+  riza:   { hair: '#c8c8c8', hat: 1, hatC: '#3d2b24', coat: '#5a4a42', skin: '#eec09c', long: false },
+  deniz:  { hair: '#e2b56a', long: true, hat: 2, hatC: '#e57f73', coat: '#e57f73', skin: '#c48a62' },
+  leyla:  { hair: '#2e2422', long: true, hat: 0, coat: '#8bc49a', skin: '#e2b08a' },
+  orhan:  { hair: '#dcdcdc', beard: true, glasses: true, hat: 0, coat: '#c9a676', skin: '#eec09c', long: false },
+  atlas:  { hair: '#3d2b24', beard: true, hat: 1, hatC: '#4d5d82', coat: '#4d5d82', skin: '#c48a62', long: false },
+  eleni:  { hair: '#ececec', long: true, hat: 0, coat: '#5b8bd0', skin: '#f6d2b4', glasses: true },
 };
 for (const id in STYLES) REGULARS[id].style = STYLES[id];
 REGULARS.ela.voice = 'cocuk';

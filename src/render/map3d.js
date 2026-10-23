@@ -14,6 +14,8 @@ const BOZCA = 'M190 120 C220 70 300 76 318 122 C334 166 280 200 232 190 C190 180
 const ROADS = [
   'M760 170 C880 260 820 360 790 520 C770 640 860 720 900 790',
   'M800 520 C960 500 1100 480 1260 470',
+  'M700 92 C720 120 740 145 760 170',
+  'M900 790 C960 740 1010 690 1060 640',
 ];
 const FERRIES = ['M760 200 C640 290 520 310 400 320', 'M740 160 C580 110 420 100 270 130'];
 
@@ -25,6 +27,9 @@ const LOOK = {
   alacati: { walls: ['#f3e7d3', '#fffaf0', '#e8dccb'], roof: '#d9694f', mark: 'mill' },
   bozcaada: { walls: ['#efe6d6', '#fffaf0', '#e3d8c4'], roof: '#b85c48', mark: 'castle' },
   sirince: { walls: ['#f1e3c6', '#e9d6b0', '#fffaf0'], roof: '#a65a3c', mark: 'chapel' },
+  dikili: { walls: ['#fffaf0', '#fbe6dc', '#eef3f7'], roof: '#e07a5f', mark: 'olive' },
+  urla: { walls: ['#f3e7d3', '#fffaf0', '#efe6d6'], roof: '#c96f5a', mark: 'mill' },
+  assos: { walls: ['#e3d8c4', '#efe6d6', '#d9cbb2'], roof: '#a65a3c', mark: 'castle' },
 };
 
 const shade = (hex, k) => {

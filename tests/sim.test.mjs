@@ -22,6 +22,8 @@ import { TUT_STEPS, tutorialStep, tutorialEvent } from '../src/game/tutorial.js'
 import { statsOf } from '../src/game/stats.js';
 import { syncLayout, placeAll, shelve, unshelve, moveBook, setLabel, setPrice, tidiness, sectionCap, crateFree, SECTIONS } from '../src/game/shelving.js';
 import { stallOf, buyStall, talkHint } from '../src/game/shop.js';
+import { roadEvent, chooseRoad, ROAD_BY_ID } from '../src/game/road.js';
+import { ROAD } from '../src/data/road.js';
 import { replyFor } from '../src/game/replies.js';
 import { REPLIES } from '../src/data/replies.js';
 import { STAMPS, STAMP_REWARD } from '../src/data/stamps.js';
@@ -719,12 +721,14 @@ test('yeni kasabalar: kilitli başlar, hikâyeyle açılır', () => {
   assert.deepEqual(S.unlocked, ['ayvalik', 'cunda', 'foca', 'alacati']);
   assert.equal(travel(S, 'bozcaada'), 'Bu kasabanın yolunu henüz bilmiyorsun.');
   S.pages = PAGES.slice(0, 4).map(p => p.id);
-  assert.deepEqual(checkUnlocks(S), ['bozcaada']);
+  assert.deepEqual(checkUnlocks(S), ['bozcaada', 'dikili']);
   assert.equal(travel(S, 'bozcaada'), null);
   assert.equal(S.spot, 'liman');
   S.pages = PAGES.slice(0, 7).map(p => p.id);
-  assert.deepEqual(checkUnlocks(S), ['sirince']);
+  assert.deepEqual(checkUnlocks(S), ['sirince', 'urla']);
   assert.deepEqual(checkUnlocks(S), []);
+  S.pages = PAGES.map(p => p.id);
+  assert.deepEqual(checkUnlocks(S), ['assos'], 'hikâyenin sonunda Assos');
   for (const k of TOWN_KEYS) {
     assert.ok(SPOTS[k] && MOTIFS[k], k);
     assert.equal(REGULAR_KEYS.filter(id => REGULARS[id].town === k).length, 2, k + ' müdavimleri');
@@ -974,6 +978,30 @@ test('sohbet: tür ipucu verir, saati ilerletir, bir kez; çay bahşişi artır�
   assert.equal(yes.bought.length, 1);
   assert.equal(yes.grade, 'miss');
   assert.ok(yes.paid < GENRES[BOOK[miss].genre].price && yes.tip === 0);
+});
+
+test('yol karşılaşmaları: yolculukların yarısında, art arda aynısı değil; ödeme, koli, geç açılış, takas', () => {
+  const S = newGame(11);
+  let n = 0, last = null, repeat = 0;
+  for (let i = 0; i < 200; i++) { const r = roadEvent(S); if (r) { n++; if (r === last) repeat++; last = r; } }
+  assert.ok(n > 70 && n < 130, 'oran ' + n);
+  assert.equal(repeat, 0, 'art arda aynı karşılaşma');
+  for (const r of ROAD) assert.ok(r.choices.length >= 2 && r.text && r.title, r.id);
+  S.coins = 100;
+  const c0 = S.crate.length;
+  let out = chooseRoad(S, 'pazar', 0);
+  assert.equal(S.coins, 92); assert.equal(S.crate.length, c0 + 4);
+  assert.ok(S.crate.slice(-4).every(e => e.cond === 'yipranmis'));
+  out = chooseRoad(S, 'sahaf', 0);
+  assert.ok(S.crate.at(-1).rare, 'ilk baskı');
+  chooseRoad(S, 'lastik', 1);
+  assert.ok(S.buffs.some(b => b.day === S.day && b.traffic < 1), 'geç açılış');
+  const shelf0 = shelfCount(S), crate1 = S.crate.length;
+  chooseRoad(S, 'kamp', 0);
+  assert.equal(shelfCount(S), shelf0 - 2); assert.equal(S.crate.length, crate1 + 2);
+  S.coins = 1;
+  out = chooseRoad(S, 'sahaf', 0);
+  assert.equal(S.coins, 1, 'parası yetmezse ödeme yok');
 });
 
 test('karşılıklar: dereceye ve konuya uygun, yer tutucusuz, kısa aralıkla tekrar etmez', () => {
