@@ -93,6 +93,19 @@ Hedef: Tiny Bookshop'un oyun düzeni, şehirler arası gezi, aynı sıcaklıkta 
 6. Ortam sesleri (tamamen sentez): dalga, martı, rüzgâr, kalabalık mırıltısı (kişi sayısıyla), tepede kuşlar, akşam cırcır böceği
 7. Telefon: dikey düzen (üstte gösterge, ortada sahne, altta 3×2 düğme, tam genişlikte paneller); haritada kıstırma/tekerlek/çift dokunuşla yakınlaştırma
 
+### Sahaf 3.0 ✅ (yeni çizim motoru, elle raf, seçimler, büyük dünya)
+- Akıcılık: sahne katmanlara ayrıldı, insanlar ayrı; sonra yeni canvas motoru (render2/): SVG çizimler bantlara pişirilir,
+  hareketli parçalar ve insanlar (eklemli iskelet) canvas'ta canlanır. Yerleşim/stil yükü 200–330 ms/sn'den ~5 ms/sn'ye indi.
+  ⚙️ Basit görünüm ile eski SVG motoru seçilebilir
+- Atmosfer: saate göre gökyüzü, hareket eden güneş, ay ve yıldızlar, canlı deniz ve kıyı köpüğü, bulut gölgeleri,
+  güneşe göre uzayan gölgeler, yağmur halkaları, rüzgârda yapraklar, fener ve karavan ışık havuzları
+- Raflar elle dizilir: koli, 3 raf × 2 bölüm, tür etiketleri, sürükle-bırak ve dokun-seç, vitrin, düzen bonusu (%15'e kadar)
+- Seçimler: pazar tezgâhı (tek tek kitap, yıpranmış/iyi/temiz, ilk baskı), bölüm fiyat etiketi (ucuz/normal/pahalı),
+  sohbet (Biraz daha anlat, Çay ikram et), uymayan öneriyi indirimle satma
+- Canlanma: tente açılıp kapanır, ışıklar sırayla yanar, raflarda kamera yakınlaşır, ödeme/sevinç pozları, uçan kitap
+- Dünya: Dikili, Urla, Assos (ikişer mekân ve müdavim, festival, müzik); 8 çeşit yol üstü karşılaşma
+- Konuşma balonu konuşanın başının üstünde (ekranı kapatmıyor)
+
 Sırada: telefonda deneme ve geri bildirim, İngilizce, iOS paketleme (Mac).
 
 ## Faz 3 — içerik ve cila
