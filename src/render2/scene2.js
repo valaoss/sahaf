@@ -76,6 +76,19 @@ export function buildScene2(host) {
   grainEl.style.backgroundImage = `url(${grainTile().toDataURL()})`;
   const lights = lightPoints();
 
+  function aim(kind) {
+    cam.kind = kind;
+    if (kind === 'shelf') {
+      // raf penceresi, ön tezgâh ve önündeki koli ekrana sığsın (dikey telefonda daha az yakınlaşır)
+      const z = Math.max(1.02, Math.min(2.1, (W / k) / 420, (H / k) / 420));
+      // yakınlaşma noktası p öyle seçilir ki C=(cx, cy) ekranın ortasına gelsin: 800 = p + (C - p)·z → p = (800 - C·z) / (1 - z)
+      // cy: sahnenin alt kenarını aşmayacak kadar aşağıda (koli zemine yakın)
+      const cx = 835, cy = Math.min(720, 900 - (H / k) / (2 * z));
+      Object.assign(cam, { tz: z, tfx: (800 - cx * z) / (1 - z), tfy: (450 - cy * z) / (1 - z) });
+    } else if (kind === 'cart') Object.assign(cam, { tz: 1.32, tfx: 835, tfy: 560 });
+    else Object.assign(cam, { tz: 1, tfx: 830, tfy: 600 });
+  }
+
   function fit() {
     const r = host.getBoundingClientRect();
     W = Math.max(1, r.width); H = Math.max(1, r.height);
@@ -85,6 +98,8 @@ export function buildScene2(host) {
     grainEl.style.backgroundSize = `${(192 * k).toFixed(1)}px`;
     const s = Math.min(2, dpr * k);
     if (Math.abs(s - bakeScale) / bakeScale > .12) { bakeScale = s; for (const b in BANDS) dirty.add(b); schedule(); }
+    // ekran boyutu değişince odak yeniden hesaplanır (dikeyde raf modu sahneyi büyütür)
+    if (cam.kind) { const snapped = Math.abs(cam.z - cam.tz) < 1e-3; aim(cam.kind); if (snapped) Object.assign(cam, { z: cam.tz, fx: cam.tfx, fy: cam.tfy }); }
   }
 
   // kopyada CSS'e bağlı görünüşleri sabitle
@@ -236,7 +251,12 @@ export function buildScene2(host) {
       if (open && t > .5) { cam.z = 1.05; cam.tz = 1; }
     },
     // kamera odağı: 'cart' karavana yakınlaşır (raflar açıkken), null geri döner
-    focus(kind) { if (kind === 'cart') Object.assign(cam, { tz: 1.32, tfx: 835, tfy: 560 }); else Object.assign(cam, { tz: 1, tfx: 830, tfy: 600 }); },
+    // kamera odağı: 'cart' karavana yakınlaşır (raf paneli), 'shelf' raf penceresine iner (karavanda dizme), null geri döner
+    focus(kind) { aim(kind); },
+    // kamerayı hedefine hemen oturt (önizleme ekran görüntüleri için)
+    snap() { Object.assign(cam, { z: cam.tz, fx: cam.tfx, fy: cam.tfy }); },
+    // sahne koordinatının ekrandaki yeri ve ölçeği (sahne üstü HTML katmanları için)
+    screenMap() { const r = canvas.getBoundingClientRect(), v = view(); return { left: r.left + v.tx, top: r.top + v.ty, s: v.s }; },
     onCart(fn) { cartFn = fn; },
     crowdView: () => crowd,
     setTown(key) { base.setTown(key); st.town = key; rebake('bandSky', 'bandF', 'bandH'); },

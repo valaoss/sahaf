@@ -2,13 +2,13 @@
 // Telefon için dokun-seç / dokun-bırak da çalışır: bir sırta dokun (seçilir), sonra bir bölüme ya da koliye dokun.
 // Durumu değiştirmez; her hamle act('shelf', { op, ... }) ile main.js'e gider, panel yeniden çizilir.
 import { BAL } from '../data/balance.js';
-import { GENRES, GENRE_KEYS } from '../data/genres.js';
+import { GENRES } from '../data/genres.js';
 import { BOOK } from '../data/books.js';
-import { syncLayout, sectionCap, tidiness, crateFree } from '../game/shelving.js';
+import { syncLayout, sectionCap, tidiness } from '../game/shelving.js';
+import { wireShelf } from './shelf-drag.js';
 
 const COND = { yipranmis: 'Yıpranmış', iyi: 'İyi', temiz: 'Temiz' };
 const PRICE_LABEL = { ucuz: '₺↓ ucuz', normal: '₺ normal', pahali: '₺↑ pahalı' };
-const NEXT_PRICE = { ucuz: 'normal', normal: 'pahali', pahali: 'ucuz' };
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const hash = str => [...str].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
 
@@ -68,98 +68,9 @@ export function createShelfPanel({ openPanel, closePanel, act, toast }) {
     return k === 'c' ? S.crate[+a] : S.layout.sections[+a]?.books[+b];
   }
 
-  // bırakma noktası: bölüm (araya), koli ya da vitrin
-  function targetAt(x, y) {
-    const el = document.elementFromPoint(x, y);
-    if (!el) return null;
-    const vit = el.closest('[data-vit]');
-    if (vit) return { to: 'vit' };
-    const sec = el.closest('[data-sec]');
-    if (sec) {
-      const spines = [...sec.querySelectorAll('.spine2')];
-      let pos = spines.length;
-      for (let i = 0; i < spines.length; i++) { const r = spines[i].getBoundingClientRect(); if (x < r.left + r.width / 2) { pos = i; break; } }
-      return { to: 'sec', sec: +sec.dataset.sec, pos, el: sec };
-    }
-    const crate = el.closest('[data-crate]');
-    if (crate) return { to: 'crate', el: crate };
-    return null;
-  }
-
-  function drop(S, from, t) {
-    if (!t) return;
-    sel = null;
-    act('shelf', { op: 'drop', from, ...t, el: undefined });
-  }
-
   function wire(p, S) {
     p.querySelector('[data-close]').onclick = () => { sel = null; closePanel(); };
-    p.querySelector('[data-auto]').onclick = () => { sel = null; act('shelf', { op: 'auto' }); };
-    p.querySelectorAll('[data-price]').forEach(b => b.onclick = e => { e.stopPropagation(); const i = +b.dataset.price; act('shelf', { op: 'price', sec: i, tag: NEXT_PRICE[S.layout.sections[i].price] }); });
-    // etiket: dokununca tür seçici açılır
-    p.querySelectorAll('[data-lab]').forEach(b => b.onclick = e => {
-      e.stopPropagation();
-      const i = +b.dataset.lab, box = b.closest('.sec2');
-      if (box.querySelector('.labpick2')) return box.querySelector('.labpick2').remove();
-      p.querySelectorAll('.labpick2').forEach(n => n.remove());
-      const pickEl = document.createElement('div');
-      pickEl.className = 'labpick2';
-      pickEl.innerHTML = GENRE_KEYS.map(g => `<button data-g="${g}" style="--c:${GENRES[g].color}">${GENRES[g].icon} ${GENRES[g].name}</button>`).join('') + '<button data-g="">🏷️ Etiketsiz</button>';
-      pickEl.onclick = ev => { const g = ev.target.closest('[data-g]'); if (g) act('shelf', { op: 'label', sec: i, g: g.dataset.g || null }); };
-      box.appendChild(pickEl);
-    });
-    // sürükle-bırak ve dokun-seç
-    let drag = null;
-    p.querySelectorAll('.spine2').forEach(el => {
-      el.addEventListener('pointerdown', e => {
-        if (e.button > 0) return;
-        drag = { el, from: el.dataset.from, x0: e.clientX, y0: e.clientY, ghost: null, id: e.pointerId };
-        try { el.setPointerCapture(e.pointerId); } catch (err) { /* sentetik olay */ }
-      });
-      el.addEventListener('pointermove', e => {
-        if (!drag || drag.el !== el) return;
-        if (!drag.ghost) {
-          if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 8) return;
-          const r = el.getBoundingClientRect();
-          drag.ghost = el.cloneNode(true);
-          drag.ghost.classList.add('ghost2');
-          Object.assign(drag.ghost.style, { width: r.width + 'px', height: r.height + 'px', fontSize: getComputedStyle(el).fontSize });
-          document.body.appendChild(drag.ghost);
-          drag.dx = drag.x0 - r.left; drag.dy = drag.y0 - r.top;
-          el.classList.add('lifted');
-        }
-        drag.ghost.style.transform = `translate(${e.clientX - drag.dx}px, ${e.clientY - drag.dy}px) rotate(-4deg)`;
-        // panelin kenarına yaklaşınca kendiliğinden kaydır
-        const pr = p.getBoundingClientRect();
-        if (e.clientY > pr.bottom - 40) p.scrollTop += 12; else if (e.clientY < pr.top + 40) p.scrollTop -= 12;
-        p.querySelectorAll('.over').forEach(n => n.classList.remove('over'));
-        const t = targetAt(e.clientX, e.clientY);
-        t?.el?.classList.add('over');
-      });
-      const end = e => {
-        if (!drag || drag.el !== el) return;
-        const d = drag; drag = null;
-        if (d.ghost) {
-          d.ghost.remove();
-          el.classList.remove('lifted');
-          drop(S, d.from, targetAt(e.clientX, e.clientY));
-        } else {
-          // dokunma: seç / seçimi kaldır / seçiliyken başka sırta dokunmak onun yanına taşır
-          if (sel && sel !== d.from && d.from[0] === 's') { const t = targetAt(e.clientX, e.clientY); return drop(S, sel, t); }
-          sel = sel === d.from ? null : d.from;
-          render(S);
-        }
-      };
-      el.addEventListener('pointerup', end);
-      el.addEventListener('pointercancel', () => { if (drag?.ghost) drag.ghost.remove(); drag = null; el.classList.remove('lifted'); });
-    });
-    // seçiliyken bölüme, koliye ya da vitrine dokun
-    p.querySelectorAll('[data-sec], [data-crate], [data-vit]').forEach(n => n.addEventListener('click', e => {
-      if (!sel || e.target.closest('.spine2, [data-lab], [data-price], .labpick2')) return;
-      drop(S, sel, targetAt(e.clientX, e.clientY));
-    }));
-    // vitrindeki kitaba dokununca vitrinden çıkar
-    p.querySelectorAll('[data-vit].on').forEach(n => n.addEventListener('click', () => { if (!sel) act('feature', n.dataset.vit); }));
+    wireShelf(p, { act, S, sel: () => sel, setSel: v => { sel = v; }, rerender: () => render(S), scrollEl: p });
   }
 
   return { render, reset() { sel = null; } };

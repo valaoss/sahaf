@@ -8,6 +8,7 @@ import { DECOR, SLOTS, PAINTS, UPGRADES } from '../data/decor.js';
 import { THEMES } from '../audio/compose.js';
 import { mapSVG, proj } from '../render/map3d.js';
 import { createShelfPanel } from './shelf-panel.js';
+import { createShelfStage } from './shelf-stage.js';
 import { KOSTAS } from '../data/kostas.js';
 import { shelfCount, shelfCap, genreCount, seasonOf, dayOfSeason } from '../game/state.js';
 import { boxCost, canBuyBox, canTravel, topDemand, stallOf, COND_NAME } from '../game/shop.js';
@@ -88,7 +89,9 @@ export function createUI(root, act) {
     return p;
   }
   const closePanel = () => $('veil').classList.remove('open');
-  const isOpen = () => $('veil').classList.contains('open');
+  // raf modu (karavanda dizme) açıkken de zaman durur
+  let stage = null;
+  const isOpen = () => $('veil').classList.contains('open') || !!stage?.on;
 
   const hudMemo = {};
   const put = (id, v, prop = 'textContent') => {
@@ -528,7 +531,9 @@ export function createUI(root, act) {
 
   // Karavanın içi: raf düzenleyici (ui/shelf-panel.js)
   const shelves = createShelfPanel({ openPanel, closePanel, act, toast });
-  const interiorPanel = S => shelves.render(S);
+  // yeni motorda kitaplar karavanın kendisinde dizilir; basit görünümde panel
+  const interiorPanel = S => stage ? (stage.on ? stage.render(S) : stage.open(S)) : shelves.render(S);
+  const useStage = map => { stage = createShelfStage(root, { act, map }); };
 
 
   // Müşterinin karşılığı: küçük portreli konuşma kartı, birkaç saniye sonra kaybolur
@@ -685,5 +690,5 @@ export function createUI(root, act) {
     }
   }
 
-  return { hud, toast, speech, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  return { useStage, stageOn: () => !!stage?.on, stageTick: () => stage?.tick(), hud, toast, speech, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
 }

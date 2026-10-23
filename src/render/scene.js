@@ -363,6 +363,8 @@ export function buildScene(host) {
     onCart(fn) { $('cartHit').addEventListener('click', fn); },
     setOpen() {},
     focus() {},
+    snap() {},
+    screenMap() { const m = svg.getScreenCTM(); return { left: m.e, top: m.f, s: m.a }; },
     // insanlar için görünüm (render/people.js svgView)
     crowdView() { return svgView(sprites, $('fx')); },
     people: $('people'),

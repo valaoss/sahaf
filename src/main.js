@@ -242,6 +242,8 @@ scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(`${DECOR[arg].icon} ${DECOR
   }
 };
 const ui = createUI(document.getElementById('ui'), act);
+// yeni motorda raflar karavanın kendisinde dizilir
+if (MOTOR2) ui.useStage(() => scene.screenMap());
 
 function refreshDay() {
   const m = dayMods(S.day, S.town);
@@ -382,9 +384,11 @@ function frame(now) {
   }
   ambient?.update(dt, { season: seasonOf(S.day), weather: weatherOf(S.day) });
   // raflar açıkken kamera karavana yaklaşır
-  const fc = ui.isOpen() && panelEl.classList.contains('shelf2') ? 'cart' : null;
-  if (fc !== lastFocus) { scene.focus(fc); lastFocus = fc; }
+  const fc = ui.stageOn() ? 'shelf' : ui.isOpen() && panelEl.classList.contains('shelf2') ? 'cart' : null;
+  if (fc !== lastFocus) { scene.focus(fc); if (PREVIEW) scene.snap(); lastFocus = fc; }
   scene.tick?.(dt);
+  // raf katmanı kameranın bu karedeki yerine oturur
+  ui.stageTick();
   ui.hud(S, speed);
   const st = tutorialStep(S);
   ui.coach(st && st.on === S.phase && !(ui.isOpen() && st.on !== 'evening') ? st : null);
