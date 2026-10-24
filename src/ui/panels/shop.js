@@ -7,7 +7,7 @@ import { FEATURES } from '../../data/features.js';
 import { GENRES, GENRE_KEYS } from '../../data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../../data/towns.js';
 import { BOOK, booksOf, TAGS } from '../../data/books.js';
-import { DECOR, SLOTS, PAINTS, UPGRADES, SHELF_LEVELS } from '../../data/decor.js';
+import { DECOR, SLOTS, PAINTS, UPGRADES, SHELF_LEVELS, AWNINGS } from '../../data/decor.js';
 import { THEMES } from '../../audio/compose.js';
 import { worldSVG, routePath, townXY, declutter, flagSVG, WW, WH } from '../../render/world.js';
 import { hasBackup } from '../../core/save.js';
@@ -234,6 +234,11 @@ export function decorPanel(S) {
     return `<button class="swatch ${on ? 'is-on' : ''}" data-paint="${k}" style="--b:${p.body};--e:${p.edge}">
       <i></i><span>${p.name}</span><small>${on ? '✓' : owned ? T`Seç` : '₺' + p.price}</small></button>`;
   }).join('');
+  const awnings = Object.keys(AWNINGS).map(k => {
+    const a = AWNINGS[k], on = S.awning === k, owned = S.awnings.includes(k);
+    return `<button class="swatch ${on ? 'is-on' : ''}" data-awning="${k}" style="--b:repeating-linear-gradient(90deg,${a.a} 0 8px,${a.b} 8px 16px);--e:${a.edge}">
+      <i></i><span>${a.name}</span><small>${on ? '✓' : owned ? T`Seç` : '₺' + a.price}</small></button>`;
+  }).join('');
   const p = openPanel(`
     <h2>🔨 ${T`Atölye`} <span class="hint">🪙 <b>${S.coins}</b></span></h2>
     ${goalBar(S)}
@@ -241,11 +246,13 @@ export function decorPanel(S) {
     <h3>🛠️ ${T`Satış araçları`}</h3><div class="dgrid">${['paket', 'cay', 'fener', 'cirak', 'koltuk', 'plak'].map(tool).join('')}</div>
     <h3>🪴 ${T`Süsler`} <span class="hint">· ${T`her yuvaya bir tane; aldığın süs sende kalır`}</span></h3>${slots}
     <h3>🎨 ${T`Boya`}</h3><div class="swatches">${paints}</div>
+    <h3>⛱️ ${T`Tente`}</h3><div class="swatches">${awnings}</div>
     <h3>🎁 ${T`Hatıralar`} <span class="hint">· ${T`dost müdavimlerin bıraktıkları; her biri kendi kasabasında +${BAL.keepsakeTraffic} ziyaretçi`}</span></h3>
     ${S.keepsakes.length ? `<div class="dgrid">${S.keepsakes.filter(id => KEEPSAKES[id]).map(id => `<div class="dcard is-on"><div class="dicon">${KEEPSAKES[id].icon}</div><div><div class="gname">${KEEPSAKES[id].name}</div><div class="gmeta">${REGULARS[id].name} · ${TOWNS[REGULARS[id].town].name}</div></div></div>`).join('')}</div>` : `<p class="hint">${T`Bir müdavimle beş kalbe ulaşınca ilk hatıran gelir.`}</p>`}
     <div class="row end"><button class="btn hl" data-close>${T`Tamam`}</button></div>`, 'wide');
   p.querySelectorAll('[data-decor]').forEach(b => b.onclick = () => act('decor-on', b.dataset.decor));
   p.querySelectorAll('[data-paint]').forEach(b => b.onclick = () => act('paint', b.dataset.paint));
+  p.querySelectorAll('[data-awning]').forEach(b => b.onclick = () => act('awning', b.dataset.awning));
   p.querySelector('[data-shelf]')?.addEventListener('click', () => act('shelf-up'));
   p.querySelectorAll('[data-upgrade]').forEach(b => b.onclick = () => act('upgrade', b.dataset.upgrade));
   p.querySelectorAll('[data-appr]').forEach(b => b.onclick = () => act('apprentice', +b.dataset.appr));

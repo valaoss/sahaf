@@ -8,11 +8,11 @@ import { TOWNS } from './data/towns.js';
 import { COUNTRIES } from './data/countries.js';
 import { GENRES } from './data/genres.js';
 import { BOOK } from './data/books.js';
-import { DECOR, PAINTS, UPGRADES, SHELF_LEVELS } from './data/decor.js';
+import { DECOR, PAINTS, UPGRADES, SHELF_LEVELS, AWNINGS } from './data/decor.js';
 import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
 import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature, buyStall, talkHint, teaLine, refillShelves, donate, sponsor, haggleMove, openingLine, abandonDeal } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
-import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from './game/decor.js';
+import { effects, equipDecor, upgradeShelf, choosePaint, chooseAwning, buyUpgrade } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, afterFerry } from './game/day.js';
 import { loadGame, loadProblem, saveGame as persistGame, clearGame, restoreBackup } from './core/save.js';
 import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood, setAmbience } from './audio/audio.js';
@@ -272,13 +272,14 @@ const COMMANDS = {
   }, () => ui.decorPanel(S)),
   // yeni araba basamağı: karavanda görünür (koli yığını, çatı bagajı, yan kanat), konfeti
   'shelf-up': () => attempt(upgradeShelf(S), () => {
-    tap('MEDIUM'); sfx('heart'); scene.setStock(S); scene.setUpgrades(upgradeView()); saveGame(S); ui.confetti();
+    tap('MEDIUM'); sfx('heart'); scene.setStock(S); scene.setUpgrades(upgradeView()); scene.build(); saveGame(S); ui.confetti();
     ui.toast(T`${SHELF_LEVELS[S.shelfLv].icon} Yeni araban: ${SHELF_LEVELS[S.shelfLv].name}! Raflara ${shelfCap(S)} kitap sığar.`); stampCheck();
   }, () => ui.decorPanel(S)),
   unlock: g => attempt(unlockGenre(S, g), () => { tap('MEDIUM'); sfx('heart'); saveGame(S); ui.toast(T`${GENRES[g].icon} ${GENRES[g].name} açıldı: artık kolisini alabilirsin.`); }, () => ui.stockPanel(S)),
   lot: i => attempt(buyLot(S, i), () => { tap(); sfx('page'); saveGame(S); ui.toast(T`📜 İlk baskı koliye kondu: rafa diz, koleksiyoncuyu bekle.`); }, () => ui.stockPanel(S)),
   apprentice: v => attempt(setApprentice(S, v), () => { tap(); saveGame(S); }, () => ui.decorPanel(S)),
   paint: key => attempt(choosePaint(S, key), () => { tap(); scene.setPaint(S.paint); saveGame(S); stampCheck(); }, () => ui.decorPanel(S)),
+  awning: key => attempt(chooseAwning(S, key), () => { tap(); scene.setAwning(S.awning); saveGame(S); }, () => ui.decorPanel(S)),
   travel: key => {
     const why = travel(S, key);
     if (why) return ui.toast(why);
@@ -390,6 +391,7 @@ scene.setStock(S);
 scene.setDecor(S.decor.on);
 scene.setUpgrades(upgradeView());
 scene.setPaint(PAINTS[S.paint] ? S.paint : 'nane');
+scene.setAwning(AWNINGS[S.awning] ? S.awning : 'mercan');
 // açılış: krem perde yazı tipi ve sahne hazır olunca kalkar
 if (PREVIEW) {
   document.getElementById('fade').style.display = 'none';
@@ -404,7 +406,7 @@ if (PREVIEW) {
   if (panel === 'stock') { S.coins = 120; ui.stockPanel(S); }
   if (panel === 'oneri') { S.upgrades = ['cay']; let c; do c = makeCustomer(S); while (!c.ask); ui.recPanel(S, c, () => {}, true, { onTalk: () => talkHint(S, c), tea: true, teaLine: () => teaLine(S) }); if (q.has('konustur')) setTimeout(() => { document.querySelector('[data-talk]')?.click(); document.querySelector('[data-tea]')?.click(); }, 300); }
   if (panel === 'konus') { const c = makeCustomer(S); c.arch = 'balikci'; c.style = ARCHETYPES.balikci.style; c.ask = { tags: ['deniz'] }; ui.speech(c, replyFor(S, c, { grade: 'perfect' }, 'yasliadam'), 'perfect', 'Bahşiş ₺5', toFrame(1210, 470)); }
-  if (panel === 'ic') { S.coins = 999; S.shelfLv = 1; S.genres = Object.keys(GENRES); buyBox(S, 'roman'); placeAll(S); buyBox(S, 'siir'); buyBox(S, 'fantastik'); S.featured = Object.keys(S.shelf).slice(2, 4); ui.interiorPanel(S); }
+  if (panel === 'ic') { S.coins = 999; S.shelfLv = 1; S.genres = Object.keys(GENRES); buyBox(S, 'roman'); placeAll(S); buyBox(S, 'siir'); buyBox(S, 'fantastik'); S.featured = Object.keys(S.shelf).slice(2, 4); scene.setUpgrades(upgradeView()); ui.interiorPanel(S); }
   // ?insanlar: farklı tiplerden on kişilik dizi (yürüyen, okuyan, sevinen)
   if (q.has('insanlar')) {
     const kinds = ['ogrenci', 'emekli', 'balikci', 'turist', 'anne', 'cocuk', 'sevgili', 'yazar', 'teyze', 'sorfcu'];
@@ -419,7 +421,7 @@ if (PREVIEW) {
     S.townDays = { ayvalik: 7, foca: 5 };
     ui.statsPanel(S);
   }
-  if (q.has('gelistir')) { S.upgrades = ['cay', 'plak', 'paket', 'fener', 'cirak']; S.shelfLv = +q.get('gelistir') || 3; scene.setUpgrades(upgradeView()); scene.setStock(S); }
+  if (q.has('gelistir')) { S.upgrades = ['cay', 'plak', 'paket', 'fener', 'cirak', 'koltuk']; S.shelfLv = q.get('gelistir') === '' ? 3 : +q.get('gelistir'); scene.setUpgrades(upgradeView()); scene.setStock(S); }
   // ?panel=atolye: dolu bir atölye · ?panel=stock&mezat: mezat günü
   if (panel === 'atolye') { S.coins = 900; S.upgrades = ['cirak', 'paket']; ui.decorPanel(S); }
   if (q.has('mezat')) { while (S.day % BAL.mezatEvery !== BAL.mezatOn) S.day++; S.coins = 300; ui.stockPanel(S); }

@@ -16,7 +16,7 @@ const BANDS = {
   bandH: { x: 0, y: 150, w: 1600, h: 472 },
   bandG: { x: 0, y: 330, w: 1600, h: 570 },
 };
-const CART = { x: 620, y: 420, w: 430, h: 350 };     // karavana dokunma alanı (sahne birimi)
+const CART = { x: 540, y: 370, w: 540, h: 440 };     // arabaya dokunma alanı (sahne birimi; karavanın kabini ve tabelası dahil)
 // raftaki ve masadaki kitaplar ayrı, küçük bir bantta: her satışta yalnız bu bant yeniden pişer (zemin bandı değil)
 const STOCK = { x: 370, y: 500, w: 660, h: 230 };
 // dikey ekran: sahnenin bu genişliği (masa, karavan, kedi) ekrana sığar; (TALL_CX, TALL_CY) ekranın ortasına gelir
@@ -83,7 +83,7 @@ export function buildScene2(host) {
   const BOX = { ...BANDS, bandStock: STOCK };
   const bands = {}, dirty = new Set(Object.keys(BOX));
   let baking = false, ready = null, t = 0;
-  const st = { windy: false, weather: 'gunesli', season: 'İlkbahar', day: 0, paint: true, festival: false, town: 'ayvalik', scene: 'sahil', open: false, openAt: -9 };
+  const st = { buildAt: -9, windy: false, weather: 'gunesli', season: 'İlkbahar', day: 0, paint: true, festival: false, town: 'ayvalik', scene: 'sahil', open: false, openAt: -9 };
   // kamera: z yakınlık, (fx, fy) odak; hedefe doğru yumuşakça akar
   const cam = { z: 1, fx: 830, fy: 600, tz: 1, tfx: 830, tfy: 600 };
   const view = () => { const s = k * cam.z; return { s, tx: ox + (1 - cam.z) * cam.fx * k, ty: oy + (1 - cam.z) * cam.fy * k }; };
@@ -203,6 +203,26 @@ export function buildScene2(host) {
     return { color, op, night };
   }
 
+  // yapım animasyonu (u: geçen saniye): yerden yükselen toz halkası ve arabanın çevresinde yanıp sönen yıldızlar
+  function drawBuild(ctx, u) {
+    const k = u / 1.6;
+    ctx.save();
+    for (let i = 0; i < 14; i++) {
+      const side = i % 2 ? 1 : -1, x = 830 + side * (120 + (i * 37) % 200) * (0.6 + k), y = 800 - 30 * k - (i * 13) % 26;
+      ctx.globalAlpha = 0.8 * Math.sqrt(1 - k); ctx.fillStyle = i % 3 ? '#f3e3c3' : '#e2c9a0';
+      ctx.beginPath(); ctx.arc(x, y, 14 + 26 * k + (i % 3) * 5, 0, Math.PI * 2); ctx.fill();
+    }
+    for (let i = 0; i < 9; i++) {
+      const a = i * 2.4 + u * 1.5, x = 830 + Math.cos(a) * (260 + 30 * Math.sin(i)), y = 560 + Math.sin(a) * 190;
+      const s = 10 + 16 * Math.max(0, Math.sin(Math.PI * Math.min(1, k * 1.6 + i * .05)));
+      ctx.globalAlpha = Math.max(0, 1 - k * k); ctx.fillStyle = i % 2 ? '#fff6c2' : '#ffc94a';
+      ctx.beginPath();
+      for (let j = 0; j < 8; j++) { const r = j % 2 ? s * .35 : s, b = j * Math.PI / 4; ctx.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r); }
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function frame(dt) {
     t += dt;
     life.update(dt, st);
@@ -253,6 +273,7 @@ export function buildScene2(host) {
       ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore(); ctx.globalAlpha = 1;
+    if (t - st.buildAt < 1.6) drawBuild(ctx, t - st.buildAt);
     life.drawFront(ctx, t);
     crowd.draw(ctx, t, dt, { lean: x => rainy ? 0 : atmos.shadowLean(x, st.day) });
 
@@ -274,7 +295,12 @@ export function buildScene2(host) {
       gctx.globalCompositeOperation = 'lighter';
       atmos.lightPools(gctx, L.night, crowd.lamps());
       gctx.translate(610, 420);
-      const glow = 0.05 + L.night * 0.45;
+      const glow = 0.05 + L.night * 0.45, lamp = base.lamp();
+      if (lamp) {
+        const g = gctx.createRadialGradient(lamp[0], lamp[1], 0, lamp[0], lamp[1], 60);
+        g.addColorStop(0, '#ffe08a'); g.addColorStop(.35, 'rgba(255,214,120,.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        gctx.globalAlpha = Math.min(1, L.night * 1.2); gctx.fillStyle = g; gctx.beginPath(); gctx.arc(lamp[0], lamp[1], 60, 0, Math.PI * 2); gctx.fill();
+      }
       for (const p of lights) {
         const g = gctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 26);
         g.addColorStop(0, p.c); g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -315,6 +341,9 @@ export function buildScene2(host) {
     setDecor(on) { base.setDecor(on); rebake('bandG'); },
     setUpgrades(list) { base.setUpgrades(list); rebake('bandG'); },
     setPaint(key) { base.setPaint(key); rebake('bandG'); },
+    setAwning(key) { base.setAwning(key); rebake('bandG'); },
+    // yeni araba basamağı: tekerlerden toz kalkar, gövdede parıltılar, kamera hafifçe seker
+    build() { st.buildAt = t; cam.z = cam.tz * 1.06; },
     setSeason(name) { base.setSeason(name); st.season = name; rebake('bandG'); },
     setFestival(on) { base.setFestival(on); if (on !== st.festival) { st.festival = on; rebake('bandH'); } },
     setWeather(key) { base.setWeather(key); st.weather = key; st.windy = key === 'ruzgarli'; },

@@ -9,7 +9,7 @@ import { TOWNS } from '../data/towns.js';
 import { SPOTS } from '../data/spots.js';
 import { COUNTRIES, PAPER, PAPER_TOWN } from '../data/countries.js';
 import { EVENTS, WEATHER, SEASON, SPECIAL, GOSSIP } from '../data/calendar.js';
-import { DECOR, UPGRADES, PAINTS, SLOTS, SHELF_LEVELS } from '../data/decor.js';
+import { DECOR, UPGRADES, PAINTS, SLOTS, SHELF_LEVELS, AWNINGS } from '../data/decor.js';
 import { STAMPS } from '../data/stamps.js';
 import { PAGES } from '../data/story.js';
 import { VOYAGE, GRAND } from '../data/voyage.js';
@@ -31,7 +31,7 @@ export const TARGETS = {
   BOOK, BLURBS, TAGS, GENRES,
   REGULARS, KEEPSAKES, ARCHETYPES,
   TOWNS, SPOTS, COUNTRIES, PAPER, PAPER_TOWN, EVENTS, WEATHER, SEASON, SPECIAL, GOSSIP,
-  DECOR, UPGRADES, PAINTS, SLOTS, SHELF_LEVELS, STAMPS, PAGES, VOYAGE, GRAND, KOSTAS, TUT_STEPS,
+  DECOR, UPGRADES, PAINTS, AWNINGS, SLOTS, SHELF_LEVELS, STAMPS, PAGES, VOYAGE, GRAND, KOSTAS, TUT_STEPS,
   LETTERS, HAPPENINGS, ROAD, VISITORS, REPLIES, TALK, GREET, CLOSE, CONTEXT, REQ_ONE, REQ_TWO, RARE_REQ,
   REP_LEVELS, COND_NAME, THEMES, HAGGLE_LINES, HAGGLE_HINTS,
 };

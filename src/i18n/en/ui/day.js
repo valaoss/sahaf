@@ -257,6 +257,7 @@ export default {
   "Bu zaten karavanında.": "That's already in your van.",
   "Raflar zaten en büyük hâlinde.": "Your shelves are already as big as they get.",
   "Böyle bir renk yok.": "No such colour.",
+  "Böyle bir tente yok.": "No such awning.",
   "Okumak için sabahı bekle.": "Wait for the morning to read.",
   "Bu kitap karavanda yok.": "This book isn't in the van.",
   "Bu kitabı zaten iyi tanıyorsun.": "You already know this book well.",

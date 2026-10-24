@@ -5,13 +5,14 @@ import { seeded } from '../core/rng.js';
 import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../data/towns.js';
 import { booksOf, BOOK } from '../data/books.js';
-import { PAINTS } from '../data/decor.js';
+import { PAINTS, AWNINGS } from '../data/decor.js';
 import { shelfCap, genreCounts } from '../game/state.js';
 import { syncLayout, sectionCap } from '../game/shelving.js';
 import { DECOR_ART } from './decor-art.js';
 import { spotArt, GROUND, SHOW_HOUSES } from './spot-art.js';
 import { landmarkArt, ARCH } from './landmarks.js';
 import { svgView, personSVG } from './people.js';
+import { cartArt } from './cart-art.js';
 
 // Çay köşesi: tabure, demlik, iki ince belli bardak, buhar
 const TEA_ART = `<ellipse cx="0" cy="4" rx="34" ry="7" fill="#c9a676" opacity=".6"/>
@@ -37,15 +38,24 @@ const CRATES_ART = `<ellipse cx="34" cy="2" rx="50" ry="7" fill="#c9a676" opacit
   <g><rect x="6" y="-52" width="8" height="14" fill="#e57f73"/><rect x="16" y="-55" width="7" height="17" fill="#5b8bd0"/><rect x="25" y="-51" width="9" height="13" fill="#f2c45a"/><rect x="46" y="-40" width="8" height="12" fill="#8bc49a"/><rect x="56" y="-42" width="7" height="14" fill="#b98ad6"/></g>`;
 // karavanda çatı kenarı boyunca bayrak dizisi (ikinci dereceden eğri üstünde üçgenler)
 const BUNTING_ART = (() => {
-  const C = ['#f08a7e', '#f2c45a', '#8bc49a', '#5b8bd0', '#b98ad6', '#f6a5c0'], at = t => [(1 - t) ** 2 * 40 + 2 * (1 - t) * t * 225 + t * t * 410, (1 - t) ** 2 * 66 + 2 * (1 - t) * t * 2 + t * t * 66];
-  let out = '<path d="M40 66 Q225 2 410 66" fill="none" stroke="#7a4e33" stroke-width="2.5"/>';
-  for (let i = 0; i < 12; i++) { const [x1, y1] = at(i / 12 + 0.01), [x2, y2] = at((i + 1) / 12 - 0.01); out += '<path d="M' + x1.toFixed(0) + ' ' + y1.toFixed(0) + ' L' + x2.toFixed(0) + ' ' + y2.toFixed(0) + ' L' + ((x1 + x2) / 2).toFixed(0) + ' ' + ((y1 + y2) / 2 + 20).toFixed(0) + 'Z" fill="' + C[i % C.length] + '"/>'; }
+  const C = ['#f08a7e', '#f2c45a', '#8bc49a', '#5b8bd0', '#b98ad6', '#f6a5c0'], at = t => [(1 - t) ** 2 * 6 + 2 * (1 - t) * t * 225 + t * t * 446, (1 - t) ** 2 * 26 + 2 * (1 - t) * t * 66 + t * t * 34];
+  let out = '<path d="M6 26 Q225 66 446 34" fill="none" stroke="#7a4e33" stroke-width="2.5"/>';
+  for (let i = 0; i < 14; i++) { const [x1, y1] = at(i / 14 + 0.01), [x2, y2] = at((i + 1) / 14 - 0.01); out += '<path d="M' + x1.toFixed(0) + ' ' + y1.toFixed(0) + ' L' + x2.toFixed(0) + ' ' + y2.toFixed(0) + ' L' + ((x1 + x2) / 2).toFixed(0) + ' ' + ((y1 + y2) / 2 + 17).toFixed(0) + 'Z" fill="' + C[i % C.length] + '"/>'; }
   return out;
 })();
 const WING_ART = `<path d="M0 0 L70 0 L70 12 L0 12Z" fill="#a8704a"/><path d="M62 12 L62 120" stroke="#7a4e33" stroke-width="6"/>
   <rect x="0" y="-62" width="70" height="62" rx="4" fill="#6b4a3a"/><path d="M0 -31 L70 -31" stroke="#5a3d30" stroke-width="4"/>
   <g><rect x="6" y="-58" width="8" height="25" fill="#e57f73"/><rect x="15" y="-56" width="7" height="23" fill="#f6a5c0"/><rect x="23" y="-58" width="9" height="25" fill="#8bc49a"/><rect x="34" y="-55" width="7" height="22" fill="#5b8bd0"/><rect x="43" y="-58" width="9" height="25" fill="#f2c45a"/>
   <rect x="8" y="-27" width="9" height="25" fill="#b98ad6"/><rect x="18" y="-25" width="8" height="23" fill="#e57f73"/><rect x="28" y="-27" width="8" height="25" fill="#5b8bd0"/><rect x="38" y="-24" width="9" height="22" fill="#c48a5f"/></g>`;
+
+// Okuma koltuğu: kadife koltuk, üstünde açık kitap
+const CHAIR_ART = `<ellipse cx="0" cy="2" rx="50" ry="7" fill="#c9a676" opacity=".6"/>
+  <path d="M-30 -4 L-34 4 M30 -4 L34 4" stroke="#7a4e33" stroke-width="5" stroke-linecap="round"/>
+  <path d="M-30 -32 L-30 -80 Q-30 -94 -16 -94 L16 -94 Q30 -94 30 -80 L30 -32Z" fill="#e08a6e"/>
+  <path d="M-18 -84 Q0 -76 18 -84" fill="none" stroke="#f2b8a6" stroke-width="3" stroke-linecap="round"/>
+  <rect x="-34" y="-34" width="68" height="30" rx="9" fill="#c96f5a"/>
+  <rect x="-46" y="-54" width="18" height="50" rx="9" fill="#d47a62"/><rect x="28" y="-54" width="18" height="50" rx="9" fill="#d47a62"/>
+  <path d="M-14 -36 Q-7 -42 0 -36 Q7 -42 14 -36 L14 -30 Q7 -35 0 -30 Q-7 -35 -14 -30Z" fill="#fff6e8" stroke="#b9956a" stroke-width="1.5"/>`;
 
 // Plak çalar: dönen plak ve boru
 const GRAMO_ART = `<rect x="-26" y="-14" width="52" height="16" rx="3" fill="#8a5a3c"/>
@@ -92,7 +102,8 @@ const MARKUP = `
     </pattern>
     <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6ea" stop-opacity="0"/><stop offset="1" stop-color="#fff6ea" stop-opacity=".35"/></linearGradient>
     <linearGradient id="groundDepth" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8ec" stop-opacity=".35"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#5a3d30" stop-opacity=".14"/></linearGradient>
-    <linearGradient id="cartVol" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".25" stop-color="#fff" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+    <linearGradient id="cartVol" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3d2b24" stop-opacity=".16"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".75" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".2"/></linearGradient>
+    <pattern id="clothStripe" width="28" height="10" patternUnits="userSpaceOnUse"><rect width="14" height="10" fill="#f08a7e"/><rect x="14" width="14" height="10" fill="#fff4e0"/></pattern>
     <radialGradient id="vignette" cx=".5" cy=".45" r=".75"><stop offset=".65" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#3d2b24" stop-opacity=".16"/></radialGradient>
     <!-- boyanmış görünüm: kâğıt lifi, fırça lekesi, suluboya kenarı -->
     <filter id="paperGrain" x="0" y="0" width="100%" height="100%">
@@ -175,49 +186,55 @@ const MARKUP = `
     <ellipse cx="100" cy="150" rx="120" ry="14" fill="#d2b183" opacity=".7"/>
     <rect x="20" y="70" width="12" height="80" rx="4" fill="#7a4e33"/><rect x="168" y="70" width="12" height="80" rx="4" fill="#7a4e33"/>
     <rect x="0" y="54" width="200" height="22" rx="8" fill="#a8704a"/><rect x="0" y="54" width="200" height="8" rx="4" fill="#c48a5f"/>
-    <path d="M6 72 L194 72 L188 104 C170 112 150 100 130 108 C110 116 90 102 70 110 C50 118 30 104 12 108Z" fill="#fff4e0"/>
-    <path d="M6 72 L194 72 L192 82 L8 82Z" fill="#f08a7e" opacity=".8"/>
+    <path d="M6 72 L194 72 L188 104 C170 112 150 100 130 108 C110 116 90 102 70 110 C50 118 30 104 12 108Z" fill="url(#clothStripe)"/>
+    <path d="M6 72 L194 72 L192 80 L8 80Z" fill="#c96f5a" opacity=".45"/>
     <g id="tableBooks"></g>
     <g id="slotTable" transform="translate(170 54)"></g>
     <g id="slotWrap" transform="translate(10 54)"></g>
   </g>
 
-  <ellipse cx="830" cy="790" rx="300" ry="26" fill="#c9a676" opacity=".55"/>
+  <ellipse cx="830" cy="808" rx="310" ry="24" fill="#c9a676" opacity=".55"/>
 
-  <!-- kitap karavanı -->
-  <g transform="translate(610 420)">
-    <path d="M430 300 L500 316 L500 326 L428 316Z" fill="#6b5446"/><circle cx="502" cy="321" r="9" fill="#6b5446"/>
-    <path d="M10 330 L10 120 C10 40 70 0 150 0 L300 0 C380 0 440 40 440 120 L440 330 C440 342 432 350 420 350 L30 350 C18 350 10 342 10 330Z" id="cartBody" fill="#9fd8c4" stroke="#5ea592" stroke-width="7"/>
-    <path d="M10 330 L10 120 C10 40 70 0 150 0 L300 0 C380 0 440 40 440 120 L440 330 C440 342 432 350 420 350 L30 350 C18 350 10 342 10 330Z" fill="url(#cartVol)" pointer-events="none"/>
-    <path id="cartBand" d="M24 300 L426 300 L426 330 C426 336 422 340 416 340 L34 340 C28 340 24 336 24 330Z" fill="#87c7b2"/>
-    <path d="M40 88 C70 34 110 18 160 18 L290 18 C340 18 380 34 410 88" id="cartShine" fill="none" stroke="#c3ebdd" stroke-width="8" stroke-linecap="round"/>
-    <rect x="50" y="118" width="350" height="170" rx="18" fill="#6b4a3a"/>
-    <rect x="50" y="118" width="350" height="22" rx="10" fill="#5a3d30"/>
-    <g id="shelves"></g>
-    <rect x="50" y="130" width="350" height="26" fill="#000" opacity=".16" pointer-events="none"/>
-    <g id="awning" class="awning"></g>
-    <g transform="translate(140 -58)">
-      <path d="M30 58 L22 78 M140 58 L148 78" stroke="#7a4e33" stroke-width="6" stroke-linecap="round"/>
-      <rect x="0" y="0" width="170" height="62" rx="16" fill="#fff6e8" stroke="#e2c29c" stroke-width="5"/>
-      <text x="85" y="42" text-anchor="middle" font-size="34" font-weight="700" fill="#f08a7e">Sahaf</text>
-      <circle cx="18" cy="31" r="6" fill="#f2c45a"/><circle cx="152" cy="31" r="6" fill="#f2c45a"/>
+  <!-- yazı tahtası: ayaklı kara tahta, tebeşirle kitap, çay ve kalp -->
+  <g transform="translate(300 806)">
+    <ellipse cx="0" cy="2" rx="42" ry="6" fill="#c9a676" opacity=".6"/>
+    <path d="M-24 0 L-3 -98 L3 -98 L24 0" fill="none" stroke="#7a4e33" stroke-width="6" stroke-linecap="round"/>
+    <path d="M-36 -4 L-13 -96 L13 -96 L36 -4Z" fill="#a8704a" stroke="#7a4e33" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M-28 -12 L-9 -88 L9 -88 L28 -12Z" fill="#3f4a44"/>
+    <g fill="none" stroke="#f3efe4" stroke-width="2" stroke-linecap="round" opacity=".9">
+      <path d="M-12 -62 Q-6 -66 0 -62 Q6 -66 12 -62 L12 -50 Q6 -54 0 -50 Q-6 -54 -12 -50Z M0 -62 L0 -50"/>
+      <path d="M-17 -38 L17 -38 M-20 -28 Q-10 -31 0 -28 T20 -28"/>
+      <path d="M-14 -24 L-13 -16 L-7 -16 L-6 -24 M-6 -22 Q-2 -21 -6 -18"/>
     </g>
-    <g id="slotRack"></g>
-    <g id="slotRoof" transform="translate(392 32)"></g>
-    <g id="slotGramo" transform="translate(92 30)"></g>
-    <g id="slotWing" transform="translate(438 210)"></g>
-    <rect id="cartHit" x="10" y="0" width="430" height="350" fill="transparent" style="cursor:pointer"/>
-    <path d="M30 104 C120 150 330 150 420 104" fill="none" stroke="#5a3d30" stroke-width="3"/>
-    <g id="lights"></g>
-    <g transform="translate(110 350)"><circle r="44" fill="#5b4636"/><circle r="22" fill="#f6e2c4"/><circle r="8" fill="#5b4636"/></g>
-    <g transform="translate(340 350)"><circle r="44" fill="#5b4636"/><circle r="22" fill="#f6e2c4"/><circle r="8" fill="#5b4636"/></g>
-    <path class="cartEdge" d="M56 320 C60 284 160 284 164 320" fill="none" stroke="#5ea592" stroke-width="10" stroke-linecap="round"/>
-    <path class="cartEdge" d="M286 320 C290 284 390 284 394 320" fill="none" stroke="#5ea592" stroke-width="10" stroke-linecap="round"/>
+    <path d="M10 -76 C6 -80 1 -76 4 -72 L10 -67 L16 -72 C19 -76 14 -80 10 -76Z" fill="#f08a7e"/>
+    <circle cx="-10" cy="-76" r="2.4" fill="#f2c45a"/><circle cx="12" cy="-20" r="2" fill="#f2c45a"/>
+    <rect x="-32" y="-14" width="64" height="4" rx="2" fill="#7a4e33"/>
   </g>
 
-  <!-- kedi -->
-  <g transform="translate(1110 735)">
-    <ellipse cx="40" cy="44" rx="60" ry="9" fill="#c9a676" opacity=".6"/>
+  <!-- kitap arabası (render/cart-art.js): gövde rafların arkasında, çerçeve-tezgâh-tekerler önünde -->
+  <g transform="translate(610 420)">
+    <g id="cartBack"></g>
+    <g id="shelves"></g>
+    <rect x="50" y="130" width="350" height="26" fill="#000" opacity=".16" pointer-events="none"/>
+    <g id="cartFront"></g>
+    <g id="awning" class="awning"></g>
+    <g id="slotRack"></g>
+    <g id="slotRoof" transform="translate(392 18)"></g>
+    <g id="slotGramo" transform="translate(86 18)"></g>
+    <g id="slotWing" transform="translate(452 210)"></g>
+    <rect id="cartHit" x="-70" y="-50" width="540" height="440" fill="transparent" style="cursor:pointer"/>
+    <g id="lights"></g>
+  </g>
+
+  <!-- kedi: kasanın üstünde uyur -->
+  <g transform="translate(1098 792)">
+    <ellipse cx="46" cy="2" rx="62" ry="7" fill="#c9a676" opacity=".6"/>
+    <rect x="0" y="-58" width="92" height="58" rx="4" fill="#c48a5f" stroke="#8a5a3c" stroke-width="3"/>
+    <path d="M2 -39 L90 -39 M2 -20 L90 -20" stroke="#a8704a" stroke-width="3"/><path d="M12 -58 L12 0 M80 -58 L80 0" stroke="#8a5a3c" stroke-width="4"/>
+    <rect x="26" y="-50" width="40" height="9" rx="2" fill="#e8d3b0"/>
+  </g>
+  <g transform="translate(1112 688)">
+    <ellipse cx="40" cy="44" rx="44" ry="6" fill="#8a5a3c" opacity=".35"/>
     <path class="tail" d="M70 30 C110 30 116 0 100 -6" fill="none" stroke="#f0a35a" stroke-width="13" stroke-linecap="round"/>
     <g class="breathe"><ellipse cx="40" cy="22" rx="46" ry="26" fill="#f4b064"/>
       <path d="M10 22 C14 6 26 2 34 8" fill="none" stroke="#e08d3e" stroke-width="5" stroke-linecap="round"/>
@@ -237,9 +254,10 @@ const MARKUP = `
   </g>
 
   <g id="slotGround" transform="translate(1510 780)"></g>
+  <g id="slotChair" transform="translate(1428 812)"></g>
   <g id="slotCrates" transform="translate(1215 778)"></g>
   <g id="slotLantern" transform="translate(1330 772)"></g>
-  <g id="slotHelper" transform="translate(604 806) scale(.62) translate(0 -806)"></g>
+  <g id="slotHelper" transform="translate(522 810) scale(.62) translate(0 -806)"></g>
   <g id="ambientFront"></g>
   <g id="slotTea" transform="translate(64 660) scale(1.3)"></g>
   </g>
@@ -352,14 +370,21 @@ function drawTableBooks(g, counts) {
   });
 }
 
-function drawAwning(g) {
-  const aw = 380, ax = 35, stripes = 10, sw = aw / stripes;
-  for (let i = 0; i < stripes; i++) {
-    const c = i % 2 ? '#fff4e6' : '#f4a09c';
-    el('rect', { x: ax + i * sw, y: 96, width: sw + .5, height: 30, fill: c }, g);
-    el('circle', { cx: ax + i * sw + sw / 2, cy: 126, r: sw / 2, fill: c }, g);
+const AWNING = { top: 64, front: 100, x0: 44, x1: 406, f0: 16, f1: 434 };
+function drawAwning(g, C = AWNINGS.mercan) {
+  g.innerHTML = '';
+  const A = AWNING, n = 10, col = i => i % 2 ? C.b : C.a;
+  const tx = t => A.x0 + (A.x1 - A.x0) * t, fx = t => A.f0 + (A.f1 - A.f0) * t, sw = (A.f1 - A.f0) / n;
+  for (let i = 0; i < n; i++) {
+    const a = i / n, b = (i + 1) / n, x = A.f0 + i * sw;
+    el('path', { d: `M${tx(a)} ${A.top} L${tx(b) + .5} ${A.top} L${fx(b) + .5} ${A.front} L${fx(a)} ${A.front}Z`, fill: col(i) }, g);
+    // etek: düz şerit ve yarım daire uç
+    el('rect', { x, y: A.front, width: sw + .5, height: 10, fill: col(i) }, g);
+    el('path', { d: `M${x} ${A.front + 10} A${sw / 2} 9 0 0 0 ${x + sw} ${A.front + 10}Z`, fill: col(i) }, g);
   }
-  el('rect', { x: ax - 6, y: 90, width: aw + 12, height: 10, rx: 5, fill: '#e57f73' }, g);
+  el('path', { d: `M${A.x0} ${A.top} L${A.x1} ${A.top} L${A.f1} ${A.front} L${A.f0} ${A.front}Z`, fill: '#5a3d30', opacity: .08 }, g);
+  el('rect', { x: A.x0 - 6, y: A.top - 6, width: A.x1 - A.x0 + 12, height: 9, rx: 4.5, fill: C.edge }, g);
+  el('rect', { x: A.f0 - 2, y: A.front - 2, width: A.f1 - A.f0 + 4, height: 4, rx: 2, fill: C.edge, opacity: .7 }, g);
 }
 
 // iki renk arası karışım (k: 0..1)
@@ -371,17 +396,17 @@ function mix(a, b, k) {
 
 // karavanın ışık zinciri: tentenin altındaki sarkık ipte 11 ampul (karavan koordinatında)
 export const LIGHT_COLORS = ['#ffd56b', '#ff9e8a', '#9fe0d0', '#fff1b8'];
+const LIGHT_Y = 116;
 export function lightPoints() {
   const pts = [];
   for (let i = 1; i < 12; i++) {
-    const t = i / 12, mt = 1 - t;
-    const px = mt ** 3 * 30 + 3 * mt * mt * t * 120 + 3 * mt * t * t * 330 + t ** 3 * 420;
-    const py = mt ** 3 * 104 + 3 * mt * mt * t * 150 + 3 * mt * t * t * 150 + t ** 3 * 104;
-    pts.push({ x: px, y: py + 8, c: LIGHT_COLORS[i % 4], delay: (i * .37) % 1.8 });
+    const t = i / 12;
+    pts.push({ x: 20 + 410 * t, y: LIGHT_Y + 28 * t * (1 - t) * 2 + 6, c: LIGHT_COLORS[i % 4], delay: (i * .37) % 1.8 });
   }
   return pts;
 }
 function drawLights(g) {
+  el('path', { d: `M20 ${LIGHT_Y} Q225 ${LIGHT_Y + 28} 430 ${LIGHT_Y}`, fill: 'none', stroke: '#5a3d30', 'stroke-width': 2.5 }, g);
   for (const p of lightPoints()) {
     el('circle', { cx: p.x, cy: p.y, r: 20, fill: p.c, class: 'glow' }, g);
     el('circle', { cx: p.x, cy: p.y, r: 7, fill: p.c, class: 'bulb', style: `animation-delay:${p.delay}s` }, g);
@@ -403,6 +428,17 @@ export function buildScene(host) {
   fit();
   drawLights($('lights'));
   const svg = host.querySelector('svg');
+  let cartLv = -1, cartPaint = 'nane', cartLamp = null;
+  const drawCart = (lv, paint) => {
+    if (lv === cartLv && paint === cartPaint) return;
+    cartLv = lv; cartPaint = paint;
+    const a = cartArt(lv, PAINTS[paint] || PAINTS.nane);
+    cartLamp = a.lamp;
+    $('cartBack').innerHTML = a.back;
+    $('cartFront').innerHTML = a.front;
+    for (const [id, k] of [['slotRoof', 'roof'], ['slotGramo', 'gramo'], ['slotWing', 'wing']]) $(id).setAttribute('transform', `translate(${a[k][0]} ${a[k][1]})`);
+  };
+  drawCart(0, 'nane');
   return {
     svg,
     // sahne koordinatı (1600×900) → ekran pikseli
@@ -487,10 +523,11 @@ export function buildScene(host) {
       $('slotTable').innerHTML = DECOR_ART[on.table] || '';
       $('slotGround').innerHTML = DECOR_ART[on.ground] || '';
     },
-    // karavan geliştirmeleri: çay köşesi (kaldırımda), plak çalar (çatıda), paket köşesi (sergi masasında), fener, çırak;
-    // araba basamağı 'lv1'..'lv3' (koli yığını, yan kanat raf, bayrak dizisi)
+    // karavan geliştirmeleri: çay köşesi (kaldırımda), plak çalar (çatıda), paket köşesi (sergi masasında), fener, çırak, okuma koltuğu;
+    // araba basamağı 'lv0'..'lv3': araç değişir (render/cart-art.js); kitap arabasında koli yığını, büyük arabada yan kanat raf, karavanda bayrak dizisi
     setUpgrades(list) {
       $('slotTea').innerHTML = list.includes('cay') ? TEA_ART : '';
+      $('slotChair').innerHTML = list.includes('koltuk') ? CHAIR_ART : '';
       $('slotGramo').innerHTML = list.includes('plak') ? GRAMO_ART : '';
       $('slotWrap').innerHTML = list.includes('paket') ? WRAP_ART : '';
       $('slotLantern').innerHTML = list.includes('fener') ? LANTERN_ART : '';
@@ -499,15 +536,14 @@ export function buildScene(host) {
       $('slotCrates').innerHTML = lv >= 1 ? CRATES_ART : '';
       $('slotWing').innerHTML = lv >= 2 ? WING_ART : '';
       $('slotRack').innerHTML = lv >= 3 ? BUNTING_ART : '';
+      drawCart(lv, cartPaint);
     },
-    setPaint(key) {
-      const p = PAINTS[key];
-      $('cartBody').setAttribute('fill', p.body);
-      $('cartBody').setAttribute('stroke', p.edge);
-      $('cartBand').setAttribute('fill', p.band);
-      $('cartShine').setAttribute('stroke', p.shine);
-      host.querySelectorAll('.cartEdge').forEach(e => e.setAttribute('stroke', p.edge));
-    },
+    setPaint(key) { drawCart(Math.max(0, cartLv), key); },
+    // arabanın fenerinin yeri (karavan koordinatı) ya da null
+    lamp: () => cartLamp,
+    setAwning(key) { drawAwning($('awning'), AWNINGS[key] || AWNINGS.mercan); },
+    // yeni araba basamağı alınınca (canvas motorunda toz ve parıltı; burada yok)
+    build() {},
     // akşam alacası: 0 gündüz, 1 kapanış
     // boyanmış doku açık/kapalı (telefonda performans için kapatılabilir)
     setPaintFx(on) { host.classList.toggle('nopaint', !on); },

@@ -3,7 +3,7 @@
 // ROWS: raf satırlarının üst kenarı ve tahtası · WIN: pencerenin solu ve genişliği · COUNTER: paketlemenin yapıldığı tezgâh
 export const ROWS = [{ top: 546, plank: 598 }, { top: 606, plank: 652 }, { top: 660, plank: 704 }];
 export const WIN = { x: 660, w: 350 };
-export const COUNTER = { x: 835, y: 738 };
+export const COUNTER = { x: 835, y: 704 };
 
 // Bölümdeki i. kitabın yaklaşık ortası (cap: bölüm kapasitesi; sırt genişliği raf katmanıyla aynı hesap)
 export function slotXY(sec, i, cap) {

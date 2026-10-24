@@ -4,7 +4,7 @@ import { BAL, SEASONS } from '../src/data/balance.js';
 import { GENRES, GENRE_KEYS } from '../src/data/genres.js';
 import { TOWNS, START_TOWNS } from '../src/data/towns.js';
 import { BOOKS, BOOK, TAGS, booksOf } from '../src/data/books.js';
-import { DECOR, SHELF_LEVELS, PAINTS, UPGRADES } from '../src/data/decor.js';
+import { DECOR, SHELF_LEVELS, PAINTS, UPGRADES, AWNINGS } from '../src/data/decor.js';
 import { newGame, restore, shelfCount, shelfCap, genreCount, seasonOf } from '../src/game/state.js';
 import { buyBox, boxCost, travel, rescue, resolveCustomer, recommend, matchGrade, bestBook, makeCustomer, makeRegular, askText, demandOf, chooseSpot, toggleFeature, canTravel } from '../src/game/shop.js';
 import { SPOTS } from '../src/data/spots.js';
@@ -33,7 +33,8 @@ import { checkStamps, stampProgress } from '../src/game/stamps.js';
 import { checkStory, nextPage, progressOf, checkUnlocks } from '../src/game/story.js';
 import { weatherOf, eventOf, dayMods, specialOf } from '../src/game/calendar.js';
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../src/data/regulars.js';
-import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from '../src/game/decor.js';
+import { effects, equipDecor, upgradeShelf, choosePaint, chooseAwning, buyUpgrade } from '../src/game/decor.js';
+import { cartArt } from '../src/render/cart-art.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, simulateDay } from '../src/game/day.js';
 import { FEATURES } from '../src/data/features.js';
 import { traitsFor, approach, respond, stickerOf, midOf, lineFor, PLAIN_TRAITS, sozOptions, sozFit, hintFor } from '../src/game/haggle.js';
@@ -221,6 +222,30 @@ test('araba basamakları: el arabasından karavana raf büyür, boya değişir',
   assert.equal(choosePaint(S, 'nane'), null);
   assert.equal(choosePaint(S, 'pembe'), null);
   assert.equal(S.coins, 5000 - cart - PAINTS.pembe.price);
+});
+
+test('araba görünümü (Faz 5): her basamak ayrı araç, raf penceresi aynı yerde; tente rengi bir kez alınır', () => {
+  const arts = [0, 1, 2, 3].map(lv => cartArt(lv, PAINTS.nane));
+  assert.equal(new Set(arts.map(a => a.back + a.front)).size, 4, 'dört basamak dört ayrı çizim');
+  for (const a of arts) {
+    assert.ok(a.back.includes('<rect x="50" y="118" width="350" height="170"'), 'raf penceresi shelf-geo ile aynı yerde');
+    assert.ok(a.front.includes('>Sahaf<'), 'tabela her araçta');
+    for (const k of ['roof', 'gramo', 'wing']) assert.equal(a[k].length, 2);
+  }
+  assert.ok(arts[3].back.includes('#bfe3ea'), 'karavanın ön camı');
+  assert.ok(cartArt(3, PAINTS.pembe).back.includes(PAINTS.pembe.body), 'boya gövdeye geçer');
+  const S = newGame(1);
+  S.coins = 100;
+  assert.equal(S.awning, 'mercan');
+  assert.equal(chooseAwning(S, 'yok'), 'Böyle bir tente yok.');
+  assert.equal(chooseAwning(S, 'deniz'), null);
+  assert.equal(S.awning, 'deniz');
+  assert.equal(chooseAwning(S, 'mercan'), null);
+  assert.equal(chooseAwning(S, 'deniz'), null);
+  assert.equal(S.coins, 100 - AWNINGS.deniz.price, 'alınan tente ikinci kez ücretsiz');
+  assert.equal(chooseAwning(S, 'limon'), 'Paran yetmiyor.');
+  openShop(S);
+  assert.equal(chooseAwning(S, 'mercan'), 'Dükkân açıkken düzenleme yapılmaz.');
 });
 
 test('tam gün: stok eksiye düşmez, defter tutarlı, para korunur', () => {

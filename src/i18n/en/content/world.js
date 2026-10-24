@@ -266,6 +266,14 @@ const SHELF_LEVELS = [
   { name: "Book caravan" },
 ];
 
+const AWNINGS = {
+  mercan: { name: "Coral" },
+  deniz: { name: "Sea blue" },
+  limon: { name: "Lemon" },
+  zeytin: { name: "Olive" },
+  lavanta: { name: "Lavender" },
+};
+
 const PAINTS = {
   nane: { name: "Mint" },
   pembe: { name: "Pink" },
@@ -446,4 +454,4 @@ const TUT_STEPS = [
   { text: "One last tip: the 📜 Notebook keeps your aunt's letters and the customers you've met. Happy reading!" },
 ];
 
-export default { TOWNS, SPOTS, COUNTRIES, PAPER, PAPER_TOWN, EVENTS, WEATHER, SEASON, SPECIAL, GOSSIP, DECOR, UPGRADES, SHELF_LEVELS, PAINTS, SLOTS, STAMPS, PAGES, VOYAGE, GRAND, KOSTAS, TUT_STEPS };
+export default { TOWNS, SPOTS, COUNTRIES, PAPER, PAPER_TOWN, EVENTS, WEATHER, SEASON, SPECIAL, GOSSIP, DECOR, UPGRADES, SHELF_LEVELS, PAINTS, AWNINGS, SLOTS, STAMPS, PAGES, VOYAGE, GRAND, KOSTAS, TUT_STEPS };

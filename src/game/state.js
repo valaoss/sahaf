@@ -54,6 +54,8 @@ export function newGame(seed = Date.now()) {
     decor: { owned: Object.values(DEFAULT_DECOR), on: { ...DEFAULT_DECOR } },
     paint: 'nane',
     paints: ['nane'],
+    awning: 'mercan',          // tente rengi (data/decor.js AWNINGS)
+    awnings: ['mercan'],
     spot: 'iskele',            // kasaba içindeki mekân (data/spots.js)
     friends: {},               // müdavim → kalp (0..5)
     met: [],                   // tanışılan müdavimler

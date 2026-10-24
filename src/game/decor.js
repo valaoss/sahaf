@@ -1,5 +1,5 @@
 // Süsler, raf yükseltmesi ve boya: satın alma, takma ve toplam etkiler.
-import { DECOR, SHELF_LEVELS, PAINTS, UPGRADES } from '../data/decor.js';
+import { DECOR, SHELF_LEVELS, PAINTS, UPGRADES, AWNINGS } from '../data/decor.js';
 
 // Takılı süslerin toplam etkisi
 export function effects(S) {
@@ -59,6 +59,21 @@ export function upgradeShelf(S) {
   S.coins -= next.price;
   S.totals.spent += next.price;
   S.shelfLv++;
+  return null;
+}
+
+export function chooseAwning(S, key) {
+  const a = AWNINGS[key];
+  if (!a) return 'Böyle bir tente yok.';
+  const why = morningOnly(S);
+  if (why) return why;
+  if (!S.awnings.includes(key)) {
+    if (S.coins < a.price) return 'Paran yetmiyor.';
+    S.coins -= a.price;
+    S.totals.spent += a.price;
+    S.awnings.push(key);
+  }
+  S.awning = key;
   return null;
 }
 

@@ -34,6 +34,7 @@ export default {
   "Süsler": "Decorations",
   "her yuvaya bir tane; aldığın süs sende kalır": "one per slot; anything you buy stays yours",
   "Boya": "Paint",
+  "Tente": "Awning",
   "Ege": "Aegean",
   "Mekân": "Spot",
   "{0} {1} · {2} · {3}. gün": "{0} {1} · {2} · day {3}",

@@ -51,6 +51,15 @@ export const SHELF_LEVELS = [
   { name: 'Kitap karavanı', icon: '🚐', cap: 50, price: 1600, traffic: 6 },
 ];
 
+// Tente renkleri (v3 Faz 5): a/b şeritler, edge saçak çıtası
+export const AWNINGS = {
+  mercan:  { name: 'Mercan',  price: 0,  a: '#f4a09c', b: '#fff4e6', edge: '#e57f73' },
+  deniz:   { name: 'Deniz',   price: 60, a: '#93bfe4', b: '#fff4e6', edge: '#5b8bd0' },
+  limon:   { name: 'Limon',   price: 60, a: '#f6d47a', b: '#fff4e6', edge: '#d9a93c' },
+  zeytin:  { name: 'Zeytin',  price: 60, a: '#a9c48a', b: '#fff4e6', edge: '#7f9c5a' },
+  lavanta: { name: 'Lavanta', price: 60, a: '#c8b2e6', b: '#fff4e6', edge: '#8f74bd' },
+};
+
 // Karavan boyaları: gövde, kenar, alt bant
 export const PAINTS = {
   nane:   { name: 'Nane',   price: 0,  body: '#9fd8c4', edge: '#5ea592', band: '#87c7b2', shine: '#c3ebdd' },

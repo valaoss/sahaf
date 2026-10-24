@@ -521,6 +521,23 @@ Her faz ayrı commit ve yayın olur.
 - **Modüller:** modül yuvaları ve yapım animasyonu.
 - **Kişiselleştirme:** tente, ahşap, boya, lamba, tabela, bitki, objeler.
 - **Bitiş ölçütü:** Her satın alma arabada görünür. Kitap sırtları ve kapakları telefonda ayırt edilir.
+- **Durum (25.10.2026): yapıldı; referansın sahne arka planı (taş kordon, korkuluk) bu fazda yok.**
+  - **Dört araç** (`render/cart-art.js`; raf penceresi her basamakta `shelf-geo` ile aynı yerde, raf modu ve satış animasyonu değişmeden çalışır):
+    - Kitap el arabası: boyalı dolap, tente direkleri, tahta tekerler, çekme kolu.
+    - Kitap arabası: kemerli krem çatı, alt bant, çeki demiri.
+    - Büyük kitap arabası: çatı rayı, sarmaşık, fenerli demir kol (akşam yanar), yan kanat raf.
+    - Kitap karavanı: referanstaki üç çeyrek bakış. Sol önde kabin, ön yüzü gölgede; ön cam, far, tampon, kapı camı. Bayrak dizisi, sarmaşık, fenerli kol.
+  - **Ortak parçalar:**
+    - Duvardan öne açılan çizgili tente (yamuk saçak ve dalgalı etek).
+    - Etek altında ışık zinciri.
+    - Pencere çerçevesi; satılan kitabın paketlendiği katlanır tezgâh (`COUNTER` artık tezgâhın üstünde).
+  - **Sahne:** ayaklı kara tahta, kasanın üstünde uyuyan kedi, çizgili örtülü sergi masası. Okuma koltuğu artık sahnede görünür; böylece her satın alma arabada ya da yanında görünüyor.
+  - **Kişiselleştirme:** Boyanın yanına tente rengi geldi (Atölye'de ⛱️ Tente; 5 renk, ₺60, bir kez alınır). Bitki ve objeler mevcut süs yuvalarıyla.
+  - **Yapım animasyonu:** Yeni basamak alınınca tekerlerden toz kalkar, araba çevresinde yıldızlar parlar, kamera hafifçe seker.
+  - **Yapılmayanlar:**
+    - Ahşap ve tabela seçenekleri.
+    - Referanstaki taş kordon ve korkuluk; mahalle sahneleriyle Faz 6'da.
+    - Boyanmış ışık-gölge dokusu: kodla çizimde yaklaşık kalır.
 
 ### Faz 6 — Mürekkep Koyu haritası (öncelik 5)
 - **Mahalleler:** 7 mahalle; veride mahalle başına müşteri karışımı, talep, kira, açılış koşulu ve olaylar.
