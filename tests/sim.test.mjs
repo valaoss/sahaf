@@ -35,9 +35,16 @@ import { weatherOf, eventOf, dayMods, specialOf } from '../src/game/calendar.js'
 import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../src/data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from '../src/game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, simulateDay } from '../src/game/day.js';
+import { FEATURES } from '../src/data/features.js';
 
 let passed = 0;
 const test = (name, fn) => { fn(); passed++; console.log('✓ ' + name); };
+// v3'te kenara alınan sistemleri (data/features.js) gün akışında deneyen testler: bayraklar test süresince açılır
+const legacyTest = (name, fn) => test(name + ' (kenarda)', () => {
+  const was = { ...FEATURES };
+  for (const k in FEATURES) FEATURES[k] = true;
+  try { fn(); } finally { Object.assign(FEATURES, was); }
+});
 const emptyShelf = S => { S.shelf = {}; };
 
 test('veri: her türde 40 kitap, etiketler tanımlı, kimlikler benzersiz, her etiket en az 12 kitapta', () => {
@@ -271,6 +278,44 @@ test('kayıt: v2 kaydı (v2 Faz 0 öncesi alanlarla) güncel sürüme taşınır
   assert.deepEqual(M.shelf, S.shelf);
 });
 
+test('v3 sadeleştirme: kenara alınan sistemler gün akışına girmez, yolculuk yalnız Türkiye içinde', () => {
+  const S = newGame(31);
+  S.coins = 5000;
+  for (let d = 0; d < 40; d++) {
+    if (d % 4 === 3) for (const g of ['roman', 'polisiye', 'cocuk']) buyBox(S, g);
+    placeAll(S);
+    simulateDay(S);
+  }
+  assert.equal(S.letters.length, 0, 'sabah mektubu gelmez');
+  assert.equal(S.quest, null, 'ilan çıkmaz');
+  assert.deepEqual(S.stamps, [], 'pul verilmez');
+  assert.deepEqual(S.countries, ['tr'], 'yeni ülke açılmaz');
+  S.countries = ['tr', 'gr']; S.unlocked.push('atina');
+  assert.equal(canTravel(S, 'atina'), 'Bu ülkeye feribot henüz yok.');
+  assert.equal(canTravel(S, S.town === 'foca' ? 'cunda' : 'foca'), null, 'yurt içi yol açık');
+});
+
+test('kayıt: v3 kaydı v4\'e taşınır; yurt dışındaki oyuncu Ayvalık\'a döner, kutudaki ve müzayededeki kitaplar koliye gelir', () => {
+  const S = newGame(12);
+  Object.assign(S, { town: 'marsilya', prevTown: 'marsilya', spot: Object.keys(SPOTS.marsilya)[0], countries: ['tr', 'gr', 'it', 'fr'] });
+  S.passport = { tr: 1, gr: 5, it: 9, fr: 14 };
+  S.voyage.bq = { until: 20, books: ['hobbit', 'garip'] };
+  S.voyage.auction = { book: 'kurk', day: 3 };
+  const v3 = JSON.parse(JSON.stringify(S));
+  v3.v = 3;
+  const M = restore(v3);
+  assert.equal(M.v, 4);
+  assert.equal(M.town, 'ayvalik');
+  assert.ok(SPOTS.ayvalik[M.spot], 'Ayvalık\'ta geçerli bir mekân');
+  assert.deepEqual(M.crate.map(e => e.id).sort(), ['garip', 'hobbit', 'kurk']);
+  assert.equal(M.voyage.bq, null);
+  assert.equal(M.voyage.auction, null);
+  assert.deepEqual(M.passport, S.passport, 'pasaport kayıtta durur');
+  assert.deepEqual(M.countries, S.countries, 'açılmış ülkeler kayıtta durur');
+  const home = newGame(12); home.v = 3;
+  assert.equal(restore(JSON.parse(JSON.stringify(home))).town, home.town, 'Türkiye\'deki oyuncunun yeri değişmez');
+});
+
 test('iflas koruması: kasa ve raf boşsa en ucuz koli kadar destek', () => {
   const S = newGame(1);
   emptyShelf(S);
@@ -489,7 +534,7 @@ test('pullar: veri tutarlı, koşul tutunca bir kez verilir, ödül kasaya', () 
   assert.deepEqual(stampProgress(S, STAMPS.find(s => s.id === 'elli')), { now: 0, of: 50 });
 });
 
-test('pullar: normal oyunda gün kapanınca kazanılır; mekân, hava ve festival izlenir', () => {
+legacyTest('pullar: normal oyunda gün kapanınca kazanılır; mekân, hava ve festival izlenir', () => {
   const S = newGame(31);
   const T = simulateDay(S);
   assert.ok(T.stamps.includes('ilkgun'));
@@ -658,7 +703,7 @@ test('olaylar: yarına kalan ilgi ertesi gün kalabalığı artırır', () => {
   assert.ok(boosted > plain * 1.25, `${boosted} > ${plain}`);
 });
 
-test('mektuplar: yalnız gerçekten tam isabet önerilen kitaplara, en az 5 gün sonra', () => {
+legacyTest('mektuplar: yalnız gerçekten tam isabet önerilen kitaplara, en az 5 gün sonra', () => {
   const S = newGame(8);
   S.coins = 1e5;
   // her tam isabeti kayıt dışında da izle (geçmiş sınırlı)
@@ -1062,7 +1107,7 @@ test('ülkeler: Türkiye açık başlar, Yunanistan hikâyeyle, İtalya üç Yun
   for (const c of COUNTRY_KEYS) assert.ok(TOWN_KEYS.filter(k => countryOf(k) === c).length >= 2, c + ' şehirleri');
 });
 
-test('yolculuk: yurt içi mesafeye göre yakıt; feribot pahalı, bir gün sürer, pasaporta damga', () => {
+legacyTest('yolculuk: yurt içi mesafeye göre yakıt; feribot pahalı, bir gün sürer, pasaporta damga', () => {
   const S = newGame(22); S.coins = 500;
   assert.equal(travelInfo(S, 'foca').cost, BAL.travelCost);
   assert.equal(travelInfo(S, 'foca').abroad, false);
@@ -1200,7 +1245,7 @@ test('kayıt: dükkân açıkken yazılmaz; eski gün ortası kaydı o sabaha d�
   assert.deepEqual(T.arrivals, []);
 });
 
-test('feribot sabahı: yeni gazete, kaçan günün etkisi varış gününe kayar, kasa boşsa destek', () => {
+legacyTest('feribot sabahı: yeni gazete, kaçan günün etkisi varış gününe kayar, kasa boşsa destek', () => {
   const S = newGame(6);
   S.countries = ['tr', 'gr']; S.unlocked.push('midilli');
   S.coins = 200;
@@ -1246,7 +1291,7 @@ test('arayüzün her komutunun main.js komut tablosunda tek bir karşılığı v
 });
 
 const BONDS = await import('../src/game/bonds.js');
-test('ilerleme: kurallarla oynayan oyuncu hikâyeyi bitirir, raf büyütür ve altı ülkenin hepsini açar', () => {
+legacyTest('ilerleme: kurallarla oynayan oyuncu hikâyeyi bitirir, raf büyütür ve altı ülkenin hepsini açar', () => {
   const S = newGame(2024);
   const go = k => { if (k !== S.town) travel(S, k); };
   for (let d = 0; d < 500 && S.countries.length < COUNTRY_KEYS.length; d++) {

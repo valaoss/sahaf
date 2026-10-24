@@ -53,13 +53,13 @@ export function createUI(root, act) {
   root.innerHTML = `
     <div class="top">
       <div class="col">
-        <span class="pill where" id="where" title="${T`Gazete`}"></span>
+        <span class="pill where" id="where" data-a="spot" title="${T`Mekân`}"></span>
         <span class="pill clock"><span id="time"></span><span class="bar"><i id="bar"></i></span></span>
       </div>
       <div class="col right">
         <span class="pill coins">🪙 <b id="coins"></b></span>
         <span class="pill shelf">📚 <span id="shelf"></span></span>
-        <button class="pill gear" id="gear" title="${T`Ayarlar`}">⚙️</button>
+        <span class="icons"><button class="pill gear" data-a="decor" title="${T`Süsle`}">🪴</button><button class="pill gear" data-a="book" title="${T`Defter`}">📜</button><button class="pill gear" id="gear" title="${T`Ayarlar`}">⚙️</button></span>
       </div>
     </div>
     <div class="bottom" id="bottom"></div>
@@ -73,7 +73,8 @@ export function createUI(root, act) {
     if (prop === 'width') $(id).style.width = v; else $(id)[prop] = v;
   };
   function hud(S, speed) {
-    put('where', T`${WEATHER[weatherOf(S.day)].icon} ${TOWNS[S.town].name} · ${tw(seasonOf(S.day))}, ${dayOfSeason(S.day)}. gün · 📰`);
+    K.S = S;
+    put('where', T`${WEATHER[weatherOf(S.day)].icon} ${TOWNS[S.town].name} · ${SPOTS[S.town][S.spot].name} · ${S.day}. gün`);
     put('time', hhmm(Math.round(S.clock)));
     put('bar', ((S.clock - BAL.dayStart) / (BAL.dayEnd - BAL.dayStart) * 100).toFixed(0) + '%', 'width');
     put('coins', String(S.coins));
@@ -84,18 +85,17 @@ export function createUI(root, act) {
     b.dataset.k = want;
     if (S.phase === 'morning') {
       const sp = SPOTS[S.town][S.spot];
-      b.innerHTML = `<button class="btn" data-a="spot">📍 ${sp.name}</button>
-        <button class="btn" data-a="stock">📦 ${T`Toptancı`}</button>
+      // v3: sabah yalnız ana işler; mekân üstteki konum hapında, süs ve defter sağ üstteki simgelerde
+      b.innerHTML = `<button class="btn" data-a="stock">📦 ${T`Toptancı`}</button>
         ${S.crate.length ? `<button class="btn hl2" data-a="inside">📚 ${T`Diz`} <b class="badge2">${S.crate.length}</b></button>` : ''}
-        <button class="btn" data-a="decor">🪴 ${T`Süsle`}</button>
         <button class="btn" data-a="map">🗺️ ${T`Harita`}</button>
-        <button class="btn" data-a="book">📜 ${T`Defter`}</button>
         <button class="btn hl" data-a="open">🔔 ${T`Dükkânı aç`}</button>`;
     } else if (S.phase === 'open') {
       b.innerHTML = `<button class="btn ${speed > 1 ? 'hl' : ''}" data-a="speed">${speed > 1 ? '⏩ ' + T`Hızlı` : '▶️ ' + T`Normal`}</button>`;
     } else b.innerHTML = '';
   }
-  $('where').addEventListener('click', () => act('paper'));
+  // konum hapı mekân panelini, sağ üst simgeler süs ve defteri açar (yalnız sabah: gün içinde panel saati durdurur)
+  root.querySelector('.top').addEventListener('click', e => { const a = e.target.closest('[data-a]'); if (a && K.S?.phase !== 'open') act(a.dataset.a); });
   $('gear').addEventListener('click', () => act('settings'));
   $('bottom').addEventListener('click', e => { const a = e.target.closest('[data-a]'); if (a) act(a.dataset.a); });
 

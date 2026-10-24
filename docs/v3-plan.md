@@ -383,9 +383,17 @@ Her faz ayrı commit ve yayın olur.
   - Alt çubuk 6 düğmeden 3 düğmeye iner.
   - Defter 2 sekmeye iner.
   - Oyun Defter açık başlamaz.
-- **Kayıt şeması v4:** Mevcut kayıtlar taşınır. Para, kitaplar, süsler ve müdavimler korunur. Yabancı ülkedeki oyuncu Ayvalık'a döner; Ayvalık geçici olarak tek kasaba olur.
+- **Kayıt şeması v4:** Mevcut kayıtlar taşınır. Para, kitaplar, süsler ve müdavimler korunur. Yabancı ülkedeki oyuncu Ayvalık'a döner; bukinist kutusundaki ve müzayededeki kitaplar koliye gelir.
+- **Türkiye kasabaları geçici olarak kalır:** hikâye ve müdavimler onlara bağlı. Faz 6'da Mürekkep Koyu mahallelerine dönüşürler.
 - **Simülasyon:** Gerçekçi oyuncu botu korunur, ülke ölçümleri kaldırılır.
 - **Bitiş ölçütü:** Testler geçer. Eski kayıt yeni sürümde açılır. İlk ekranda en fazla 3 düğme vardır.
+- **Durum (24.10.2026): yapıldı.**
+  - Bayraklar `data/features.js`'te (`LEGACY` yerine sistem başına bir bayrak).
+  - Mekân üstteki konum hapında; süs ve Defter sağ üstte.
+  - Sabah gazetesi yerine tek satır.
+  - Defter: Hikâye + Müşteriler.
+  - `npm run ui-check`: 31 panel, Türkçe ve İngilizce; CI'da.
+  - Mektup, ilan ve pul ödülleri kalkınca gerçekçi oyuncunun 60. gün parası ₺6,0k'dan ₺5,3k'ya indi. Ekonomi Faz 1 ve Faz 3'te yeniden ayarlanacak.
 
 ### Faz 1 — Pazarlık çekirdeği (öncelik 1)
 - **Kurallar:** `game/haggle.js`:

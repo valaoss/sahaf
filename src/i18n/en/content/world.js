@@ -430,9 +430,9 @@ const TUT_STEPS = [
   { text: "Shelves are ready. Now 🔔 Open shop." },
   { text: "When a customer with a ❓ bubble arrives, tap them and pick the book that best fits what they say." },
   { text: "The day is done! Read the summary, then ☀️ Next morning." },
-  { text: "The morning paper brings news every day. Try changing your 📍 Spot to meet new customers." },
-  { text: "Once there's money in the till, 🪴 Decorate: decorations influence your customers." },
-  { text: "One last tip: the 📜 Notebook shows the way to Kostas Efendi's lost library. Happy reading!" },
+  { text: "Tap your location at the top: change your 📍 spot and meet other customers." },
+  { text: "Once there's money in the till, decorate the van with the 🪴 at the top right: decorations influence your customers." },
+  { text: "One last tip: the 📜 Notebook keeps your aunt's letters and the customers you've met. Happy reading!" },
 ];
 
 export default { TOWNS, SPOTS, COUNTRIES, PAPER, PAPER_TOWN, EVENTS, WEATHER, SEASON, SPECIAL, GOSSIP, DECOR, UPGRADES, PAINTS, SLOTS, STAMPS, PAGES, VOYAGE, GRAND, KOSTAS, TUT_STEPS };

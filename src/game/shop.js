@@ -18,7 +18,7 @@ import { remember, pickFresh, weightedFresh } from './memory.js';
 import { crateAdd, crateFree, takeCopy, chanceOf, refill } from './shelving.js';
 import { EVENTS } from '../data/calendar.js';
 import { eventOf } from './calendar.js';
-import { countryOf, travelInfo, crossBorder } from './travel.js';
+import { countryOf, travelInfo, crossBorder, openCountries } from './travel.js';
 import { learn, learnOne, learnAll } from './knowledge.js';
 import { FAVOR_AT, favorOpen, makeFavor, addRep, repLevel } from './bonds.js';
 import { onIsland, roseWithSale, roseDay } from './voyage.js';
@@ -66,7 +66,8 @@ export function buyBox(S, g) {
 export function canTravel(S, key) {
   if (!TOWNS[key]) return 'Böyle bir kasaba yok.';
   if (S.phase !== 'morning') return 'Yola yalnızca sabah çıkılır.';
-  if (!S.unlocked.includes(key)) return S.countries.includes(countryOf(key)) ? 'Bu kasabanın yolunu henüz bilmiyorsun.' : 'Bu ülkeye feribot henüz yok.';
+  if (!openCountries(S).includes(countryOf(key))) return 'Bu ülkeye feribot henüz yok.';
+  if (!S.unlocked.includes(key)) return 'Bu kasabanın yolunu henüz bilmiyorsun.';
   if (key === S.town) return 'Zaten buradasın.';
   if (S.travelled) return 'Bugün zaten yol yaptın.';
   const info = travelInfo(S, key);

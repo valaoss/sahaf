@@ -32,8 +32,8 @@ export const BAL = {
   // ucuz etiketle ikna olan her müşteri artırır (sınırlar: wordMin–wordMax)
   wordOfMouth: 0.03, wordMin: 0.75, wordMax: 1.15,
   // kasabaya okuma köşesi bağışı: o kasabada park ücretsiz, kalabalık kalıcı olarak artar
-  donateCost: 250,
-  donateTraffic: 1.12,
+  donateCost: 300,
+  donateTraffic: 1.08,
   // festival sponsorluğu: o gün o kasabada dükkân açarsan kalabalık artar
   sponsorCost: 60,
   sponsorTraffic: 1.6,

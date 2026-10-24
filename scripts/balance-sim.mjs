@@ -1,14 +1,17 @@
 // Denge simülasyonu: farklı oyun tarzlarıyla 60 gün oynar, kasanın nasıl büyüdüğünü yazdırır.
-// Öneri isteyenlere raftaki en uygun kitap verilir (dikkatli oyuncu). Kullanım: npm run sim (yalnız ilk tablo: -- kisa · yalnız öneri bilgisi: -- bilgi)
+// İlk tabloda öneri isteyene raftaki en uygun kitap verilir (her şeyi bilen oyuncu); gerçekçi oyuncu bölümünde bilgisi sınırlıdır.
+// Kullanım: npm run sim · yalnız bir bölüm: -- kisa (ilk tablo) | gercek | bilgi
 import { GENRE_KEYS } from '../src/data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../src/data/towns.js';
-import { countryOf, distance } from '../src/game/travel.js';
 import { SHELF_LEVELS } from '../src/data/decor.js';
 import { newGame, genreCount, shelfCount, shelfCap } from '../src/game/state.js';
 import { BAL } from '../src/data/balance.js';
 import { buyBox, travel, rescue, demandOf, donate, sponsor, sponsorable, refillShelves } from '../src/game/shop.js';
 import { placeAll, setPrice, SECTIONS } from '../src/game/shelving.js';
-import { equipDecor, upgradeShelf } from '../src/game/decor.js';
+import { equipDecor, upgradeShelf, buyUpgrade } from '../src/game/decor.js';
+import { BOOK } from '../src/data/books.js';
+import { knownTags, knowsAll, readBook, readsLeft } from '../src/game/knowledge.js';
+import { favorOpen, ordered, orderBook } from '../src/game/bonds.js';
 import { simulateDay } from '../src/game/day.js';
 import { eventOf } from '../src/game/calendar.js';
 import { EVENTS } from '../src/data/calendar.js';
@@ -69,7 +72,7 @@ const STYLES = {
 };
 
 const ONLY = process.argv[2];
-if (ONLY !== 'bilgi') for (const [name, play] of Object.entries(STYLES)) {
+if (!ONLY || ONLY === 'kisa') for (const [name, play] of Object.entries(STYLES)) {
   const curve = Array(DAYS).fill(0);
   let sold = 0, missed = 0, perfect = 0, tips = 0, costs = 0, lost = 0, won = 0;
   for (let r = 0; r < RUNS; r++) {
@@ -91,59 +94,71 @@ if (ONLY !== 'bilgi') for (const [name, play] of Object.entries(STYLES)) {
   console.log(`${name.padEnd(28)} ${pts} | günde ${per(sold)} satış, ${per(missed)} kaçan, ${per(perfect)} tam öneri, ₺${per(tips)} bahşiş, ₺${per(costs)} gider, fiyat −${per(lost)}/+${per(won)}`);
 }
 if (ONLY === 'kisa') process.exit(0);
-
-// Akdeniz: hikâye bitmiş, Türkiye'nin bütün şehirleri gezilmiş, Yunanistan feribotu açık; ₺600 ile 30 takvim günü.
-// Feribot günü takvimden düşer (o gün yolda geçer), bu yüzden eğri takvim gününe göre çizilir.
-const WORLD = {
-  'Türkiye\'de kalır, 3 günde bir': (S, n) => {
-    if (n % 3 === 2) { const tr = S.unlocked.filter(k => countryOf(k) === 'tr'); travel(S, tr[(n / 3 + 1) % tr.length | 0]); }
-  },
-  'Akdeniz turu, 3 günde bir': (S, n) => {
-    if (n % 3 !== 2) return;
-    // gezilmemiş şehirlerden en yakını; yeni ülke açıldıysa oraya
-    const fresh = S.unlocked.filter(k => !S.visited.includes(k)).sort((a, b) => distance(S.town, a) - distance(S.town, b));
-    if (fresh.length) travel(S, fresh[0]);
-  },
-  'Akdeniz turu, her gün': S => {
-    const fresh = S.unlocked.filter(k => !S.visited.includes(k)).sort((a, b) => distance(S.town, a) - distance(S.town, b));
-    if (fresh.length) travel(S, fresh[0]);
-  },
-};
-if (ONLY !== 'bilgi') console.log('\nAkdeniz (hikâye bitmiş, ₺600 ile başlar):');
-if (ONLY !== 'bilgi') for (const [name, move] of Object.entries(WORLD)) {
-  const curve = Array(DAYS + 1).fill(0);
-  let ferries = 0, ferrySpent = 0, countries = 0, sold = 0, played = 0;
-  for (let r = 0; r < RUNS; r++) {
-    const S = newGame(2000 + r);
-    S.unlocked = TOWN_KEYS.filter(k => countryOf(k) === 'tr' || countryOf(k) === 'gr' && !TOWNS[k].unlock);
-    S.visited = TOWN_KEYS.filter(k => countryOf(k) === 'tr');
-    S.countries = ['tr', 'gr'];
-    S.coins = 600;
-    let n = 0, last = S.coins;
-    while (S.day <= DAYS) {
-      rescue(S);
-      const before = S.day;
-      move(S, n++);
-      if (S.lastTrip?.abroad && S.travelled) { ferries++; ferrySpent += S.lastTrip.cost; }
-      for (let d = before; d < Math.min(S.day, DAYS + 1); d++) curve[d] += last / RUNS;  // yolda geçen gün
-      if (S.day > DAYS) break;
-      invest(S);
-      stockSmart(S);
-      const T = simulateDay(S);
-      sold += T.soldCount; played++;
-      last = S.coins;
-      curve[Math.min(S.day - 1, DAYS)] += S.coins / RUNS;
+// --- Gerçekçi oyuncu (-- gercek): her şeyi bilmez. Bildiği etiketlere bakar; bilmediğini tanıtımdan sezer (kitapta olan etiketi
+// %60 doğru görür, olmayanı %15 yanlışlıkla sanır). Sabahları okuma köşesinde okur, ricaları sipariş edip getirir.
+function reader(seed) {
+  let x = seed >>> 0 || 1;
+  const r = () => (x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 4294967296;
+  return (S, ask, wants) => {
+    let best = null, score = -1;
+    for (const id of Object.keys(S.shelf).sort()) {
+      const k = knownTags(S, id), b = BOOK[id];
+      let s = b.genre === wants ? 1 : 0;
+      for (const t of ask.tags) s += k.includes(t) || (b.tags.includes(t) ? r() < 0.6 : r() < 0.15) ? 2 : 0;
+      if (s > score) { best = id; score = s; }
     }
-    countries += S.countries.length;
-  }
-  const pts = [7, 14, 30].map(d => `${d}.g ₺${Math.round(curve[d])}`).join(' · ');
-  console.log(`${name.padEnd(30)} ${pts} | ${(countries / RUNS).toFixed(1)} ülke, ${(ferries / RUNS).toFixed(1)} feribot (₺${Math.round(ferrySpent / RUNS)}), oynanan günde ${(sold / played).toFixed(1)} satış`);
+    return best;
+  };
 }
+// sabah: rica kitaplarını sipariş et, bilmediği kitapları oku
+function careful(S) {
+  for (const id in S.favors) if (favorOpen(S, id)) {
+    const b = S.favors[id].book;
+    if (!S.shelf[b] && !S.crate.some(e => e.id === b) && !ordered(S, b)) orderBook(S, b);
+  }
+  for (const id of Object.keys(S.shelf).sort()) if (readsLeft(S) && !knowsAll(S, id)) readBook(S, id);
+}
+const tourEvery3 = (S, day) => { if (day % 3 === 2) travel(S, S.unlocked[(day / 3 + 1) % S.unlocked.length | 0]); };
+const richUpgrades = S => { if (S.coins > 500) buyUpgrade(S, 'cay'); if (S.coins > 600) buyUpgrade(S, 'koltuk'); };
+const REAL = {
+  'hep roman': S => { careful(S); stockLazy(S); },
+  'akıllı, tek kasaba': S => { careful(S); stockSmart(S); },
+  'akıllı + yatırım': S => { careful(S); invest(S); stockSmart(S); },
+  'tam oyuncu (gezer, bağışlar, sponsor)': (S, day) => { careful(S); festival(S, true); tourEvery3(S, day); invest(S); richUpgrades(S); donor(S); stockSmart(S); },
+};
+if (!ONLY || ONLY === 'gercek') {
+  console.log('\nGerçekçi oyuncu (tanıtımı okur, sabah okur, ricaları getirir):');
+  const rows = {};
+  for (const [name, play] of Object.entries(REAL)) {
+    const curve = Array(DAYS).fill(0);
+    let perfect = 0, asked = 0, favors = 0, spent = 0;
+    for (let r = 0; r < RUNS; r++) {
+      const S = newGame(4000 + r), rec = reader(4000 + r);
+      for (let d = 0; d < DAYS; d++) {
+        rescue(S);
+        play(S, d);
+        const T = simulateDay(S, () => 0, rec, { favors: true });
+        perfect += T.recs.perfect; asked += T.recs.perfect + T.recs.good + T.recs.miss; favors += T.favors || 0;
+        curve[d] += S.coins / RUNS;
+      }
+      spent += S.totals.spent / RUNS;
+    }
+    rows[name] = curve[DAYS - 1];
+    const pts = [7, 14, 30, 60].map(d => `${d}.g ₺${Math.round(curve[d - 1])}`).join(' · ');
+    console.log(`${name.padEnd(38)} ${pts} | tam isabet %${Math.round(100 * perfect / Math.max(1, asked))}, ${(favors / RUNS).toFixed(1)} rica, ₺${Math.round(spent)} harcama`);
+  }
+  const lazy = rows['hep roman'], smart = rows['akıllı, tek kasaba'];
+  console.log(`  → tembel oyuncu akıllıdan %${Math.round(100 * (1 - lazy / smart))} geride`);
+}
+if (ONLY === 'gercek') process.exit(0);
+
+// Akdeniz bölümü v3 sadeleştirmesiyle kaldırıldı (ülkeler kenarda: data/features.js).
 
 // Kitap bilgisi: her şeyi bilen oyuncu ile yalnız öğrendiği etiketlere bakan oyuncu (tanıtımı okumaz: alt sınır).
 // Bilgili oyuncu sabahları okuma köşesinde bilmediği iki kitabı okur. Tam isabet oranı dönem dönem.
+if (ONLY && ONLY !== 'bilgi') process.exit(0);
 console.log('\nÖneri bilgisi (tam isabet / öneri isteyen):');
-const { knownBest, readBook, knowsAll, knownCount } = await import('../src/game/knowledge.js');
+const { knownBest, knownCount } = await import('../src/game/knowledge.js');
 for (const [name, rec, reads] of [['her şeyi bilen', null, false], ['yalnız öğrendikleri', knownBest, false], ['öğrendikleri + okuma', knownBest, true]]) {
   const span = [[1, 5], [6, 15], [16, 30], [31, 60]], hit = span.map(() => [0, 0]);
   let known = 0;

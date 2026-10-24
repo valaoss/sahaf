@@ -3,6 +3,10 @@
 export default {
   // toptancı
   "Toptancı": "Wholesaler",
+  "Ege": "Aegean",
+  "Mekân": "Spot",
+  "{0} {1} · {2} · {3}. gün": "{0} {1} · {2} · day {3}",
+  "İtibar: burada dükkân açtığın her gün, müdavimlerine her tam isabet ve getirdiğin her rica artırır.": "Reputation grows with every day you open shop here, every perfect match for your regulars and every request you bring.",
   "Raflar": "Shelves",
   "Koli": "Box",
   "Bu kasabada çok aranan:": "Most wanted in this town:",

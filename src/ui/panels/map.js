@@ -2,6 +2,7 @@
 // Ortak durum ve yardımcılar ui/kit.js'te; ana arayüzün işlevlerine (raf, konfeti, konuşma) K.ui üzerinden ulaşılır.
 import { BAL } from '../../data/balance.js';
 import { T, tw } from '../../i18n/i18n.js';
+import { FEATURES } from '../../data/features.js';
 import { GENRES, GENRE_KEYS } from '../../data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../../data/towns.js';
 import { BOOK, booksOf, TAGS } from '../../data/books.js';
@@ -48,7 +49,7 @@ export function mapPanel(S) {
   const p = openPanel(`
     <div class="wmap">
       <svg class="map3d world" viewBox="0 0 ${WW} ${WH}">${worldSVG(S)}</svg>
-      <div class="wbar"><b>🗺️ ${T`Akdeniz`}</b><span class="hint grow">${T`Bir şehre dokun · iki parmakla yakınlaştır`}</span>
+      <div class="wbar"><b>🗺️ ${FEATURES.akdeniz ? T`Akdeniz` : T`Ege`}</b><span class="hint grow">${T`Bir şehre dokun · iki parmakla yakınlaştır`}</span>
         <span class="zoom2"><button class="btn sm" data-zin title="${T`Yakınlaştır`}">＋</button><button class="btn sm" data-zout title="${T`Uzaklaştır`}">－</button></span>
         <button class="btn sm" data-close>✕ ${T`Kapat`}</button></div>
       <div class="wcard" id="wcard"></div>
@@ -99,7 +100,7 @@ export function mapPanel(S) {
     }
     showTown(g.dataset.town);
   }));
-  p.querySelectorAll('.country').forEach(g => g.addEventListener('click', () => showCountry(g.dataset.country)));
+  p.querySelectorAll('.country').forEach(g => g.addEventListener('click', () => { if (FEATURES.akdeniz) showCountry(g.dataset.country); }));
   showTown(S.town);
 }
 

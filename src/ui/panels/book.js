@@ -39,8 +39,9 @@ import { STAMPS, STAMP_REWARD } from '../../data/stamps.js';
 import { stampProgress } from '../../game/stamps.js';
 import { personSVG, figureMeta, nameOf } from '../../render/people.js';
 import { ARCHETYPES } from '../../data/archetypes.js';
-import { K, openPanel, closePanel, chips, hearts, bookTags, BOOKS_N, blurbOf } from '../kit.js';
+import { K, openPanel, closePanel, chips, hearts, bookTags, BOOKS_N, blurbOf, portraitBox } from '../kit.js';
 import { T, tw } from '../../i18n/i18n.js';
+import { FEATURES } from '../../data/features.js';
 
 // mevsim ve günü: "İlkbahar, 3. gün" (mevsim adı mantık anahtarıdır, yalnızca gösterirken çevrilir)
 const dayLabel = d => T`${tw(seasonOf(d))}, ${dayOfSeason(d)}. gün`;
@@ -49,15 +50,34 @@ const closeLabel = back => back ? T`Geri` : T`Kapat`;
 // Defter sekmeleri: hikâye, pul albümü, mektuplar
 export function bookTabs(S, on) {
   const t = (k, label) => `<button class="tab ${on === k ? 'is-on' : ''}" data-tab="${k}">${label}</button>`;
-  return `<div class="tabs head">${t('book', `📜 ${T`Defter`}`)}${t('album', `🏅 ${T`Pul albümü`} (${S.stamps.length}/${STAMPS.length})`)}${t('mail', `💌 ${T`Mektuplar`} (${S.letters.length})`)}${t('stats', `📊 ${T`İstatistik`}`)}${t('passport', `🛂 ${T`Pasaport`} (${Object.keys(S.passport).length})`)}${t('know', `📚 ${T`Kitap bilgim`} (${knownCount(S)})`)}${S.countries.length > 1 ? t('voy', `🧭 ${T`Akdeniz defteri`} (${VOYAGE_KEYS.reduce((n, c) => n + voyagePages(S, c), 0)}/15)`) : ''}</div>`;
+  // v3: Hikâye ve Müşteriler; kenara alınan sekmeler (pul, mektup, istatistik, pasaport, Akdeniz) yalnız bayrakları açıkken
+  return `<div class="tabs head">${t('book', `📜 ${T`Hikâye`}`)}${t('people', `👥 ${T`Müşteriler`} (${S.met.length})`)}${FEATURES.pul ? t('album', `🏅 ${T`Pul albümü`} (${S.stamps.length}/${STAMPS.length})`) : ''}${FEATURES.mektup ? t('mail', `💌 ${T`Mektuplar`} (${S.letters.length})`) : ''}${FEATURES.akdeniz ? t('passport', `🛂 ${T`Pasaport`} (${Object.keys(S.passport).length})`) : ''}${FEATURES.akdeniz && S.countries.length > 1 ? t('voy', `🧭 ${T`Akdeniz defteri`} (${VOYAGE_KEYS.reduce((n, c) => n + voyagePages(S, c), 0)}/15)`) : ''}</div>`;
 }
 export function wireTabs(p, S, back) {
   p.querySelectorAll('[data-tab]').forEach(b => b.onclick = () =>
-    b.dataset.tab === 'book' ? bookPanel(S, null, back) : b.dataset.tab === 'album' ? albumPanel(S, back)
+    b.dataset.tab === 'book' ? bookPanel(S, null, back) : b.dataset.tab === 'people' ? peoplePanel(S, back) : b.dataset.tab === 'album' ? albumPanel(S, back)
       : b.dataset.tab === 'stats' ? statsPanel(S, back) : b.dataset.tab === 'passport' ? passportPanel(S, back)
       : b.dataset.tab === 'know' ? knowPanel(S, back) : b.dataset.tab === 'voy' ? voyagePanel(S, back) : mailPanel(S, back));
 }
 // Akdeniz defteri: ülke ülke yan hikâyeler; açılmayan sayfaların yerinde nasıl açılacağı
+// Müşteriler: tanıştığın müdavimler; kasabası, kalpleri, ricası, hatırası
+export function peoplePanel(S, back = null) {
+  const cards = REGULAR_KEYS.filter(id => S.met.includes(id)).map(id => {
+    const R = REGULARS[id], h = S.friends[id] || 0, fv = S.favors[id];
+    const favor = !fv ? '' : fv.done ? ` · 🎁 ${T`rica ✓`}` : ` · 🎁 ${T`rica:`} «${BOOK[fv.book].title}»`;
+    const gift = S.keepsakes.includes(id) && KEEPSAKES[id] ? ` · ${KEEPSAKES[id].icon} ${KEEPSAKES[id].name}` : '';
+    return `<div class="dcard"><div class="portrait sm"><svg viewBox="${portraitBox(R)}">${personSVG(R.look, R.style)}</svg></div>
+      <div><div class="gname">${R.name} <b class="hearts">${hearts(h)}</b></div>
+      <div class="gmeta">📍 ${TOWNS[R.town].name} · ${GENRES[R.genre].icon} ${GENRES[R.genre].name} · ${R.likes.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ')}${favor}${gift}</div></div></div>`;
+  }).join('');
+  const p = openPanel(`${bookTabs(S, 'people')}
+    ${cards ? `<div class="dgrid one">${cards}</div>` : `<p class="hint">${T`Henüz bir müdavimle tanışmadın. 💌 balonuyla gelenler kasabanın müdavimleridir.`}</p>`}
+    <p class="hint">${T`Müdavimlerin zevkine tam uyan her öneri bir kalp getirir; 3 kalpte senden bir kitap rica ederler, 5 kalpte hediye bırakırlar.`}</p>
+    <div class="row end"><button class="btn hl" data-close>${closeLabel(back)}</button></div>`, 'wide');
+  wireTabs(p, S, back);
+  p.querySelector('[data-close]').onclick = () => back ? back() : closePanel();
+}
+
 export function voyagePanel(S, back = null) {
   const parts = VOYAGE_KEYS.map(c => {
     const V = VOYAGE[c], n = voyagePages(S, c), open = S.countries.includes(c);

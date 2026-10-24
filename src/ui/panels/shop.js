@@ -2,6 +2,7 @@
 // Ortak durum ve yardımcılar ui/kit.js'te; ana arayüzün işlevlerine (raf, konfeti, konuşma) K.ui üzerinden ulaşılır.
 import { BAL } from '../../data/balance.js';
 import { T, tw } from '../../i18n/i18n.js';
+import { FEATURES } from '../../data/features.js';
 import { GENRES, GENRE_KEYS } from '../../data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../../data/towns.js';
 import { BOOK, booksOf, TAGS } from '../../data/books.js';
@@ -62,7 +63,7 @@ export function stockPanel(S) {
     return `<div class="scard2 ${x.sold ? 'sold' : ''} c-${x.cond}" style="--c:${G.color}">
       <div class="st-title">${G.icon} ${b.title}</div><div class="st-author">${b.author}</div>
       ${blurbOf(b)}<div class="btags">${bookTags(S, b)}</div>
-      <div class="st-foot"><span class="cond2">${tw(COND_NAME[x.cond])}</span>${x.rare ? `<span class="rarebadge">✨ ${T`İlk baskı`}</span>` : ''}
+      <div class="st-foot"><span class="cond2">${COND_NAME[x.cond]}</span>${x.rare ? `<span class="rarebadge">✨ ${T`İlk baskı`}</span>` : ''}
         <button class="btn sm" data-stall="${x.i}" ${x.sold ? 'disabled' : ''}>${x.sold ? T`Alındı` : '₺' + x.cost}</button></div></div>`;
   }).join('');
   const fee = parkFee(S) ? '₺' + parkFee(S) : T`ücretsiz`;
@@ -127,7 +128,7 @@ export function spotPanel(S) {
     const hot = Object.keys(sp.demand).map(g => GENRES[g].icon).join(' ');
     return `<div class="dcard spot ${here ? 'is-on' : ''}"><div class="dicon">${SCENE_ICON[sp.scene]}</div>
       <div><div class="gname">${sp.name}</div><div class="gmeta">${sp.desc}</div>
-      <div class="gmeta">👣 ${T`Kalabalık:`} <b>${tw(level(sp.traffic, .9, 1.2))}</b> · 💬 ${T`Öneri:`} <b>${tw(level(sp.ask, .9, 1.3))}</b> · 🅿️ ${parkFee(S, k) ? '₺' + parkFee(S, k) : T`ücretsiz`} · ${T`Sevilen:`} ${hot}</div></div>
+      <div class="gmeta">👣 ${T`Kalabalık:`} <b>${level(sp.traffic, .9, 1.2)}</b> · 💬 ${T`Öneri:`} <b>${level(sp.ask, .9, 1.3)}</b> · 🅿️ ${parkFee(S, k) ? '₺' + parkFee(S, k) : T`ücretsiz`} · ${T`Sevilen:`} ${hot}</div></div>
       ${here ? `<span class="on">✓ ${T`Buradasın`}</span>` : `<button class="btn sm" data-spot="${k}">${T`Burada kur`}</button>`}</div>`;
   }).join('');
   const regs = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town).map(id => {
@@ -138,17 +139,17 @@ export function spotPanel(S) {
   // itibar: bu kasabadaki kademe, bir sonrakine ne kaldı
   const lv = repLevel(S), L = REP_LEVELS[lv], nx = REP_LEVELS[lv + 1], rp = repOf(S);
   const rep = `<div class="rep2"><b>${L.icon} ${L.name}</b>${nx ? `<span class="repbar"><i style="width:${Math.round(100 * (rp - L.min) / (nx.min - L.min))}%"></i></span><small>${nx.icon} ${nx.name}: ${nx.perk}</small>` : `<small>${T`En yüksek itibar`}</small>`}</div>
-    <p class="hint">${T`İtibar: burada dükkân açtığın her gün, müdavimlerine her tam isabet, getirdiğin her rica ve bağış artırır.`}${REP_LEVELS.slice(1, lv + 1).map(x => ` ${x.icon} ${x.perk}.`).join('')}</p>`;
+    <p class="hint">${T`İtibar: burada dükkân açtığın her gün, müdavimlerine her tam isabet ve getirdiğin her rica artırır.`}${REP_LEVELS.slice(1, lv + 1).map(x => ` ${x.icon} ${x.perk}.`).join('')}</p>`;
   const p = openPanel(`
     <h2>📍 ${T`Karavanı nereye kuralım?`}</h2>
     <p class="hint">${T`${TOWNS[S.town].name} içinde yer değiştirmek ücretsiz. Kalabalık yerde satış, sakin yerde sohbet ve öneri çok olur.`}</p>
     <div class="dgrid one">${cards}</div>
     ${voyageCard(S)}
     <h3>${T`İtibarın`}</h3>${rep}
-    <h3>${T`Kasabaya katkı`}</h3>
+    ${FEATURES.bagis ? `<h3>${T`Kasabaya katkı`}</h3>
     <div class="dcard ${S.donated.includes(S.town) ? 'is-on' : ''}"><div class="dicon">📖</div><div><div class="gname">${T`Okuma köşesi`}</div>
       <div class="gmeta">${T`Meydana kitaplık ve bank: burada park ücretsiz, kalabalık kalıcı olarak +%${Math.round((BAL.donateTraffic - 1) * 100)}.`}</div></div>
-      ${S.donated.includes(S.town) ? `<span class="on">✓ ${T`Var`}</span>` : `<button class="btn sm ${S.coins < BAL.donateCost ? 'off' : ''}" data-donate>₺${BAL.donateCost} · ${T`Bağışla`}</button>`}</div>
+      ${S.donated.includes(S.town) ? `<span class="on">✓ ${T`Var`}</span>` : `<button class="btn sm ${S.coins < BAL.donateCost ? 'off' : ''}" data-donate>₺${BAL.donateCost} · ${T`Bağışla`}</button>`}</div>` : ''}
     <h3>${T`Bu kasabanın müdavimleri`}</h3><div class="chips">${regs}</div>
     <p class="hint">${T`Müdavimler 💌 balonuyla gelir. Zevklerine tam uyan her öneri bir kalp; 5 kalpte bir hediye bırakırlar.`}</p>
     <div class="row end"><button class="btn hl" data-close>${T`Tamam`}</button></div>`, 'wide');

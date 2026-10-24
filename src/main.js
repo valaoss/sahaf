@@ -17,7 +17,7 @@ import { openShop, advanceClock, closingTime, closeShop, nextMorning, afterFerry
 import { loadGame, loadProblem, saveGame as persistGame, clearGame, restoreBackup } from './core/save.js';
 import { unlock, sfx, settings, applySettings, setSeason, setRain, setMood, setAmbience } from './audio/audio.js';
 import { SPOTS } from './data/spots.js';
-import { weatherOf, dayMods } from './game/calendar.js';
+import { weatherOf, dayMods, eventOf } from './game/calendar.js';
 import { checkStory, checkUnlocks } from './game/story.js';
 import { checkCountries } from './game/travel.js';
 import { roadEvent, chooseRoad, ROAD_BY_ID } from './game/road.js';
@@ -42,6 +42,8 @@ import { createCrowd, personSVG, figureMeta } from './render/people.js';
 import { ARCHETYPES } from './data/archetypes.js';
 import { createAmbient } from './render/ambient.js';
 import { createUI } from './ui/ui.js';
+import { FEATURES } from './data/features.js';
+import { WEATHER, EVENTS } from './data/calendar.js';
 
 const MIN_PER_SEC = (BAL.dayEnd - BAL.dayStart) / 120;   // normal hızda bir gün ≈ 2 dakika
 const FAST = 3;
@@ -116,6 +118,7 @@ scene.onCart(() => { if (!ui.isOpen()) { sfx('page'); ui.interiorPanel(S); } });
 
 // sabah alışverişinden sonra pul kontrolü
 function stampCheck() {
+  if (!FEATURES.pul) return;
   const won = checkStamps(S);
   if (!won.length) return;
   saveGame(S);
@@ -278,9 +281,19 @@ const COMMANDS = {
     refreshDay();
     saveGame(S);
     if (S.post?.letter) sfx('letter');
-    ui.paperPanel(S);
+    morningNote();
   },
 };
+
+// Sabah: gazete yerine tek satır (hava, buradaki etkinlik, gelen sipariş). Gazete kenara alındı (data/features.js)
+function morningNote() {
+  if (FEATURES.gazete) return ui.paperPanel(S);
+  const w = WEATHER[weatherOf(S.day)], ev = eventOf(S.day), orders = S.post?.orders || [];
+  const parts = [`${w.icon} ${w.name}`];
+  if (ev && EVENTS[ev].town === S.town) parts.push(`🎉 ${EVENTS[ev].name}`);
+  if (orders.length) parts.push(T`📦 Siparişin koliye geldi: ${orders.map(b => '«' + BOOK[b].title + '»').join(', ')}`);
+  ui.toast(parts.join(' · '));
+}
 const act = (a, arg) => COMMANDS[a]?.(arg);
 const ui = createUI(document.getElementById('ui'), act);
 // yeni motorda raflar karavanın kendisinde dizilir
@@ -365,6 +378,7 @@ if (PREVIEW) {
   if (panel === 'album') { S.stamps = ['ilkgun', 'isabet', 'elli', 'ege', 'festival', 'yagmur', 'dost']; S.totals.sold = 120; ui.albumPanel(S); }
   if (panel === 'finale') { Object.assign(S.totals, { days: 34, sold: 512, perfect: 61 }); S.friends = { hasan: 5, ela: 4 }; S.stamps = STAMPS.slice(0, 14).map(s => s.id); ui.finalePanel(S, () => {}); }
   if (panel === 'book') { S.pages = ['miras', 'dostlar', 'liste']; S.visited = ['ayvalik', 'cunda']; ui.bookPanel(S); }
+  if (panel === 'musteriler') { S.met = ['hasan', 'melis', 'ruya']; S.friends = { hasan: 3, melis: 5, ruya: 1 }; S.keepsakes = ['melis']; ui.bookPanel(S); document.querySelector('[data-tab="people"]')?.click(); }
   if (panel === 'decor') ui.decorPanel(S);
   // ?panel=rec&kim=hasan&rica: 3 kalpli müdavim, ricası rafta
   if (panel === 'rec') {
@@ -401,7 +415,11 @@ setTimeout(lift, 6000);
 if (S.phase === 'evening' && S.lastDay) { scene.setDaylight(1); ui.summaryPanel(S, S.lastDay); }
 // hikâyenin ilk sayfası (teyzenin mektubu) oyunun başında açılır. Akşam açılışında sayfa verilmez:
 // özet panelinin yerine geçip "ertesi sabah" düğmesini kaybettirirdi (sayfalar zaten gün kapanırken kontrol edilir).
-if (!PREVIEW && S.phase === 'morning' && checkStory(S)) { checkUnlocks(S); checkCountries(S); saveGame(S); ui.bookPanel(S); }
+// v3: oyun defter açık başlamaz; teyzenin mektubu Defter'de bekler
+if (!PREVIEW && S.phase === 'morning' && checkStory(S)) {
+  checkUnlocks(S); if (FEATURES.akdeniz) checkCountries(S); saveGame(S);
+  setTimeout(() => ui.toast(T`💌 Teyzenden bir mektup var: sağ üstteki 📜 Defter'de.`), 900);
+}
 if (loadProblem) setTimeout(() => ui.toast(loadProblem === 'yeni'
   ? T`Bu kayıt oyunun daha yeni bir sürümünden; yeni oyun başladı. Eski kaydın yedeği Ayarlar'da saklı.`
   : T`Kayıt okunamadı; yeni oyun başladı. Eski kaydın yedeği Ayarlar'da saklı.`), 1500);

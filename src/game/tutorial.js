@@ -5,9 +5,9 @@ export const TUT_STEPS = [
   { on: 'morning', text: 'Raflar hazır. Şimdi 🔔 Dükkânı aç.', target: '[data-a="open"]', done: 'open' },
   { on: 'open', text: '❓ balonlu bir müşteri gelince ona dokun; cümlesine en uygun kitabı seç.', target: null, done: 'rec' },
   { on: 'evening', text: 'Gün bitti! Özeti oku, sonra ☀️ Ertesi sabah.', target: '[data-next]', done: 'next' },
-  { on: 'morning', text: 'Sabah gazetesi her gün haber getirir. 📍 Mekânını değiştirip başka müşterilerle tanışmayı dene.', target: '[data-a="spot"]', done: 'spot' },
-  { on: 'morning', text: 'Kasada para birikince 🪴 Süsle: süsler müşterileri etkiler.', target: '[data-a="decor"]', done: 'decor' },
-  { on: 'morning', text: 'Son ipucu: 📜 Defter, Kostas Efendi\'nin kayıp kütüphanesine giden yolu gösterir. İyi okumalar!', target: '[data-a="book"]', done: 'book' },
+  { on: 'morning', text: 'Üstteki konuma dokun: 📍 mekânını değiştirip başka müşterilerle tanış.', target: '[data-a="spot"]', done: 'spot' },
+  { on: 'morning', text: 'Kasada para birikince sağ üstteki 🪴 ile karavanı süsle: süsler müşterileri etkiler.', target: '[data-a="decor"]', done: 'decor' },
+  { on: 'morning', text: 'Son ipucu: 📜 Defter, teyzenin mektuplarını ve tanıştığın müşterileri saklar. İyi okumalar!', target: '[data-a="book"]', done: 'book' },
 ];
 
 export const tutorialStep = S => S.tut >= 0 && S.tut < TUT_STEPS.length ? TUT_STEPS[S.tut] : null;

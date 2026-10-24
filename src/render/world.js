@@ -4,6 +4,8 @@
 import { TOWNS, TOWN_KEYS } from '../data/towns.js';
 import { COUNTRIES, COUNTRY_KEYS, flagSVG } from '../data/countries.js';
 import { T, isEn } from '../i18n/i18n.js';
+import { FEATURES } from '../data/features.js';
+import { openCountries } from '../game/travel.js';
 
 export const WW = 2400, WH = 1160;
 const LON0 = -6, LAT0 = 46.5, KY = 70, KX = KY * Math.cos(38 * Math.PI / 180);
@@ -148,12 +150,13 @@ export function worldSVG(S) {
     const C = COUNTRIES[c], [x, y] = geo(...C.label), open = S.countries.includes(c);
     return `<g class="country ${open ? 'open' : 'locked'}" data-country="${c}" transform="translate(${x.toFixed(0)} ${y.toFixed(0)})">
       <text text-anchor="middle" font-size="40" font-weight="700" letter-spacing="3" fill="${open ? '#a07d5c' : '#bba98f'}" opacity=".75">${C.name.toLocaleUpperCase(isEn() ? 'en' : 'tr')}</text>
-      ${open ? '' : '<text y="44" text-anchor="middle" font-size="30">🔒</text>'}</g>`;
+      ${open || !FEATURES.akdeniz ? '' : '<text y="44" text-anchor="middle" font-size="30">🔒</text>'}</g>`;
   }).join('');
   // haritada sahibi olmayan ülke kıyılarındaki tanıdık denizler
   const seas = [[T`AKDENİZ`, 17.5, 34.6, 44], [T`EGE`, 25.0, 37.6], [T`ADRİYATİK`, 15.6, 43.2], [T`İYON`, 18.6, 37.3], [T`KARADENİZ`, 33.5, 43.4]]
     .map(([n, lo, la, fs = 26]) => { const [x, y] = geo(lo, la); return `<text x="${x.toFixed(0)}" y="${y.toFixed(0)}" text-anchor="middle" font-size="${fs}" font-style="italic" letter-spacing="6" fill="#fff" opacity=".55">${n}</text>`; }).join('');
-  const cities = TOWN_KEYS.filter(k => TOWNS[k].geo && S.countries.includes(TOWNS[k].country || 'tr')).map(k => marker(S, k)).join('');
+  const open = openCountries(S);
+  const cities = TOWN_KEYS.filter(k => TOWNS[k].geo && open.includes(TOWNS[k].country || 'tr')).map(k => marker(S, k)).join('');
   return `${sea}${seas}
     <g fill="#f3e2bf" stroke="#c9a676" stroke-width="2.5" stroke-linejoin="round" filter="url(#wshadow)">${land}</g>
     ${waters}

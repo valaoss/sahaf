@@ -12,9 +12,10 @@ import { morningLetter, offerQuest, settleQuest } from './mail.js';
 import { scheduleHappenings, dueHappening, chooseHappening, buffFor, HAP } from './happenings.js';
 import { tidiness, placeAll } from './shelving.js';
 import { checkCountries } from './travel.js';
-import { satFactor } from './shop.js';
-import { addRep, repLevel, receiveOrders, keepsakeTraffic } from './bonds.js';
+import { satFactor, deliverFavor, plainCopies } from './shop.js';
+import { addRep, repLevel, receiveOrders, keepsakeTraffic, favorOpen } from './bonds.js';
 import { onIsland, resolveAuction, roseDay, checkVoyage, checkGrand, voyageMorning, stat } from './voyage.js';
+import { FEATURES } from '../data/features.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
@@ -105,10 +106,10 @@ export function closeShop(S) {
   T.quest = settleQuest(S, T);
   T.page = checkStory(S, T);
   T.unlocked = checkUnlocks(S);
-  T.countries = checkCountries(S);
+  T.countries = FEATURES.akdeniz ? checkCountries(S) : [];
   T.voyage = checkVoyage(S);
   T.grand = checkGrand(S, T);
-  T.stamps = checkStamps(S);
+  T.stamps = FEATURES.pul ? checkStamps(S) : [];
   S.lastDay = T;
   S.prevTown = S.town;
   S.today = null;
@@ -122,32 +123,37 @@ export function nextMorning(S) {
   S.phase = 'morning';
   S.travelled = false;
   S.clock = BAL.dayStart;
-  // sabah postası: geçmiş önerilerden mektup, gazetede yeni ilan
-  S.post = { letter: morningLetter(S), quest: offerQuest(S), orders: receiveOrders(S), bq: voyageMorning(S) };
+  S.post = morningPost(S);
   decaySat(S);
   if (S.sponsor && S.sponsor.day < S.day) S.sponsor = null;
   S.readsToday = 0;
 }
 
+// sabah postası: siparişler; açıksa geçmiş önerilerden mektup ve yeni ilan (data/features.js)
+const morningPost = S => ({ letter: FEATURES.mektup ? morningLetter(S) : null, quest: FEATURES.ilan ? offerQuest(S) : null,
+  orders: receiveOrders(S), bq: voyageMorning(S) });
+
 // Feribotla varış: denizde bir gün geçti (game/travel.js crossBorder), bu sabahın işleri yapılır.
 // Yolda kaçan günün "yarın kalabalık" etkisi varış gününe kayar. Dönüş: kasa boşsa belediye desteği (₺)
 export function afterFerry(S) {
   for (const b of S.buffs) if (b.day === S.day - 1) b.day = S.day;
-  S.post = { letter: morningLetter(S), quest: offerQuest(S), orders: receiveOrders(S), bq: voyageMorning(S) };
+  S.post = morningPost(S);
   decaySat(S);
   if (S.sponsor && S.sponsor.day < S.day) S.sponsor = null;
   S.readsToday = 0;
   return rescue(S);
 }
 
-// Başsız tam gün: test ve denge simülasyonu için. rec(S, ask, wants): öneri isteyene verilecek kitap (varsayılan: her şeyi bilen)
-export function simulateDay(S, pick = () => 0, rec = (S, ask) => bestBook(S, ask)) {
+// Başsız tam gün: test ve denge simülasyonu için. rec(S, ask, wants): öneri isteyene verilecek kitap (varsayılan: her şeyi bilen).
+// opts.favors: ricası rafta olan müdavim gelince rica getirilir (oyuncu gibi)
+export function simulateDay(S, pick = () => 0, rec = (S, ask) => bestBook(S, ask), opts = {}) {
   placeAll(S);
   openShop(S);
   // yarım saatlik adımlar: olaylar zamanında çıksın; öneri isteyene raftaki en uygun kitap, olayda pick(seçenekler)
   while (!closingTime(S)) {
     for (const c of advanceClock(S, 30)) {
-      if (c.ask) recommend(S, c, rec(S, c.ask, c.wants)); else resolveCustomer(S, c);
+      if (opts.favors && c.reg && favorOpen(S, c.reg) && plainCopies(S, S.favors[c.reg].book) > 0) deliverFavor(S, c.reg);
+      else if (c.ask) recommend(S, c, rec(S, c.ask, c.wants)); else resolveCustomer(S, c);
     }
     for (let h; (h = dueHappening(S));) chooseHappening(S, h, pick(HAP[h].choices.length));
   }

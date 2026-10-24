@@ -38,6 +38,9 @@ export default {
   "«{0}»! Bunu nereden buldun? Yıllardır arıyordum.": "«{0}»! Where did you find it? I've been looking for years.",
   "🏅 Yeni pul: {0} {1}": "🏅 New stamp: {0} {1}",
 
+  // v3 sabah ve açılış
+  "📦 Siparişin koliye geldi: {0}": "📦 Your order arrived in the crate: {0}",
+  "💌 Teyzenden bir mektup var: sağ üstteki 📜 Defter'de.": "💌 There's a letter from your aunt: in the 📜 Notebook at the top right.",
   // kayıt sorunları
   "Bu kayıt oyunun daha yeni bir sürümünden; yeni oyun başladı. Eski kaydın yedeği Ayarlar'da saklı.": "This save is from a newer version of the game, so a new game started. A backup of the old save is kept in Settings.",
   "Kayıt okunamadı; yeni oyun başladı. Eski kaydın yedeği Ayarlar'da saklı.": "The save couldn't be read, so a new game started. A backup of the old save is kept in Settings.",

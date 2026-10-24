@@ -4,8 +4,11 @@ import { TOWNS, TOWN_KEYS } from '../data/towns.js';
 import { COUNTRIES, COUNTRY_KEYS } from '../data/countries.js';
 import { BAL } from '../data/balance.js';
 import { storyDone } from './story.js';
+import { FEATURES } from '../data/features.js';
 
 export const countryOf = k => TOWNS[k]?.country || 'tr';
+// haritada görünen ve gidilebilen ülkeler: Akdeniz kenara alınınca yalnız Türkiye (data/features.js)
+export const openCountries = S => FEATURES.akdeniz ? S.countries : S.countries.filter(c => c === 'tr');
 
 // iki şehir arası kuş uçuşu mesafe (derece; boylam enleme göre kısalır)
 export function distance(a, b) {

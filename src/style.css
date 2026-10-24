@@ -216,6 +216,9 @@ svg.map { width: 100%; height: auto; display: block; border-radius: 1em; margin:
 .tip.page { background: #f3e6ff; }
 
 .gear { pointer-events: auto; cursor: pointer; font: inherit; }
+.icons { display: inline-flex; gap: .4em; pointer-events: auto; }
+.portrait.sm { width: 3.4em; height: 3.4em; flex: none; }
+.portrait.sm svg { width: 100%; height: 100%; }
 .btn.danger { background: #f9d0c8; border-color: #e5917f; box-shadow: 0 .28em 0 #c96f5a; }
 
 /* pul albümü */
@@ -398,7 +401,7 @@ mark[data-tag].is-on { background: #ffd56b; }
   .top { flex-direction: column; gap: .5em; }
   .top .col { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .top .col.right { align-self: stretch; justify-content: flex-start; }
-  .top .col.right .gear { margin-left: auto; }
+  .top .col.right .icons { margin-left: auto; }
   .pill { font-size: 1.15em; }
   .bottom { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7em; left: 1em; right: 1em; bottom: calc(env(safe-area-inset-bottom) + 1.2em); }
   .bottom .btn { font-size: 1.1em; padding: .65em .3em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

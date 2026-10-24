@@ -12,7 +12,7 @@ import { learnAll } from './knowledge.js';
 
 // Kayıt şeması sürümü. Yeni sürümde: SAVE_V'yi artır, MIGRATIONS'a bir önceki sürümden taşıyan adımı ekle,
 // tests/sim.test.mjs'te o sürümün örnek kaydını yükleyen bir test yaz. Eksik alanları restore() doğrulaması doldurur.
-export const SAVE_V = 3;
+export const SAVE_V = 4;
 
 // Başlangıç rafı: her türden farklı kitaplar
 function startShelf(S) {
@@ -124,6 +124,20 @@ const MIGRATIONS = {
   // v2 → v3 (v2 Faz 0–6: kitap bilgisi, itibar, ricalar, Akdeniz'in işleri…): yeni alanlar restore()'da varsayılanla dolar,
   // eski oyuncu için anlamlı başlangıçlar (bilinen kitaplar, itibar, hatıralar) orada türetilir
   2: saved => ({ ...saved, v: 3 }),
+  // v3 → v4 (v3 sadeleştirme: Akdeniz kenara alındı): yurt dışındaki oyuncu Ayvalık'a döner (mekânı restore() düzeltir);
+  // bukinist kutusundaki ve müzayededeki kitaplar koliye geri gelir. Pasaport, sayfalar ve ülkeler kayıtta durur.
+  3: saved => {
+    const out = { ...saved, v: 4 };
+    const abroad = (TOWNS[saved.town]?.country || 'tr') !== 'tr';
+    if (abroad) Object.assign(out, { town: 'ayvalik', prevTown: 'ayvalik', spot: null });
+    const v = isObj(saved.voyage) ? { ...saved.voyage } : null;
+    if (abroad && v) {
+      const back = [...(Array.isArray(v.bq?.books) ? v.bq.books : []), ...(v.auction?.book ? [v.auction.book] : [])];
+      out.crate = [...(Array.isArray(saved.crate) ? saved.crate : []), ...back.map(id => ({ id, rare: false, cond: 'iyi' }))];
+      out.voyage = { ...v, bq: null, auction: null, roses: 0 };
+    }
+    return out;
+  },
 };
 export function migrate(saved) {
   while (saved.v < SAVE_V && MIGRATIONS[saved.v]) saved = MIGRATIONS[saved.v](saved);
