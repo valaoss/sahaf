@@ -14,6 +14,7 @@ import { ARCHETYPES } from '../src/data/archetypes.js';
 import { knownTags, knowsAll, readBook, readsLeft } from '../src/game/knowledge.js';
 import { favorOpen, ordered, orderBook } from '../src/game/bonds.js';
 import { simulateDay, HAGGLE_DEFAULT } from '../src/game/day.js';
+import { sozOptions, sozFit } from '../src/game/haggle.js';
 import { eventOf } from '../src/game/calendar.js';
 import { EVENTS } from '../src/data/calendar.js';
 
@@ -163,6 +164,11 @@ const HAGGLE = {
   'tipe bakan': (S, c, d) => { const th = ARCHETYPES[c.arch]?.thrift || 'mid'; if (d.final || d.rounds >= 2) return 'accept'; if (th === 'loose') return d.rounds === 0 ? 'hold' : 'accept'; if (th === 'tight') return d.O >= d.P * 0.7 || d.rounds ? 'accept' : 'mid'; return d.rounds === 0 ? 'mid' : 'accept'; },
   // cümleyi okuyan: parası yeten (alışkanlıktan pazarlık eden) müşteride fiyatında durur, cebi dar olana orta yol
   'cümleye bakan': (S, c, d) => d.habit ? 'hold' : d.final || d.rounds ? 'accept' : 'mid',
+  // söz kullanan: ipucundan derdini okur; derdine dokunan bir sözü varsa önce onu söyler, sonra cümleye bakar
+  'söz + cümle': (S, c, d) => {
+    if (!d.soz && d.rounds === 0) { const s = sozOptions(S, c, d).find(o => sozFit(c, o) === 1); if (s) return 'soz:' + s.kind; }
+    return d.habit ? 'hold' : d.final || (d.rounds && d.soz !== null && d.rounds > 1) || (d.rounds && !d.soz) ? 'accept' : 'mid';
+  },
   'teklife bakan': (S, c, d) => d.final || d.O >= d.P * 0.88 || d.rounds >= 2 ? 'accept' : d.rounds === 0 && d.O >= d.P * 0.75 ? 'hold' : 'mid',
 };
 if (!ONLY || ONLY === 'pazarlik') {

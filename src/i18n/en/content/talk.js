@@ -503,6 +503,51 @@ const RARE_REQ = [
   "A book {a}… but a first edition, please. Price is no object.",
 ];
 
+const HAGGLE_HINTS = {
+  konu: {
+    genc: ["The story looks right up my street, but…", "The back cover caught my eye."],
+    resmi: ["The subject caught my attention.", "I wonder what it's about."],
+    samimi: ["What's it about, would I like it?", "I think I like what it's about."],
+    turist: ["What is the story? Interesting…", "The story looks nice."],
+    cocuk: ["What happens in it? Is it exciting?", "The cover's so pretty, what's inside?"],
+  },
+  kondisyon: {
+    genc: ["Are the pages in one piece though?", "Hope it's not too worn."],
+    resmi: ["The condition matters to me.", "Is the binding sound?"],
+    samimi: ["The pages won't fall out, will they?", "It's clean, no stains, right?"],
+    turist: ["Is it in good condition?", "Pages okay? Clean?"],
+    cocuk: ["It's not ripped, is it?", "Is this dirty?"],
+  },
+  nadirlik: {
+    genc: ["Is this one of the old editions?", "Is it something rare?"],
+    resmi: ["I wonder which edition this is.", "Is there an imprint page?"],
+    samimi: ["Is it an old edition, is it worth something?", "You don't find these easily, do you?"],
+    turist: ["Old edition? Rare?", "Is it special? Antique?"],
+    cocuk: ["Is it really old? Like treasure?", "Is it old like Grandpa's books?"],
+  },
+  ucuzluk: {
+    genc: ["It felt a bit pricey, honestly.", "My budget's fixed, so…"],
+    resmi: ["I found the price a little high.", "I'd like it to be affordable."],
+    samimi: ["It's a bit steep, that price.", "I'm looking for something my purse can manage."],
+    turist: ["A bit expensive…", "Cheaper, maybe?"],
+    cocuk: ["Is it very expensive?", "My piggy bank is small, but…"],
+  },
+  hediye: {
+    genc: ["It's a present for a friend.", "It's for a birthday."],
+    resmi: ["I'm giving it to someone close to me.", "I'm thinking of it as a gift."],
+    samimi: ["It's for my grandchild, it should be nice.", "It's for my neighbour, mustn't embarrass me."],
+    turist: ["A gift for my friend.", "A souvenir, a present."],
+    cocuk: ["It's for Mum!", "I'm giving it to my teacher."],
+  },
+  tavsiye: {
+    genc: ["Is it worth reading, you think?", "Have you read it?"],
+    resmi: ["Would you recommend it?", "I'd like to hear your opinion."],
+    samimi: ["What do you say, shall I take it?", "You'd know, have you read it?"],
+    turist: ["Do you recommend it?", "Is it good? You read it?"],
+    cocuk: ["Is it good? Have you read it?", "Will I like it?"],
+  },
+};
+
 const HAGGLE_LINES = {
   open: {
     genc: ["How about {p} for this one?", "Can't buy without haggling, {p}?", "Let's make it {p} and call it a deal."],
@@ -553,6 +598,27 @@ const HAGGLE_LINES = {
     turist: ["No, sorry. Bye!", "Too much for me. Thank you!", "Maybe later!"],
     cocuk: ["Okay… bye.", "Mum will be cross, I'd better go.", "Didn't work…"],
   },
+  sozYes: {
+    genc: ["Ooh, I didn't know that! Fine, {p}.", "Well, that changes things. I'll give {p}.", "Okay, you've pretty much convinced me: {p}."],
+    resmi: ["That is an important detail. Let's say {p}.", "You're right, that adds to its value. {p}.", "In that case {p} would be fair."],
+    samimi: ["Oh, really? Go on then, {p}!", "You know your trade. {p}, fine.", "I've warmed to this book: {p}."],
+    turist: ["Oh! Really? Okay, {p}!", "Ah, special! {p} then.", "Wow. {p}, yes!"],
+    cocuk: ["Really? Then {p}!", "Ooh! I'll shake my piggy bank a bit more: {p}!", "Wow! {p}!"],
+  },
+  sozNo: {
+    genc: ["Uh-huh… anyway.", "Sure, but… I don't really care about that.", "Maybe…"],
+    resmi: ["I see, but that isn't decisive for me.", "Is that so? Very well.", "That doesn't really concern me."],
+    samimi: ["Ah well, never mind, dear.", "Uh-huh, lovely… but still.", "Anyway, anyway."],
+    turist: ["Hmm, okay…", "I see… maybe.", "Nice, but…"],
+    cocuk: ["Huh?", "Okay…", "But I was looking at the pictures!"],
+  },
+  back: {
+    genc: ["Me again! «{b}» was legendary.", "Hi! I've already finished «{b}» from last time."],
+    resmi: ["Here I am again. «{b}» was a very good choice.", "Hello. I owe you thanks for «{b}»."],
+    samimi: ["Ooh, I'm back! I read «{b}» in one sitting.", "Look who's here! Thanks for «{b}»."],
+    turist: ["Hello again! «{b}» was great!", "Me again! Loved «{b}»."],
+    cocuk: ["I came back! «{b}» was so good!", "Hi! Mum read «{b}» to me twice!"],
+  },
   angry: {
     genc: ["At that price? You can't be serious!", "What a rip-off!", "No way!"],
     resmi: ["That price is outrageous.", "I can't accept that. Good day.", "Unbelievable."],
@@ -562,4 +628,4 @@ const HAGGLE_LINES = {
   },
 };
 
-export default { HAGGLE_LINES, LETTERS, HAPPENINGS, ROAD, VISITORS, REPLIES, TALK, GREET, CLOSE, CONTEXT, REQ_ONE, REQ_TWO, RARE_REQ };
+export default { HAGGLE_LINES, HAGGLE_HINTS, LETTERS, HAPPENINGS, ROAD, VISITORS, REPLIES, TALK, GREET, CLOSE, CONTEXT, REQ_ONE, REQ_TWO, RARE_REQ };

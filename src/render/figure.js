@@ -90,28 +90,43 @@ function hatSVG(t) {
   return '';
 }
 
-function face(t) {
+// Yüz ifadeleri (pazarlık portresi): kaş, ağız ve göz biçimi; yoksa kişinin kendi yüzü
+// curious meraklı · thinking düşünceli · bored sıkılmış · happy mutlu · angry kızgın · surprised şaşkın
+const MOODS = {
+  curious: { brows: `<path d="M-13 -40 Q-8 -44 -4 -41 M4 -41 Q8 -44 13 -40"/>`, mouth: `<ellipse cx="0" cy="-14" rx="2.6" ry="3" fill="#b4574a"/>` },
+  thinking: { brows: `<path d="M-13 -41 Q-8 -45 -4 -42 M4 -37 L13 -38"/>`, mouth: `<path d="M-5 -13 L6 -15" fill="none"/>`, look: -2 },
+  bored: { brows: `<path d="M-13 -36 L-4 -36 M4 -36 L13 -36"/>`, mouth: `<path d="M-5 -14 L5 -14" fill="none"/>`, lids: true },
+  happy: { brows: `<path d="M-13 -40 Q-8 -44 -4 -41 M4 -41 Q8 -44 13 -40"/>`, mouth: `<path d="M-8 -16 Q0 -5 8 -16 Q0 -12 -8 -16Z" fill="#b4574a"/>`, smile: true },
+  angry: { brows: `<path d="M-13 -40 L-4 -36 M4 -36 L13 -40"/>`, mouth: `<path d="M-6 -11 Q0 -17 6 -11" fill="none"/>`, flush: true },
+  surprised: { brows: `<path d="M-13 -42 Q-8 -47 -4 -43 M4 -43 Q8 -47 13 -42"/>`, mouth: `<ellipse cx="0" cy="-13" rx="3.4" ry="4.4" fill="#b4574a"/>`, wide: true },
+};
+function face(t, mood = null) {
   const sk = t.skin, dark = '#3d2b24', brow = shade(t.hair === '#ececec' || GREY.includes(t.hair) ? '#9a9a9a' : t.hair, 0.8);
-  const brows = [
+  const M = MOODS[mood];
+  const brows = M ? M.brows : [
     `<path d="M-13 -38 L-4 -38 M4 -38 L13 -38"/>`,
     `<path d="M-13 -37 Q-8 -40 -4 -38 M4 -38 Q8 -40 13 -37"/>`,
     `<path d="M-13 -36 L-4 -39 M4 -39 L13 -36"/>`,
   ][t.brows];
-  const mouth = [
+  const mouth = M ? M.mouth : [
     `<path d="M-6 -15 Q0 -10 6 -15" fill="none"/>`,
     `<path d="M-5 -14 Q0 -11 5 -14" fill="none"/>`,
     `<path d="M-7 -15 Q0 -8 7 -15 Q0 -12 -7 -15Z" fill="#b4574a"/>`,
   ][t.mouth];
+  const ey = -29 + (M?.look || 0), ery = M?.wide ? 4 : M?.lids ? 1.5 : 3.2;
+  const eyes = M?.smile
+    ? `<g class="p-eyes" fill="none" stroke="${dark}" stroke-width="2.2" stroke-linecap="round"><path d="M-11 -28 Q-8 -32 -5 -28 M5 -28 Q8 -32 11 -28"/></g>`
+    : `<g class="p-eyes"><ellipse cx="-8" cy="${ey}" rx="${M?.wide ? 3 : 2.5}" ry="${ery}" fill="${dark}"/><ellipse cx="8" cy="${ey}" rx="${M?.wide ? 3 : 2.5}" ry="${ery}" fill="${dark}"/>
+      ${M?.lids ? '' : `<circle cx="-7.2" cy="${ey - 1.2}" r=".9" fill="#fff"/><circle cx="8.8" cy="${ey - 1.2}" r=".9" fill="#fff"/>`}</g>`;
   return `
     <ellipse cx="-22" cy="-27" rx="4" ry="6" fill="${shade(sk, 0.95)}"/><ellipse cx="22" cy="-27" rx="4" ry="6" fill="${shade(sk, 0.95)}"/>
     <path d="M-22 -30 C-22 -52 22 -52 22 -30 C22 -14 14 -2 0 -1 C-14 -2 -22 -14 -22 -30Z" fill="${sk}"/>
     <path d="M10 -6 C16 -10 20 -18 22 -28 L22 -24 C20 -12 14 -4 4 -1Z" fill="#000" opacity=".06"/>
-    <g class="p-eyes"><ellipse cx="-8" cy="-29" rx="2.5" ry="3.2" fill="${dark}"/><ellipse cx="8" cy="-29" rx="2.5" ry="3.2" fill="${dark}"/>
-      <circle cx="-7.2" cy="-30.2" r=".9" fill="#fff"/><circle cx="8.8" cy="-30.2" r=".9" fill="#fff"/></g>
+    ${eyes}
     <g fill="none" stroke="${brow}" stroke-width="2" stroke-linecap="round">${brows}</g>
     <path d="M0 -26 Q2.5 -20 -1 -19" fill="none" stroke="${shade(sk, 0.78)}" stroke-width="1.8" stroke-linecap="round"/>
     <g stroke="#8a4a3c" stroke-width="2" stroke-linecap="round">${mouth}</g>
-    <ellipse cx="-13" cy="-19" rx="4.5" ry="2.8" fill="#f08a7e" opacity=".3"/><ellipse cx="13" cy="-19" rx="4.5" ry="2.8" fill="#f08a7e" opacity=".3"/>
+    <ellipse cx="-13" cy="-19" rx="4.5" ry="2.8" fill="#f08a7e" opacity="${M?.flush ? '.75' : '.3'}"/><ellipse cx="13" cy="-19" rx="4.5" ry="2.8" fill="#f08a7e" opacity="${M?.flush ? '.75' : '.3'}"/>
     ${t.freckles ? `<g fill="${shade(sk, 0.7)}"><circle cx="-12" cy="-23" r=".9"/><circle cx="-15" cy="-21" r=".9"/><circle cx="12" cy="-23" r=".9"/><circle cx="15" cy="-21" r=".9"/></g>` : ''}
     ${t.age === 'elder' ? `<path d="M-15 -44 Q-8 -46 -2 -44 M2 -44 Q8 -46 15 -44" fill="none" stroke="${shade(sk, 0.82)}" stroke-width="1.2"/>` : ''}
     ${t.beard ? `<path d="M-21 -26 C-22 -6 -12 6 0 7 C12 6 22 -6 21 -26 C16 -16 10 -12 0 -12 C-10 -12 -16 -16 -21 -26Z" fill="${t.hair}"/><path d="M-8 -17 Q0 -21 8 -17 Q0 -15 -8 -17Z" fill="${t.hair}"/>` : ''}
@@ -137,7 +152,8 @@ function lanternSVG(hx) {
     <path d="M${hx - 6} 108 L${hx + 6} 108 L${hx + 3} 112 L${hx - 3} 112Z" fill="#4a3a33"/></g>`;
 }
 
-export function personSVG(look, o = {}, carry = {}) {
+// mood: yüz ifadesi (yukarıdaki MOODS; pazarlık portresi için)
+export function personSVG(look, o = {}, carry = {}, mood = null) {
   const t = figureTraits(look, o), m = figureMeta(look, o);
   t.seed = Math.abs(look | 0);
   t.umbrella = !!carry.umbrella; t.lantern = !!carry.lantern;
@@ -192,7 +208,7 @@ export function personSVG(look, o = {}, carry = {}) {
         <rect x="-5" y="-162" width="10" height="14" fill="${shade(t.skin, 0.9)}"/>
         <g transform="translate(0 -160)"><g class="p-head"><g transform="${childHead}">
           ${hairBack(t)}
-          ${face(t)}
+          ${face(t, mood)}
           ${hairFront(t)}
           ${hatSVG(t)}
         </g></g></g>

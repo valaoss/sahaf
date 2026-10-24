@@ -32,6 +32,8 @@ export const BAL = {
   // fiyat ünü: fiyatı yüzünden vazgeçen her müşteri ertesi gün o kasabanın kalabalığını bu kadar azaltır,
   // ucuz etiketle ikna olan her müşteri artırır (sınırlar: wordMin–wordMax)
   wordOfMouth: 0.03, wordMin: 0.75, wordMax: 1.15,
+  // tanıdıklar (game/patrons.js): memnun ayrılanın kartını bırakma ihtimali, günlük uğrama ihtimali, en fazla tanıdık
+  patronChance: 0.3, patronVisit: 0.3, patronMax: 18,
   dealWord: 0.005,     // pazarlıkta ucuza aldığını düşünen her müşteri (daha az anlatır: zaten pazarlık etti)
   // kasabaya okuma köşesi bağışı: o kasabada park ücretsiz, kalabalık kalıcı olarak artar
   donateCost: 300,

@@ -94,4 +94,99 @@ export const LINES = {
     turist: ['Too expensive! No!', 'What? No, no.', 'That is crazy!'],
     cocuk: ['Çok pahalııı!', 'O kadar param yok ki!', 'Hiç adil değil!'],
   },
+  // söz derdine dokundu: değer verdi, teklifini yükseltir ({p}) · söz dokunmadı: kibarca geçiştirir
+  sozYes: {
+    genc: ['Hıı, bunu bilmiyordum! Peki, {p}.', 'Vay, o zaman başka. {p} vereyim.', 'Tamam, ikna oldum sayılır: {p}.'],
+    resmi: ['Bu önemli bir ayrıntı. {p} diyelim.', 'Haklısınız, bu değerini artırır. {p}.', 'Öyleyse {p} uygun olur.'],
+    samimi: ['Aaa, öyle mi? Hadi {p} olsun!', 'Sen bilirsin işini. {p}, tamam.', 'İçim ısındı bu kitaba: {p}.'],
+    turist: ['Oh! Really? Okay, {p}!', 'Ah, special! {p} then.', 'Wow. {p}, yes!'],
+    cocuk: ['Gerçekten mi? O zaman {p}!', 'Ooo! Kumbarayı biraz daha sallarım: {p}!', 'Vay be! {p}!'],
+  },
+  sozNo: {
+    genc: ['Hı hı… neyse.', 'İyi de… o pek umurumda değil.', 'Olabilir…'],
+    resmi: ['Anlıyorum, fakat benim için belirleyici değil.', 'Öyle mi? Peki.', 'Bu beni pek ilgilendirmiyor.'],
+    samimi: ['Eh, olsun canım.', 'Hı hı, güzel… ama yine de.', 'Neyse neyse.'],
+    turist: ['Hmm, okay…', 'I see… maybe.', 'Nice, but…'],
+    cocuk: ['Hı?', 'Peki…', 'Ama ben resimlerine baktım!'],
+  },
+  // tanıdık yine geldi: ilk cümlesinden önce ({b}: geçen sefer aldığı kitap)
+  back: {
+    genc: ['Yine ben! «{b}» efsaneydi.', 'Selam! Geçen seferki «{b}» bitti bile.'],
+    resmi: ['Yine buradayım. «{b}» çok iyi bir seçimdi.', 'Merhaba. «{b}» için teşekkür borçluyum.'],
+    samimi: ['Ooo, yine geldim! «{b}» bir solukta bitti.', 'Kim geldi bak! «{b}» için sağ ol.'],
+    turist: ['Hello again! «{b}» was great!', 'Me again! Loved «{b}».'],
+    cocuk: ['Yine geldim! «{b}» çok güzeldi!', 'Merhaba! Annem «{b}» kitabını bana iki kere okudu!'],
+  },
+};
+
+// Müşterinin derdi: bu kitapta neye önem verdiği. İlk cümlesinden sezilir (LINES.hint); doğru söz bu derde dokunur.
+export const CARES = ['konu', 'kondisyon', 'nadirlik', 'ucuzluk', 'hediye', 'tavsiye'];
+// tipine göre ağırlıklar (yazılmayan tip cebine göre: thrift)
+export const CARE_WEIGHTS = {
+  tight: { ucuzluk: 3, konu: 2, tavsiye: 1, hediye: 1 },
+  mid: { konu: 3, tavsiye: 2, hediye: 1, kondisyon: 1, ucuzluk: 1 },
+  loose: { kondisyon: 2, konu: 2, hediye: 1, nadirlik: 1 },
+  koleksiyoncu: { nadirlik: 4, kondisyon: 3, konu: 1 },
+  sevgili: { hediye: 4, konu: 1, tavsiye: 1 },
+  anne: { hediye: 2, ucuzluk: 2, konu: 1 },
+  yazar: { tavsiye: 3, konu: 2, kondisyon: 1 },
+  emekli: { konu: 3, kondisyon: 1, ucuzluk: 1 },
+  turist: { hediye: 2, konu: 2, kondisyon: 1 },
+};
+// Söz kartları: hangi derde ne kadar dokunur (1 tam, 0.5 biraz). Konu sözü kişinin sevdiği etiketse ayrıca biraz dokunur.
+export const SOZ = {
+  konu: { konu: 1, tavsiye: 0.5, hediye: 0.5 },
+  kisisel: { tavsiye: 1, konu: 0.5 },
+  kondisyon: { kondisyon: 1, hediye: 1, nadirlik: 0.5 },
+  nadirlik: { nadirlik: 1, kondisyon: 0.5 },
+  hatira: { tavsiye: 1, konu: 0.5, hediye: 0.5 },
+};
+// biçilen değerin artışı: tam isabet, biraz, koleksiyoncuya ilk baskı. Tam isabette bütçe de esner (kararlılık)
+export const SOZ_LIFT = { full: 0.35, half: 0.12, rare: 0.5, stretch: 1.25 };
+export const SOZ_MAX = 3;   // şeritte en fazla bu kadar söz kartı
+
+// Derdin ipucu: ilk teklifin ardından söylenen cümle (fiyat yok)
+export const HINTS = {
+  konu: {
+    genc: ['Konusu tam benlik gibi duruyor ama…', 'Arka kapağı ilgimi çekti.'],
+    resmi: ['Konusu dikkatimi çekti.', 'Neyi anlattığını merak ediyorum.'],
+    samimi: ['Neyi anlatıyor bu, sever miyim ben bunu?', 'Konusu hoşuma gitti gibi.'],
+    turist: ['What is the story? Interesting…', 'The story looks nice.'],
+    cocuk: ['Bunda ne oluyor? Heyecanlı mı?', 'Kapağı çok güzel, içinde ne var?'],
+  },
+  kondisyon: {
+    genc: ['Sayfaları sağlam mı ama?', 'Çok eskimiş olmasın.'],
+    resmi: ['Kitabın durumu benim için önemli.', 'Cildi sağlam görünüyor mu?'],
+    samimi: ['Sayfaları dökülmesin, bak ona göre.', 'Temiz mi bu, lekesi yok değil mi?'],
+    turist: ['Is it in good condition?', 'Pages okay? Clean?'],
+    cocuk: ['Yırtık yok, değil mi?', 'Bu kirli mi?'],
+  },
+  nadirlik: {
+    genc: ['Bu eski baskılardan mı?', 'Nadir bir şey mi bu?'],
+    resmi: ['Hangi baskı olduğunu merak ediyorum.', 'Baskı bilgisi var mı acaba?'],
+    samimi: ['Eski baskı mı bu, değerli mi?', 'Böylesini zor bulursun, değil mi?'],
+    turist: ['Old edition? Rare?', 'Is it special? Antique?'],
+    cocuk: ['Bu çok mu eski? Hazine gibi mi?', 'Dedemin kitapları gibi eski mi?'],
+  },
+  ucuzluk: {
+    genc: ['Biraz pahalı geldi açıkçası.', 'Bütçem belli, o yüzden…'],
+    resmi: ['Fiyatı biraz yüksek buldum.', 'Hesaplı olsun isterim.'],
+    samimi: ['Biraz tuzlu ama bu fiyat.', 'Cebime göre bir şey arıyorum.'],
+    turist: ['A bit expensive…', 'Cheaper, maybe?'],
+    cocuk: ['Çok mu pahalı bu?', 'Kumbaram küçük ama…'],
+  },
+  hediye: {
+    genc: ['Arkadaşıma hediye alacağım da.', 'Doğum günü hediyesi olacak.'],
+    resmi: ['Bir yakınıma hediye edeceğim.', 'Hediye olarak düşünüyorum.'],
+    samimi: ['Torunuma hediye, güzel olsun.', 'Komşuma götüreceğim, yüzümü kara çıkarmasın.'],
+    turist: ['A gift for my friend.', 'A souvenir, a present.'],
+    cocuk: ['Anneme hediye!', 'Öğretmenime vereceğim.'],
+  },
+  tavsiye: {
+    genc: ['Okumaya değer mi sence?', 'Sen okudun mu bunu?'],
+    resmi: ['Tavsiye eder misiniz?', 'Sizin fikrinizi merak ediyorum.'],
+    samimi: ['Sen ne dersin, alayım mı?', 'Sen bilirsin, okudun mu?'],
+    turist: ['Do you recommend it?', 'Is it good? You read it?'],
+    cocuk: ['Güzel mi bu? Sen okudun mu?', 'Bunu sever miyim?'],
+  },
 };

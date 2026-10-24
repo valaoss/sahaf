@@ -3,7 +3,8 @@ import { BAL } from '../data/balance.js';
 import { TOWNS } from '../data/towns.js';
 import { rnd, rndInt } from '../core/rng.js';
 import { REGULARS, REGULAR_KEYS, VISIT_CHANCE } from '../data/regulars.js';
-import { makeCustomer, makeRegular, resolveCustomer, recommend, bestBook, spotOf, rescue, parkFee, upkeepOf, decaySat, sponsoredToday } from './shop.js';
+import { makeCustomer, makeRegular, makePatron, resolveCustomer, recommend, bestBook, spotOf, rescue, parkFee, upkeepOf, decaySat, sponsoredToday } from './shop.js';
+import { patronArrivals } from './patrons.js';
 import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
 import { checkStory, checkUnlocks } from './story.js';
@@ -51,6 +52,8 @@ export function openShop(S) {
   const visit = VISIT_CHANCE * (repLevel(S) >= 2 ? 1.5 : 1);
   S.regArrivals = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town && rnd(S) < visit)
     .map(id => ({ id, t: Math.round(BAL.dayStart + 30 + rnd(S) * (len - 90)) })).sort((a, b) => a.t - b.t);
+  // kartını bırakmış tanıdıklar (game/patrons.js)
+  S.patArrivals = patronArrivals(S, len);
   scheduleHappenings(S);
   S.today = { town: S.town, spot: S.spot, newTown, weather: weatherOf(S.day), event: mods.event, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 },
     secSold: [0, 0, 0, 0, 0, 0], sponsored: sponsoredToday(S), costs: { park: parkFee(S), upkeep: upkeepOf(S) },
@@ -65,10 +68,11 @@ export function advanceClock(S, minutes) {
   const due = [];
   while (S.arrivals.length && S.arrivals[0] <= S.clock) { S.arrivals.shift(); due.push(makeCustomer(S)); }
   while (S.regArrivals.length && S.regArrivals[0].t <= S.clock) due.push(makeRegular(S, S.regArrivals.shift().id));
+  while (S.patArrivals.length && S.patArrivals[0].t <= S.clock) { const id = S.patArrivals.shift().id; if (S.patrons[id]) due.push(makePatron(S, id)); }
   return due;
 }
 
-export const closingTime = S => S.phase === 'open' && S.clock >= BAL.dayEnd && !S.arrivals.length && !S.regArrivals.length && !S.haps.length;
+export const closingTime = S => S.phase === 'open' && S.clock >= BAL.dayEnd && !S.arrivals.length && !S.regArrivals.length && !S.patArrivals.length && !S.haps.length;
 
 export function closeShop(S) {
   if (S.phase !== 'open') return null;

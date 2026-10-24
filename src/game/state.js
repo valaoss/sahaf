@@ -6,6 +6,7 @@ import { DEFAULT_DECOR, SHELF_LEVELS } from '../data/decor.js';
 import { SPOTS, firstSpot } from '../data/spots.js';
 import { TOWNS, TOWN_KEYS, START_TOWNS } from '../data/towns.js';
 import { COUNTRIES } from '../data/countries.js';
+import { ARCHETYPES } from '../data/archetypes.js';
 import { REGULARS } from '../data/regulars.js';
 import { seedRng, rndInt } from '../core/rng.js';
 import { learnAll } from './knowledge.js';
@@ -68,6 +69,8 @@ export function newGame(seed = Date.now()) {
     kostasFound: [],           // 2. bölüm: bulunan Kostas kitapları (data/kostas.js)
     upgrades: [],              // karavan geliştirmeleri: cay, plak
     regArrivals: [],           // açık gün: gelecek müdavimler [{ t, id }]
+    patArrivals: [],           // açık gün: uğrayacak tanıdıklar [{ t, id }]
+    patrons: {},               // kartını bırakan tanıdıklar (game/patrons.js)
     travelled: false,          // bu sabah yola çıkıldı mı
     clock: BAL.dayStart,
     arrivals: [],              // açık gün: henüz gelmemiş müşterilerin saatleri
@@ -212,7 +215,9 @@ export function restore(saved) {
   // dükkân açıkken kayıt yazılmaz (core/save.js); eski sürümlerden kalma gün ortası kaydı o sabaha döner
   // rehber eklenmeden önce başlamış oyunlarda rehber gösterilmez
   if (saved.tut === undefined && S.totals.days > 0) S.tut = -1;
-  if (S.phase === 'open') { S.phase = 'morning'; S.arrivals = []; S.regArrivals = []; S.haps = []; S.today = null; S.clock = BAL.dayStart; }
+  // tanıdıklar: bozuk kayıt (bilinmeyen tip ya da kasaba, eksik özellik) atılır
+  for (const id in S.patrons) { const P = S.patrons[id]; if (!isObj(P) || !ARCHETYPES[P.arch] || !TOWNS[P.town] || !isObj(P.tr) || !isObj(P.seen)) delete S.patrons[id]; }
+  if (S.phase === 'open') { S.phase = 'morning'; S.arrivals = []; S.regArrivals = []; S.patArrivals = []; S.haps = []; S.today = null; S.clock = BAL.dayStart; }
   return S;
 }
 

@@ -10,7 +10,7 @@ import { createServer } from 'vite';
 const PANELS = ['', 'stock', 'spot', 'decor', 'oneri', 'konus', 'ic', 'istatistik', 'harita&acik', 'pasaport', 'olay', 'posta', 'kostas',
   'album', 'finale', 'book', 'musteriler', 'rec&kim=hasan&rica', 'bag', 'bag&ac=stockPanel', 'bag&ac=decorPanel', 'bag&ac=paperPanel',
   'gift&hatira', 'akdeniz&ulke=it', 'akdeniz&ulke=fr', 'akdeniz&ulke=es', 'akdeniz&ulke=eg', 'akdeniz&ulke=gr&ac=voyagePanel', 'toren',
-  'settings', 'koleksiyoncu', 'pazarlik', 'pazarlik&kim=koleksiyoncu'];
+  'settings', 'koleksiyoncu', 'pazarlik', 'pazarlik&kim=koleksiyoncu', 'pazarlik&kim=emekli&tanidik'];
 const LANGS = process.env.UI_LANGS?.split(',') || ['tr', 'en'];
 const ONLY = process.env.UI_PANELS?.split(',');
 const WAIT = +(process.env.UI_WAIT || 800);

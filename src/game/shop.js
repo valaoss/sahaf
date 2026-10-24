@@ -16,7 +16,8 @@ import { buildAsk } from './asks.js';
 import { kostasDrop } from './story.js';
 import { remember, pickFresh, weightedFresh } from './memory.js';
 import { crateAdd, crateFree, takeCopy, peekCopy, putBack, refill } from './shelving.js';
-import { traitsFor, traitsOf, approach, respond, lineFor, stickerOf } from './haggle.js';
+import { traitsFor, traitsOf, approach, respond, lineFor, hintFor, stickerOf } from './haggle.js';
+import { patronOf, patronAfterSale, patronAfterMiss } from './patrons.js';
 import { EVENTS } from '../data/calendar.js';
 import { eventOf } from './calendar.js';
 import { countryOf, travelInfo, crossBorder, openCountries } from './travel.js';
@@ -273,6 +274,13 @@ export function makeRegular(S, id) {
     ask: { tags, text: buildAsk(S, tags, askCtx(S, { voice: R.voice || 'samimi', bare: true })) }, tr: traitsFor(S, null, true) };
 }
 
+// Tanıdık uğradı: görünüşü ve özellikleri aynı; çoğu zaman geçen seferki türden bir kitap arar
+export function makePatron(S, id) {
+  const P = S.patrons[id], A = ARCHETYPES[P.arch], d = demandOf(S), lastG = BOOK[P.last?.book]?.genre;
+  for (const g in A.genres) d[g] *= A.genres[g];
+  return { id: S.nextId++, pat: id, arch: P.arch, look: P.look, style: P.style, wants: lastG && rnd(S) < 0.5 ? lastG : weighted(S, d), tr: { ...P.tr } };
+}
+
 // Kalp ekle; eşikleri geçince ödül bilgisini döndür
 export function addHeart(S, id) { const res = {}; befriend(S, id, res); return res.friend || null; }
 
@@ -368,7 +376,7 @@ const dealStats = T => (T.deals = T.deals || { n: 0, won: 0, lost: 0, paid: 0, s
 function startDeal(S, c, id, a, wantRare, rec = null) {
   const featured = S.featured.includes(id);
   const cp = holdCopy(S, id, wantRare);
-  c.deal = { id, cp, P: a.P, O: a.O, R: a.R, W: a.W, habit: !!a.habit, pat: traitsOf(c).patience, final: false, rounds: 0, rec, featured };
+  c.deal = { id, cp, P: a.P, O: a.O, R: a.R, W: a.W, B: traitsOf(c).budget, habit: !!a.habit, pat: traitsOf(c).patience, final: false, rounds: 0, soz: null, seen: {}, rec, featured };
   dealStats(S.today).n++;
   return c.deal;
 }
@@ -466,6 +474,11 @@ function completeRec(S, c, id, res, opts, rareCopy, held = null, price = null) {
     res.paid += res.tip;
     T.tips += res.tip;
   }
+  // pazarlıksız tam isabet: memnun müşteri bazen kartını bırakır
+  if (price === null && res.grade === 'perfect') {
+    res.patron = patronAfterSale(S, c, id, null, null, {}, true);
+    if (res.patron) T.newPatrons = (T.newPatrons || 0) + 1;
+  }
   if (res.grade === 'perfect') {
     S.totals.perfect++;
     // müdavimine tam isabet: kasabada adın duyulur
@@ -493,13 +506,18 @@ export function haggleMove(S, c, move) {
   if (!d) return null;
   const o = respond(S, c, d, move);
   const kind = o.out === 'deal' ? (o.happy ? 'happy' : 'deal') : o.out;
-  o.line = lineFor(S, c, kind, o.out === 'counter' || o.out === 'final' ? o.offer : null);
+  o.line = lineFor(S, c, kind, ['counter', 'final', 'sozYes'].includes(o.out) ? o.offer : null);
   if (o.out === 'deal') o.res = closeDeal(S, c, o.price, o.happy);
   else if (o.out === 'leave' || o.out === 'angry') o.res = dropDeal(S, c, !o.polite);
   return o;
 }
-// Müşterinin pazarlığı açan cümlesi (ilk teklifi): parası yetenle cebi dar olan farklı konuşur
-export const openingLine = (S, c) => c.deal ? lineFor(S, c, c.deal.habit ? 'open' : 'poor', c.deal.O) : '';
+// Müşterinin pazarlığı açan cümlesi: tanıdıksa önce geçen seferi anar; ilk teklif (parası yetenle cebi dar olan farklı konuşur),
+// ardından derdinin ipucu
+export function openingLine(S, c) {
+  if (!c.deal) return '';
+  const P = patronOf(S, c), back = P?.last && BOOK[P.last.book] ? lineFor(S, c, 'back', null, BOOK[P.last.book].title) + ' ' : '';
+  return back + lineFor(S, c, c.deal.habit ? 'open' : 'poor', c.deal.O) + ' ' + hintFor(S, c);
+}
 // Pazarlığa gelen müşteri beklerken gitti (kimse ilgilenmedi): kopya rafa döner
 export const abandonDeal = (S, c) => c.deal ? dropDeal(S, c, false) : null;
 
@@ -509,7 +527,10 @@ function closeDeal(S, c, price, happy) {
   st.won++; st.paid += price; st.sticker += d.P;
   // ucuza aldığını düşünen müşteri anlatır (ertesi gün kalabalık: closeShop'taki ağızdan ağıza)
   if (happy) T.happyDeals = (T.happyDeals || 0) + 1;
-  const res = { bought: [], paid: 0, tip: 0, happy: true, haggled: true, pleased: happy, sticker: d.P };
+  const res = { bought: [], paid: 0, tip: 0, happy: true, haggled: true, pleased: happy, sticker: d.P, soz: d.soz };
+  // memnun ayrılan bazen kartını bırakır (tanıdık); tanıdık son alışverişini hatırlar
+  res.patron = patronAfterSale(S, c, d.id, price, d.P, d.seen, happy);
+  if (res.patron) T.newPatrons = (T.newPatrons || 0) + 1;
   if (!d.rec) { sell(S, d.id, res, false, 1, d.cp, price); return finish(S, res); }
   res.grade = d.rec.grade;
   res.learned = d.rec.learned;
@@ -526,6 +547,7 @@ function dropDeal(S, c, upset) {
   if (d.featured && !S.featured.includes(d.id) && S.featured.length < BAL.featureMax) S.featured.push(d.id);
   dealStats(T).lost++;
   if (upset) T.priceLost = (T.priceLost || 0) + 1;
+  patronAfterMiss(S, c, d.seen);
   const res = { bought: [], paid: 0, tip: 0, happy: false, haggled: true, upset };
   if (d.rec) { res.grade = d.rec.grade; regularVisit(S, c, res, d.rec.tea); }
   return settle(S, res);

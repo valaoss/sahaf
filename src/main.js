@@ -21,7 +21,7 @@ import { weatherOf, dayMods, eventOf } from './game/calendar.js';
 import { checkStory, checkUnlocks } from './game/story.js';
 import { checkCountries } from './game/travel.js';
 import { roadEvent, chooseRoad, ROAD_BY_ID } from './game/road.js';
-import { placeAll, shelve, unshelve, moveBook, setLabel, setPrice } from './game/shelving.js';
+import { placeAll, shelve, unshelve, moveBook, setLabel, setPrice, syncLayout } from './game/shelving.js';
 import { replyFor } from './game/replies.js';
 import { tutorialStep, tutorialEvent } from './game/tutorial.js';
 import { HAP, dueHappening, chooseHappening } from './game/happenings.js';
@@ -31,7 +31,7 @@ import { STAMPS } from './data/stamps.js';
 import { PAGES } from './data/story.js';
 import { tap } from './core/native.js';
 import { T, setLang } from './i18n/i18n.js';
-import { readBook } from './game/knowledge.js';
+import { readBook, learnAll } from './game/knowledge.js';
 import { orderBook, favorOpen, makeFavor } from './game/bonds.js';
 import { auctionLot, rentBq, fillBq, buyRoses, restoreCopy } from './game/voyage.js';
 import { deliverFavor } from './game/shop.js';
@@ -415,7 +415,10 @@ if (PREVIEW) {
     for (let k = 0; k < 60; k++) {
       const c = makeCustomer(S);
       Object.assign(c, { arch, style: ARCHETYPES[arch].style, ask: null, wants: Object.keys(S.shelf).map(id => BOOK[id].genre)[0] });
-      c.tr = { ...c.tr, budget: 13, greed: 0.25, patience: 3 };
+      c.tr = { ...c.tr, budget: 13, greed: 0.25, patience: 3, care: 'tavsiye' };
+      for (const id in S.shelf) learnAll(S, id);
+      syncLayout(S).sections.forEach(sec => sec.books.forEach(e => { e.cond = 'temiz'; }));
+      if (q.has('tanidik')) { S.patrons.p1 = { arch, look: c.look, style: c.style, town: S.town, tr: c.tr, visits: 2, since: 1, last: { book: Object.keys(S.shelf)[1], price: 12, sticker: 14, day: 1 }, seen: { budget: 13, patience: false, care: false } }; c.pat = 'p1'; }
       if (resolveCustomer(S, c).deal) { openHaggle(c); break; }
     }
   }
@@ -423,7 +426,9 @@ if (PREVIEW) {
   if (panel === 'album') { S.stamps = ['ilkgun', 'isabet', 'elli', 'ege', 'festival', 'yagmur', 'dost']; S.totals.sold = 120; ui.albumPanel(S); }
   if (panel === 'finale') { Object.assign(S.totals, { days: 34, sold: 512, perfect: 61 }); S.friends = { hasan: 5, ela: 4 }; S.stamps = STAMPS.slice(0, 14).map(s => s.id); ui.finalePanel(S, () => {}); }
   if (panel === 'book') { S.pages = ['miras', 'dostlar', 'liste']; S.visited = ['ayvalik', 'cunda']; ui.bookPanel(S); }
-  if (panel === 'musteriler') { S.met = ['hasan', 'melis', 'ruya']; S.friends = { hasan: 3, melis: 5, ruya: 1 }; S.keepsakes = ['melis']; ui.bookPanel(S); document.querySelector('[data-tab="people"]')?.click(); }
+  if (panel === 'musteriler') { S.met = ['hasan', 'melis', 'ruya']; S.friends = { hasan: 3, melis: 5, ruya: 1 }; S.keepsakes = ['melis'];
+    S.patrons = { p1: { arch: 'ogrenci', look: 4242, style: ARCHETYPES.ogrenci.style, town: 'ayvalik', tr: { budget: 18, patience: 2, care: 'ucuzluk' }, visits: 3, since: 1, last: { book: 'yasliadam', price: 11, sticker: 14, day: 2 }, seen: { budget: 16, patience: true, care: false } },
+      p2: { arch: 'koleksiyoncu', look: 777, style: ARCHETYPES.koleksiyoncu.style, town: 'foca', tr: { budget: 120, patience: 1, care: 'nadirlik' }, visits: 1, since: 3, last: { book: 'hobbit', price: null, sticker: null, day: 3 }, seen: { budget: null, patience: false, care: true } } }; ui.bookPanel(S); document.querySelector('[data-tab="people"]')?.click(); }
   if (panel === 'decor') ui.decorPanel(S);
   // ?panel=rec&kim=hasan&rica: 3 kalpli müdavim, ricası rafta
   if (panel === 'rec') {

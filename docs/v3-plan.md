@@ -435,6 +435,30 @@ Her faz ayrı commit ve yayın olur.
   - pazarlıktan doğan müdavimler, hafıza ve özel siparişler
   - Defter > Müşteriler kartları ve keşfedilen özellikler
 - **Bitiş ölçütü:** 4.3'teki söz hedefi tutar. Aynı tipten iki müşteri gözle görülür farklı davranır. Tepki cümleleri tekrar etmez (`memory.js` pencereleri).
+- **Durum (24.10.2026): yapıldı, söz hedefi yarıya yakın.**
+  - **Dert:** Her müşterinin bir derdi var: konu, kondisyon, nadirlik, ucuzluk, hediye ya da tavsiye. Tipine göre ağırlıklı (`CARE_WEIGHTS`). İlk teklifin ardından derdini ele veren bir cümle söyler (`HINTS`).
+  - **Söz kartları** (`game/haggle.js` `sozOptions`, `sozFit`): Kartlar bildiklerinden gelir: ilk baskı, tertemiz kopya, bildiğin bir konu (müşterinin sevdiği öne çıkar), "ben de okudum" (kitabı tam biliyorsan), geçen seferki kitap.
+    - Pazarlıkta yalnız bir söz söylenir.
+    - Derde dokunan söz biçilen değeri %35 artırır, bütçeyi %25 esnetir, sabrı bir uzatır; etiket artık rahat ödenebiliyorsa müşteri ikna olur.
+    - Dokunmayan söz yalnız turu harcar.
+  - **Tanıdıklar** (`game/patrons.js`): Memnun ayrılan müşteri %30 ihtimalle kartını bırakır. Kendi kasabasında arada bir yine uğrar.
+    - Görünüşü ve özellikleri aynıdır, geçen seferki kitabı anar.
+    - Verdiğin indirimi hatırlar ve o kadar düşük açar.
+    - Pazarlıkta gözlenenler kartında birikir: son sözündeki bütçe, sabrı, derdi. Defter › Müşteriler'de Müdavimler ve Tanıdıklar olarak görünür.
+  - **Görünüm:** Pazarlık portresinde 6 yüz ifadesi: meraklı, düşünceli, sıkılmış, mutlu, kızgın, şaşkın (`render/figure.js` MOODS). Beden dili ipuçları: saatine bakıyor, cüzdanını yokluyor, pazarlıktan keyif alıyor, kitabı evirip çeviriyor…
+  - **Cümleler:** Türkçe ve İngilizce, her biri ~220. Pazarlığın 10 durumu × 5 üslup × 3, tanıdık dönüşü, 6 dert × 5 üslup × 2 ipucu.
+  - **Ölçüm** (`npm run sim -- pazarlik`):
+
+    | Tavır | 7. gün | 30. gün | 60. gün |
+    |---|---|---|---|
+    | Hep kabul | ₺950 | ₺3879 | ₺9320 |
+    | Söz + cümle (ipucundan derdi okuyup uyan sözü söyleyen) | +%24 | +%21 | +%16 |
+    | Faz 1'in en iyisi (cümleyi okuyan) | | | +%5 |
+
+  - **Eksikler:**
+    - %30–45 söz hedefi 60. günde tutmadı. Sözün işe yaradığı pazarlık az: ucuzluk derdindekilere söz yok, bilinmeyen kitapta konu sözü yok. Faz 3'teki paket köşesi (hediye sözü) ve kitap tanıma bunu artıracak.
+    - Yüz ifadeleri yalnız pazarlık portresinde; sahnedeki figürler hâlâ sevinç/üzüntü duruşuyla sınırlı.
+    - Hediye sözü, paket köşesi geliştirmesiyle Faz 3'e kaldı.
 
 ### Faz 3 — Para ve ilerleme (öncelik 2)
 - **Atölye:** tek geliştirme ekranı.

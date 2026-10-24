@@ -51,7 +51,7 @@ const closeLabel = back => back ? T`Geri` : T`Kapat`;
 export function bookTabs(S, on) {
   const t = (k, label) => `<button class="tab ${on === k ? 'is-on' : ''}" data-tab="${k}">${label}</button>`;
   // v3: Hikâye ve Müşteriler; kenara alınan sekmeler (pul, mektup, istatistik, pasaport, Akdeniz) yalnız bayrakları açıkken
-  return `<div class="tabs head">${t('book', `📜 ${T`Hikâye`}`)}${t('people', `👥 ${T`Müşteriler`} (${S.met.length})`)}${FEATURES.pul ? t('album', `🏅 ${T`Pul albümü`} (${S.stamps.length}/${STAMPS.length})`) : ''}${FEATURES.mektup ? t('mail', `💌 ${T`Mektuplar`} (${S.letters.length})`) : ''}${FEATURES.akdeniz ? t('passport', `🛂 ${T`Pasaport`} (${Object.keys(S.passport).length})`) : ''}${FEATURES.akdeniz && S.countries.length > 1 ? t('voy', `🧭 ${T`Akdeniz defteri`} (${VOYAGE_KEYS.reduce((n, c) => n + voyagePages(S, c), 0)}/15)`) : ''}</div>`;
+  return `<div class="tabs head">${t('book', `📜 ${T`Hikâye`}`)}${t('people', `👥 ${T`Müşteriler`} (${S.met.length + Object.keys(S.patrons).length})`)}${FEATURES.pul ? t('album', `🏅 ${T`Pul albümü`} (${S.stamps.length}/${STAMPS.length})`) : ''}${FEATURES.mektup ? t('mail', `💌 ${T`Mektuplar`} (${S.letters.length})`) : ''}${FEATURES.akdeniz ? t('passport', `🛂 ${T`Pasaport`} (${Object.keys(S.passport).length})`) : ''}${FEATURES.akdeniz && S.countries.length > 1 ? t('voy', `🧭 ${T`Akdeniz defteri`} (${VOYAGE_KEYS.reduce((n, c) => n + voyagePages(S, c), 0)}/15)`) : ''}</div>`;
 }
 export function wireTabs(p, S, back) {
   p.querySelectorAll('[data-tab]').forEach(b => b.onclick = () =>
@@ -70,8 +70,26 @@ export function peoplePanel(S, back = null) {
       <div><div class="gname">${R.name} <b class="hearts">${hearts(h)}</b></div>
       <div class="gmeta">📍 ${TOWNS[R.town].name} · ${GENRES[R.genre].icon} ${GENRES[R.genre].name} · ${R.likes.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ')}${favor}${gift}</div></div></div>`;
   }).join('');
+  // tanıdıklar: kartını bırakanlar; pazarlıkta gözlediğin özellikler (bilinmeyen ?)
+  const CARE = { konu: T`konusu`, kondisyon: T`kitabın durumu`, nadirlik: T`nadirliği`, ucuzluk: T`fiyatı`, hediye: T`hediyelik olması`, tavsiye: T`senin tavsiyen` };
+  const pats = Object.entries(S.patrons).sort((a, b) => b[1].visits - a[1].visits).map(([id, P]) => {
+    const name = nameOf(P.look, ARCHETYPES[P.arch]?.names), L = P.last;
+    const know = [
+      `👛 ${T`Bütçe`}: ${P.seen.budget ? '~₺' + P.seen.budget : '?'}`,
+      `⌚ ${T`Sabır`}: ${P.seen.patience ? '★'.repeat(P.tr.patience) : '?'}`,
+      `💭 ${T`Derdi`}: ${P.seen.care ? CARE[P.tr.care] : '?'}`,
+    ].join(' · ');
+    return `<div class="dcard"><div class="portrait sm"><svg viewBox="${portraitBox(P)}">${personSVG(P.look, P.style)}</svg></div>
+      <div><div class="gname">${name} <span class="hint">· ${ARCHETYPES[P.arch].name}</span></div>
+      <div class="gmeta">📍 ${TOWNS[P.town].name} · ${T`${P.visits} kez uğradı`}${L && BOOK[L.book] ? ` · ${T`son aldığı`} «${BOOK[L.book].title}»${L.price ? ` ₺${L.price}` : ''}` : ''}</div>
+      <div class="gmeta">${know}</div></div></div>`;
+  }).join('');
   const p = openPanel(`${bookTabs(S, 'people')}
+    <h3>${T`Müdavimler`}</h3>
     ${cards ? `<div class="dgrid one">${cards}</div>` : `<p class="hint">${T`Henüz bir müdavimle tanışmadın. 💌 balonuyla gelenler kasabanın müdavimleridir.`}</p>`}
+    <h3>${T`Tanıdıklar`}</h3>
+    ${pats ? `<div class="dgrid one">${pats}</div>` : `<p class="hint">${T`İyi bir alışverişten memnun ayrılan müşteri bazen kartını bırakır; sonra yine uğrar ve geçen seferi hatırlar.`}</p>`}
+    <p class="hint">${T`Pazarlıkta gözlediklerin kartlarında birikir: son sözü bütçesini, gidişi sabrını, tutan bir söz derdini gösterir.`}</p>
     <p class="hint">${T`Müdavimlerin zevkine tam uyan her öneri bir kalp getirir; 3 kalpte senden bir kitap rica ederler, 5 kalpte hediye bırakırlar.`}</p>
     <div class="row end"><button class="btn hl" data-close>${closeLabel(back)}</button></div>`, 'wide');
   wireTabs(p, S, back);

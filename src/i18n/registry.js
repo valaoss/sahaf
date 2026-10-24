@@ -22,7 +22,7 @@ import { VISITORS } from '../data/visitors.js';
 import { REPLIES } from '../data/replies.js';
 import { TALK } from '../data/talk.js';
 import { GREET, CLOSE, CONTEXT, REQ_ONE, REQ_TWO, RARE_REQ } from '../data/asks.js';
-import { LINES as HAGGLE_LINES } from '../data/haggle.js';
+import { LINES as HAGGLE_LINES, HINTS as HAGGLE_HINTS } from '../data/haggle.js';
 import { REP_LEVELS } from '../game/bonds.js';
 import { COND_NAME } from '../game/shop.js';
 import { THEMES } from '../audio/compose.js';
@@ -33,7 +33,7 @@ export const TARGETS = {
   TOWNS, SPOTS, COUNTRIES, PAPER, PAPER_TOWN, EVENTS, WEATHER, SEASON, SPECIAL, GOSSIP,
   DECOR, UPGRADES, PAINTS, SLOTS, STAMPS, PAGES, VOYAGE, GRAND, KOSTAS, TUT_STEPS,
   LETTERS, HAPPENINGS, ROAD, VISITORS, REPLIES, TALK, GREET, CLOSE, CONTEXT, REQ_ONE, REQ_TWO, RARE_REQ,
-  REP_LEVELS, COND_NAME, THEMES, HAGGLE_LINES,
+  REP_LEVELS, COND_NAME, THEMES, HAGGLE_LINES, HAGGLE_HINTS,
 };
 
 // Metin alanları (denetim için): bu adlı alanlar çevrilir; ötekiler (kimlik, etki, sayı, ikon) dokunulmaz

@@ -117,6 +117,7 @@ export function weekFests(S) {
 // Gün sonu teşhisi: fiyat etiketinin etkisi (ve ağızdan ağıza), doymuş türler, sponsorluk
 export function diagnose(S, D) {
   const out = [];
+  if (D.newPatrons) out.push(T`🤝 <b>${D.newPatrons}</b> müşteri kartını bıraktı: artık tanıdığın (📜 Defter › Müşteriler).`);
   if (D.happyDeals) out.push(T`😊 <b>${D.happyDeals}</b> müşteri ucuza aldığını düşünüyor; yarın anlatırlar.`);
   if (D.priceLost) out.push(T`🏷️ <b>${D.priceLost}</b> kişi fiyat yüzünden vazgeçti ya da pazarlıktan kızgın ayrıldı` + (D.word < 1 ? T` — konuşacaklar: yarın burada kalabalık %${Math.round((1 - D.word) * 100)} az` : '') + '.');
   if (D.priceWon) out.push(T`🏷️ Ucuz etiket <b>${D.priceWon}</b> kişiyi ikna etti` + (D.word > 1 ? T` — yarın burada kalabalık %${Math.round((D.word - 1) * 100)} fazla` : '') + '.');

@@ -650,3 +650,12 @@ svg.world #wvan { transform-box: view-box; }
   .veil.strip { justify-content: flex-end; }
   .veil.strip .panel.haggle { width: 25em; font-size: .88em; margin: 0 1em 1em 0; }
 }
+
+/* Faz 2: beden dili ipuçları, söz kartları, oyuncunun sözü, tanıdık rozeti */
+.hg .cues { display: flex; flex-wrap: wrap; gap: .35em; margin-top: .3em; }
+.hg .cue { font-size: .8em; padding: .12em .55em; border-radius: 999px; background: rgba(160, 125, 92, .14); color: #6f5644; }
+.hg .pat { font-size: .78em; color: #4f8a6a; font-weight: 600; }
+.hg-me { margin: -.2em 0 .5em; font-style: italic; color: #7d5f4b; }
+.hg-soz { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: .4em; align-items: center; margin-top: .2em; }
+.hg-soz .hint { margin: 0; }
+.hg-soz .soz { background: #fff7e3; border-color: #e6c98f; }
