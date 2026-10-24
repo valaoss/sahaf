@@ -113,7 +113,7 @@ export function setPrice(S, sec, tag) {
 
 // Satılan kopyayı raftan al (S.shelf sayısını sell düşürür): müşteri ucuz bölümdekini önce görür.
 // wantRare: koleksiyoncuya ilk baskı. Dönüş: o kopyanın bölüm fiyat etiketi ve durumu.
-export function takeCopy(S, id, wantRare = false) {
+function bestCopy(S, id, wantRare) {
   syncLayout(S);
   let best = null;
   const rank = { ucuz: 0, normal: 1, pahali: 2 };
@@ -121,9 +121,29 @@ export function takeCopy(S, id, wantRare = false) {
     if (e.id !== id || e.rare !== wantRare) return;
     if (!best || rank[sec.price] < rank[best.sec.price]) best = { sec, si, i };
   }));
-  if (!best) return { price: 'normal', cond: 'iyi', sec: -1 };
+  return best;
+}
+// Dönüş: { price (bölümün etiketi), cond, sec, i (bölüm ve sıra), rare }
+export function takeCopy(S, id, wantRare = false) {
+  const best = bestCopy(S, id, wantRare);
+  if (!best) return { price: 'normal', cond: 'iyi', sec: -1, i: -1, rare: wantRare };
   const [e] = best.sec.books.splice(best.i, 1);
-  return { price: best.sec.price, cond: e.cond || 'iyi', sec: best.si };
+  return { price: best.sec.price, cond: e.cond || 'iyi', sec: best.si, i: best.i, rare: wantRare };
+}
+// takeCopy'nin seçeceği kopya, rafa dokunmadan (pazarlık öncesi etiket fiyatı için)
+export function peekCopy(S, id, wantRare = false) {
+  const best = bestCopy(S, id, wantRare);
+  if (!best) return { price: 'normal', cond: 'iyi', sec: -1, i: -1, rare: wantRare };
+  return { price: best.sec.price, cond: best.sec.books[best.i].cond || 'iyi', sec: best.si, i: best.i, rare: wantRare };
+}
+// Pazarlıkta anlaşılamadı: müşterinin elindeki kopya rafta eski yerine döner (S.shelf, S.rare ve düzen birlikte)
+export function putBack(S, id, cp) {
+  syncLayout(S);
+  S.shelf[id] = (S.shelf[id] || 0) + 1;
+  if (cp.rare) S.rare[id] = (S.rare[id] || 0) + 1;
+  const b = S.layout.sections[cp.sec]?.books;
+  if (b) b.splice(Math.max(0, Math.min(cp.i, b.length)), 0, { id, rare: !!cp.rare, cond: cp.cond || 'iyi' });
+  syncLayout(S);
 }
 
 // bir türün raftaki kopyalarının ortalama "almaya karar verme" çarpanı: fiyat etiketine ve müşterinin cebine göre

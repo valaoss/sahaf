@@ -3,6 +3,7 @@ export const TUT_STEPS = [
   { on: 'morning', text: 'Günaydın! Önce 📦 Toptancıdan bir koli al.', target: '[data-a="stock"]', done: 'buy' },
   { on: 'morning', text: 'Koli geldi! 📚 Kitapları rafa diz: sürükle ya da “Hepsini diz”. Türüne uygun bölüm daha çok müşteri çeker.', target: '[data-a="inside"]', done: 'shelve' },
   { on: 'morning', text: 'Raflar hazır. Şimdi 🔔 Dükkânı aç.', target: '[data-a="open"]', done: 'open' },
+  { on: 'open', text: 'Bir müşteri kitapla tezgâha geldi: teklifini kabul et, orta yolu dene ya da fiyatında dur. Sabrı sınırsız değil!', target: null, done: 'haggle' },
   { on: 'open', text: '❓ balonlu bir müşteri gelince ona dokun; cümlesine en uygun kitabı seç.', target: null, done: 'rec' },
   { on: 'evening', text: 'Gün bitti! Özeti oku, sonra ☀️ Ertesi sabah.', target: '[data-next]', done: 'next' },
   { on: 'morning', text: 'Üstteki konuma dokun: 📍 mekânını değiştirip başka müşterilerle tanış.', target: '[data-a="spot"]', done: 'spot' },

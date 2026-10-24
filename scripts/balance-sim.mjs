@@ -1,6 +1,6 @@
 // Denge simülasyonu: farklı oyun tarzlarıyla 60 gün oynar, kasanın nasıl büyüdüğünü yazdırır.
 // İlk tabloda öneri isteyene raftaki en uygun kitap verilir (her şeyi bilen oyuncu); gerçekçi oyuncu bölümünde bilgisi sınırlıdır.
-// Kullanım: npm run sim · yalnız bir bölüm: -- kisa (ilk tablo) | gercek | bilgi
+// Kullanım: npm run sim · yalnız bir bölüm: -- kisa (ilk tablo) | gercek | pazarlik | bilgi
 import { GENRE_KEYS } from '../src/data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../src/data/towns.js';
 import { SHELF_LEVELS } from '../src/data/decor.js';
@@ -10,9 +10,10 @@ import { buyBox, travel, rescue, demandOf, donate, sponsor, sponsorable, refillS
 import { placeAll, setPrice, SECTIONS } from '../src/game/shelving.js';
 import { equipDecor, upgradeShelf, buyUpgrade } from '../src/game/decor.js';
 import { BOOK } from '../src/data/books.js';
+import { ARCHETYPES } from '../src/data/archetypes.js';
 import { knownTags, knowsAll, readBook, readsLeft } from '../src/game/knowledge.js';
 import { favorOpen, ordered, orderBook } from '../src/game/bonds.js';
-import { simulateDay } from '../src/game/day.js';
+import { simulateDay, HAGGLE_DEFAULT } from '../src/game/day.js';
 import { eventOf } from '../src/game/calendar.js';
 import { EVENTS } from '../src/data/calendar.js';
 
@@ -151,6 +152,44 @@ if (!ONLY || ONLY === 'gercek') {
   console.log(`  → tembel oyuncu akıllıdan %${Math.round(100 * (1 - lazy / smart))} geride`);
 }
 if (ONLY === 'gercek') process.exit(0);
+
+// --- Pazarlık (-- pazarlik): aynı gerçekçi oyuncu (akıllı stok, tek kasaba), pazarlığa gelen müşteriye farklı tavırlar.
+// Bot müşterinin sınırını görmez; yalnız teklife, tura ve "son söz"e bakar.
+const HAGGLE = {
+  'hep kabul': () => 'accept',
+  'hep fiyatında': () => 'hold',
+  'orta yol, sonra kabul': HAGGLE_DEFAULT,
+  // müşteriyi okuyan: görünüşünden tipini tanır (cebine bakmayan → fiyatında dur; cebine bakan → kabul ya da orta yol)
+  'tipe bakan': (S, c, d) => { const th = ARCHETYPES[c.arch]?.thrift || 'mid'; if (d.final || d.rounds >= 2) return 'accept'; if (th === 'loose') return d.rounds === 0 ? 'hold' : 'accept'; if (th === 'tight') return d.O >= d.P * 0.7 || d.rounds ? 'accept' : 'mid'; return d.rounds === 0 ? 'mid' : 'accept'; },
+  // cümleyi okuyan: parası yeten (alışkanlıktan pazarlık eden) müşteride fiyatında durur, cebi dar olana orta yol
+  'cümleye bakan': (S, c, d) => d.habit ? 'hold' : d.final || d.rounds ? 'accept' : 'mid',
+  'teklife bakan': (S, c, d) => d.final || d.O >= d.P * 0.88 || d.rounds >= 2 ? 'accept' : d.rounds === 0 && d.O >= d.P * 0.75 ? 'hold' : 'mid',
+};
+if (!ONLY || ONLY === 'pazarlik') {
+  console.log('\nPazarlık tavrı (gerçekçi oyuncu, akıllı stok, tek kasaba):');
+  const rows = {};
+  for (const [name, haggle] of Object.entries(HAGGLE)) {
+    const curve = Array(DAYS).fill(0);
+    let n = 0, won = 0, paid = 0, sticker = 0, sold = 0, visitors = 0;
+    for (let r = 0; r < RUNS; r++) {
+      const S = newGame(4000 + r), rec = reader(4000 + r);
+      for (let d = 0; d < DAYS; d++) {
+        rescue(S);
+        careful(S);
+        stockSmart(S);
+        const T = simulateDay(S, () => 0, rec, { favors: true, haggle });
+        if (T.deals) { n += T.deals.n; won += T.deals.won; paid += T.deals.paid; sticker += T.deals.sticker; }
+        sold += T.soldCount; visitors += T.visitors;
+        curve[d] += S.coins / RUNS;
+      }
+    }
+    rows[name] = curve[DAYS - 1];
+    const pts = [7, 14, 30, 60].map(d => `${d}.g ₺${Math.round(curve[d - 1])}`).join(' · ');
+    console.log(`${name.padEnd(24)} ${pts} | günde ${(n / RUNS / DAYS).toFixed(1)} pazarlık, %${Math.round(100 * won / Math.max(1, n))} anlaşma, etiketin %${Math.round(100 * paid / Math.max(1, sticker))}'i, satış/ziyaretçi %${Math.round(100 * sold / visitors)}`);
+  }
+  const base = rows['hep kabul'];
+  for (const k of Object.keys(rows).slice(1)) console.log(`  → ${k}: hep kabul edenden %${Math.round(100 * (rows[k] / base - 1))}`);
+}
 
 // Akdeniz bölümü v3 sadeleştirmesiyle kaldırıldı (ülkeler kenarda: data/features.js).
 

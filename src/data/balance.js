@@ -1,6 +1,7 @@
-// Ekonomi ve gün ayarları: denge değişiklikleri buradan yapılır, `npm run sim` ile ölçülür
+// Ekonomi ve gün ayarları: denge değişiklikleri buradan yapılır, `npm run sim` ile ölçülür.
+// v3 Faz 1: kitap fiyatları, başlangıç parası, bahşiş, park, yakıt ve karavan eşyaları iki katına çıktı (olay ödülleri aynı kaldı)
 export const BAL = {
-  startCoins: 60,
+  startCoins: 120,
   startStock: { roman: 5, polisiye: 5, cocuk: 5 },
   boxSize: 5,          // bir kolide kaç kitap
   shelfCap: 30,        // karavan raflarına sığan kitap
@@ -23,7 +24,7 @@ export const BAL = {
   },
   // giderler (gün kapanınca ödenir): park = kasabanın kalabalığı × mekânın kalabalığı × parkRate;
   // takılı her süsün bakımı fiyatının 1/upkeepPer'i (yukarı yuvarlanır); geliştirmelerin kendi gideri (data/decor.js UPGRADES.upkeep)
-  parkRate: 0.6,
+  parkRate: 1.2,
   upkeepPer: 30,
   // tür doygunluğu: bir kasabada çok satılan türü arayan azalır, her sabah satilan × satDecay'e iner
   satDecay: 0.7,
@@ -31,6 +32,7 @@ export const BAL = {
   // fiyat ünü: fiyatı yüzünden vazgeçen her müşteri ertesi gün o kasabanın kalabalığını bu kadar azaltır,
   // ucuz etiketle ikna olan her müşteri artırır (sınırlar: wordMin–wordMax)
   wordOfMouth: 0.03, wordMin: 0.75, wordMax: 1.15,
+  dealWord: 0.005,     // pazarlıkta ucuza aldığını düşünen her müşteri (daha az anlatır: zaten pazarlık etti)
   // kasabaya okuma köşesi bağışı: o kasabada park ücretsiz, kalabalık kalıcı olarak artar
   donateCost: 300,
   donateTraffic: 1.08,
@@ -44,16 +46,16 @@ export const BAL = {
   talkMinutes: 10,     // "Biraz daha anlat" sohbeti saati bu kadar ilerletir
   teaTip: 3,           // çay ikram edilen müşteri, alırsa bu kadar fazla bahşiş bırakır
   discount: 0.7,       // indirim: uymayan öneri yine de bu fiyat oranıyla satılır
-  travelCost: 6,       // kasabalar arası yakıt (en az)
-  roadPerDeg: 4,       // uzak şehirlere yakıt: kuş uçuşu her derece için
+  travelCost: 12,      // kasabalar arası yakıt (en az)
+  roadPerDeg: 8,       // uzak şehirlere yakıt: kuş uçuşu her derece için
   ferryMin: 30, ferryMax: 90, ferryPerDeg: 6,   // başka ülkeye feribot bileti
   newTownTraffic: 5,   // dün başka kasabadaydıysan: yeni karavanı merak eden ek ziyaretçi
   askChance: 0.2,      // müşterinin öneri isteme ihtimali
   askFromShelf: 0.6,   // isteğin raftaki bir kitaptan doğma ihtimali (kalanı tüm katalogdan)
   rareChance: 0.05,    // kolideki her kitabın ilk baskı çıkma ihtimali
   rareMul: 5,          // ilk baskı koleksiyoncuya kaç katına satılır
-  tipPerfect: 5,       // istediği her şeye uyan öneri: bahşiş
-  tipGood: 1,          // kısmen uyan öneri: bahşiş
+  tipPerfect: 8,       // istediği her şeye uyan öneri: bahşiş
+  tipGood: 2,          // kısmen uyan öneri: bahşiş
   hapChance: 0.55,     // bir günde en az bir olay çıkma ihtimali
   letterChance: 0.35,  // sabah mektup gelme ihtimali (bekleyen tam isabet varsa)
   questChance: 0.4,    // aktif ilan yokken sabah yeni ilan çıkma ihtimali

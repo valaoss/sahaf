@@ -75,7 +75,8 @@ export function svgView(layer, fx) {
   };
 }
 
-// handlers: browse(c) → sonuç (normal müşteri), ask(c) (öneri isteyene dokunuldu), timeout(c) → sonuç (sabrı tükendi)
+// handlers: browse(c) → sonuç (normal müşteri), ask(c) (öneri isteyene ya da pazarlık bekleyene dokunuldu), timeout(c) → sonuç (sabrı tükendi)
+// offer(c): müşteri bir kitapla tezgâha geldi, pazarlık istiyor (sonuçta deal: kişi 🏷️ balonuyla bekler)
 export function createCrowd(view, handlers) {
   const people = [], pending = [];
   const ctx = { rain: false, dark: false };
@@ -119,6 +120,8 @@ export function createCrowd(view, handlers) {
 
   // sonucu göster; kısa bir süre sonra yürüyüp gider
   function react(p, r) {
+    // pazarlığa geldi: kitap elinde bekler; şerit açılınca ya da dokununca pazarlık başlar
+    if (r.deal) { p.state = 'wait'; p.t = 0; view.set(p, 'asking', true); say(p, '🏷️'); handlers.offer?.(p.c); return; }
     p.res = r;
     view.set(p, 'reading', false);
     mood(p, r.happy ? 'cheer' : r.bought.length ? null : 'sad');
@@ -139,6 +142,10 @@ export function createCrowd(view, handlers) {
     add(c) { pending.push(c); },
     get busy() { return people.length + pending.length; },
     answer(c, r) { const p = people.find(q => q.c === c); if (p) react(p, r); },
+    // pazarlık şeridi kendiliğinden açıldı: bekleyen kişi artık tezgâhta (balon iner, sabır sayacı durur)
+    engage(c) { const p = people.find(q => q.c === c); if (p && p.state === 'wait') { p.state = 'asked'; view.set(p, 'asking', false); } },
+    // tezgâhta sırada bekleyen ilk pazarlıkçı
+    firstDeal() { return people.find(p => p.state === 'wait' && p.c.deal)?.c || null; },
     // konuşma balonu için: kişinin baş üstü (emoji balonunun da üstü)
     anchor(c) { const p = people.find(q => q.c === c); return p ? { x: p.x, y: 806 + p.meta.headTop - 110 } : null; },
     // önizleme (ekran görüntüleri): verilen konumlarda duran kişiler; durum: walking | reading | cheer | ''

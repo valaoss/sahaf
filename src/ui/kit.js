@@ -59,6 +59,8 @@ export function openPanel(html, cls = '') {
   const p = $('panel');
   p.innerHTML = html;
   p.className = 'panel ' + cls;
+  // pazarlık şeridi sahneyi örtmez: perde saydam, panel altta
+  $('veil').classList.toggle('strip', cls.split(' ').includes('haggle'));
   $('veil').classList.add('open');
   return p;
 }

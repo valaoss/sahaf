@@ -10,7 +10,7 @@ import { GENRES } from './data/genres.js';
 import { BOOK } from './data/books.js';
 import { DECOR, PAINTS, UPGRADES } from './data/decor.js';
 import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
-import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature, buyStall, talkHint, teaLine, refillShelves, donate, sponsor } from './game/shop.js';
+import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature, buyStall, talkHint, teaLine, refillShelves, donate, sponsor, haggleMove, openingLine, abandonDeal } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
 import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from './game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, afterFerry } from './game/day.js';
@@ -76,24 +76,16 @@ const crowd = createCrowd(scene.crowdView(), {
     if (r.bought.length) { scene.setStock(S); tap(); sfx('coin'); }
     return r;
   },
-  // öneri isteyene dokunuldu: panel açılır, saat durur
+  // öneri isteyene ya da tezgâhta pazarlık bekleyene dokunuldu: panel açılır, saat durur
   ask(c) {
+    if (c.deal) return openHaggle(c);
     sfx('page');
     ui.recPanel(S, c, (id, opts = {}) => {
       const r = recommend(S, c, id, opts);
       tutorialEvent(S, 'rec');
-      if (r.bought.length) { scene.setStock(S); tap(r.grade === 'perfect' ? 'MEDIUM' : 'LIGHT'); }
-      crowd.answer(c, r);
-      sfx(r.grade === 'perfect' || r.friend ? 'heart' : r.grade === 'good' ? 'coin' : 'sad');
-      if (r.friend?.gift || r.friend?.coins || r.friend?.keepsake) { saveGame(S); ui.confetti(); ui.giftPanel(r.friend); }
-      if (r.friend?.favor) setTimeout(() => ui.toast(T`🎁 ${REGULARS[c.reg].name} senden bir ricada bulundu: «${BOOK[r.friend.favor].title}». Bir dahaki gelişinde rafında olsun.`), 1800);
-      // müşterinin karşılığı: konuşma kartı (kalp ya da bahşiş bilgisiyle)
-      const line = c.reg && r.grade === 'perfect' ? REGULARS[c.reg].thanks : replyFor(S, c, r.discounted ? { grade: 'good' } : r, id);
-      const base = r.waiting ? T`🎁 Ricasını bekliyor` : r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.discounted ? T`İndirimle ₺${r.paid}` : r.grade !== 'miss' ? T`Bahşiş ₺${r.tip}` : '';
-      // öneriden öğrenilen etiket: kart bir sonraki sefer onu gösterir
-      const note = [base, (r.learned || []).length ? '📚 ' + r.learned.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ') : ''].filter(Boolean).join(' · ');
-      const a = crowd.anchor(c);
-      if (!(r.friend?.gift || r.friend?.coins || r.friend?.keepsake)) ui.speech(c, line, r.grade, note, a && toFrame(a.x, a.y));
+      // önerilen kitap etiket fiyatına göre pahalı geldi: kitap elinde, pazarlık şeridi açılır
+      if (r.deal) { scene.setStock(S); return openHaggle(c); }
+      afterRec(c, r, id);
     }, settings.hints !== false, { onTalk: () => talkHint(S, c), tea: S.upgrades.includes('cay'), teaLine: () => teaLine(S),
       // müdavimin ricası: kitap raftaysa doğrudan verilir
       favor: c.reg && favorOpen(S, c.reg) ? S.favors[c.reg].book : null,
@@ -107,9 +99,52 @@ const crowd = createCrowd(scene.crowdView(), {
         ui.speech(c, T`«${BOOK[d.book].title}»! Bunu nereden buldun? Yıllardır arıyordum.`, 'perfect', `+₺${d.coins}${d.friend ? ` · 💛 ${d.friend.hearts}/${HEARTS_MAX}` : ''}`, a && toFrame(a.x, a.y));
       } });
   },
-  timeout: c => recommend(S, c, null),
+  // müşteri bir kitapla tezgâha geldi: başka panel açık değilse pazarlık şeridi hemen açılır, değilse 🏷️ balonuyla bekler
+  offer(c) { if (!ui.isOpen() && S.phase === 'open') { crowd.engage(c); openHaggle(c); } },
+  timeout: c => c.deal ? abandonDeal(S, c) : recommend(S, c, null),
   paid: x => { const at = toFrame(x, 540); ui.flyCoin(at.xf, at.yf); },
 });
+
+// Önerinin sonucu: müşterinin karşılığı (konuşma kartı), kalp, hediye, rica
+function afterRec(c, r, id = r.bought[0] || null) {
+  if (r.bought.length) { scene.setStock(S); tap(r.grade === 'perfect' ? 'MEDIUM' : 'LIGHT'); }
+  crowd.answer(c, r);
+  sfx(r.grade === 'perfect' || r.friend ? 'heart' : r.bought.length ? 'coin' : 'sad');
+  if (r.friend?.gift || r.friend?.coins || r.friend?.keepsake) { saveGame(S); ui.confetti(); ui.giftPanel(r.friend); }
+  if (r.friend?.favor) setTimeout(() => ui.toast(T`🎁 ${REGULARS[c.reg].name} senden bir ricada bulundu: «${BOOK[r.friend.favor].title}». Bir dahaki gelişinde rafında olsun.`), 1800);
+  // müşterinin karşılığı: konuşma kartı (kalp ya da bahşiş bilgisiyle); bütçesini aştıysa yalnız üzgün yüz
+  if (r.tooDear) return ui.toast(T`Kitabı çok beğendi ama etiket fiyatı bütçesini fazlasıyla aşıyordu.`);
+  const line = c.reg && r.grade === 'perfect' ? REGULARS[c.reg].thanks : replyFor(S, c, r.discounted ? { grade: 'good' } : r, id);
+  const base = r.waiting ? T`🎁 Ricasını bekliyor` : r.friend && !r.friend.gift && !r.friend.coins ? `💛 ${r.friend.hearts}/${HEARTS_MAX}` : r.discounted ? T`İndirimle ₺${r.paid}` : r.haggled ? `₺${r.paid}` : r.grade !== 'miss' ? T`Bahşiş ₺${r.tip}` : '';
+  // öneriden öğrenilen etiket: kart bir sonraki sefer onu gösterir
+  const note = [base, (r.learned || []).length ? '📚 ' + r.learned.map(t => TAGS[t].icon + ' ' + TAGS[t].name).join(', ') : ''].filter(Boolean).join(' · ');
+  const a = crowd.anchor(c);
+  if (!(r.friend?.gift || r.friend?.coins || r.friend?.keepsake)) ui.speech(c, line, r.grade, note, a && toFrame(a.x, a.y));
+}
+
+// Pazarlık: müşteri tezgâhta, kitap elinde. Şerit açılır, saat durur; her hamlede müşterinin cevabı gelir (game/shop.js haggleMove)
+function openHaggle(c) {
+  if (!c.deal) return;
+  sfx('page');
+  ui.hagglePanel(S, c, openingLine(S, c), m => {
+    const o = haggleMove(S, c, m);
+    if (!o.res) sfx('tap');
+    else if (o.res.bought.length) { scene.setStock(S); tap(o.happy ? 'MEDIUM' : 'LIGHT'); sfx(o.happy ? 'heart' : 'coin'); }
+    else { scene.setStock(S); sfx('sad'); }
+    if (o.res && tutorialEvent(S, 'haggle')) saveGame(S);
+    return o;
+  }, r => {
+    // şerit kapandı: öneriyle gelen ve aldıysa önerinin karşılığı, değilse yalnız sonuç (para uçar, yüz değişir)
+    if (c.ask && r.bought.length) afterRec(c, r); else crowd.answer(c, r);
+    // sırada bekleyen başka pazarlıkçı varsa onun şeridi açılır
+    setTimeout(nextDeal, 500);
+  });
+}
+function nextDeal() {
+  if (ui.isOpen() || S.phase !== 'open') return;
+  const c = crowd.firstDeal();
+  if (c) { crowd.engage(c); openHaggle(c); }
+}
 // canlı arka plan: yeni motorda sahnenin içinde
 const ambient = MOTOR2 ? null : createAmbient(scene.ambientBack, scene.ambientFront);
 // karavana dokununca içi açılır
@@ -261,7 +296,7 @@ const COMMANDS = {
     tutorialEvent(S, 'open');
     scene.setOpen(true);
     if (!shelfCount(S)) ui.toast(T`Raflar boş! Müşteriler eli boş dönecek.`);
-    else if (S.day === 1) ui.toast(T`❓ balonlu müşteriye dokun: senden kitap önerisi istiyor.`);
+    else if (S.day === 1) ui.toast(T`Müşteriler kitap seçip tezgâha gelir: pazarlık et! ❓ balonlu müşteri senden öneri ister.`);
   },
   speed: () => { speed = speed > 1 ? 1 : FAST; },
   next: () => {
@@ -374,6 +409,16 @@ if (PREVIEW) {
     ui.paperPanel(S);
   }
   if (q.has('nadir')) { const ids = Object.keys(S.shelf); S.rare = { [ids[0]]: 1, [ids[7]]: 1 }; scene.setStock(S); }
+  if (panel === 'pazarlik') {
+    openShop(S);
+    const arch = q.get('kim') || 'ogrenci';
+    for (let k = 0; k < 60; k++) {
+      const c = makeCustomer(S);
+      Object.assign(c, { arch, style: ARCHETYPES[arch].style, ask: null, wants: Object.keys(S.shelf).map(id => BOOK[id].genre)[0] });
+      c.tr = { ...c.tr, budget: 13, greed: 0.25, patience: 3 };
+      if (resolveCustomer(S, c).deal) { openHaggle(c); break; }
+    }
+  }
   if (panel === 'koleksiyoncu') { let c; do c = makeCustomer(S); while (!(c.ask && c.ask.rare)); ui.recPanel(S, c, () => {}); }
   if (panel === 'album') { S.stamps = ['ilkgun', 'isabet', 'elli', 'ege', 'festival', 'yagmur', 'dost']; S.totals.sold = 120; ui.albumPanel(S); }
   if (panel === 'finale') { Object.assign(S.totals, { days: 34, sold: 512, perfect: 61 }); S.friends = { hasan: 5, ela: 4 }; S.stamps = STAMPS.slice(0, 14).map(s => s.id); ui.finalePanel(S, () => {}); }

@@ -428,6 +428,7 @@ const TUT_STEPS = [
   { text: "Good morning! First, buy a crate from the 📦 Wholesaler." },
   { text: "Your crate is here! 📚 Shelve the books: drag them, or tap “Shelve all”. A section that matches its genre draws more customers." },
   { text: "Shelves are ready. Now 🔔 Open shop." },
+  { text: "A customer brought a book to the counter: accept their offer, meet them halfway or stick to your price. Their patience has limits!" },
   { text: "When a customer with a ❓ bubble arrives, tap them and pick the book that best fits what they say." },
   { text: "The day is done! Read the summary, then ☀️ Next morning." },
   { text: "Tap your location at the top: change your 📍 spot and meet other customers." },

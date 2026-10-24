@@ -409,6 +409,23 @@ Her faz ayrı commit ve yayın olur.
   - Bir pazarlık ≤ 25 sn sürer.
   - Akıllı oynayan, hep kabul edenden %30+ fazla kazanır.
   - Kendi oynayışımın ekran kaydıyla gösterilir.
+- **Durum (24.10.2026): yapıldı, bir ölçüt eksik.**
+  - Kurallar `game/haggle.js` ve `data/haggle.js`'te. Akış `game/shop.js`'te: `resolveCustomer`, `recommend`, `haggleMove`. Pazarlık sırasında kitap müşterinin elindedir; anlaşma olmazsa aynı yerine döner. Arayüz `ui/panels/haggle.js`: telefonda alttan şerit, geniş ekranda sağ alt köşede.
+  - **Ölçümle gelen bir tasarım düzeltmesi:**
+    - İlk modelde yalnız parası yetmeyenler pazarlık ediyordu. Onları zorlamak riskliydi, kabul etmek hep doğruydu; "hep kabul" en çok kazanıyordu.
+    - Şimdi bir kısım müşteri parası yettiği hâlde alışkanlıktan pazarlık eder ve etikete razıdır. Bunlar «Pazarlıksız olmaz ama…» gibi konuşur; cebi dar olanlar «Harçlık bu kadar…» der.
+    - Beceri bu cümleyi okumaktır.
+  - **Ağızdan ağıza:** Pazarlıkta ucuza alan müşteri ertesi güne yalnız %0,5 kalabalık getirir (`dealWord`). Ucuz etiketle ikna olan müşteride bu %3'tür.
+  - **Fiyat ölçeği:** Kitap fiyatları, başlangıç parası, bahşiş, park, yakıt ve karavan eşyaları ×2. Olay ödülleri aynı kaldı.
+  - **Ölçüm** (`npm run sim -- pazarlik`; gerçekçi oyuncu, 30 oyun × 60 gün):
+
+    | Tavır | 7. gün | 30. gün | 60. gün |
+    |---|---|---|---|
+    | Hep kabul | ₺907 | ₺3713 | ₺9279 |
+    | Cümleyi okuyan (alışkanlıkla açana fiyatında dur, cebi dara orta yol) | +%22 | +%10 | +%2 |
+    | Hep fiyatında | | | −%46 (müşterilerin %47'si gider) |
+
+  - **Eksik ölçüt:** "%30+ fazla kazanır" tutmadı. Pazarlık, etiketin %68'i yerine %82'sini aldırıyor. Ama uzun vadede kâr raf kapasitesiyle sınırlı ve fark kapanıyor. Söz kartları (Faz 2) farkı büyütecek yer.
 
 ### Faz 2 — Söz kartları ve müşteri karakterleri (öncelik 1)
 - **Söz kartları:** konu, kondisyon, nadirlik, kişisel, hatıra; müşterinin "derdi" ve ilk cümledeki ipucu.

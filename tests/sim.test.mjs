@@ -36,6 +36,11 @@ import { REGULARS, REGULAR_KEYS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS
 import { effects, equipDecor, upgradeShelf, choosePaint, buyUpgrade } from '../src/game/decor.js';
 import { openShop, advanceClock, closingTime, closeShop, nextMorning, simulateDay } from '../src/game/day.js';
 import { FEATURES } from '../src/data/features.js';
+import { traitsFor, approach, respond, stickerOf, midOf, lineFor, PLAIN_TRAITS } from '../src/game/haggle.js';
+import { TRAITS, LINES, QUIRKS } from '../src/data/haggle.js';
+import { haggleMove, abandonDeal, openingLine } from '../src/game/shop.js';
+import { HAGGLE_DEFAULT } from '../src/game/day.js';
+import { peekCopy } from '../src/game/shelving.js';
 
 let passed = 0;
 const test = (name, fn) => { fn(); passed++; console.log('✓ ' + name); };
@@ -217,8 +222,10 @@ test('tam gün: stok eksiye düşmez, defter tutarlı, para korunur', () => {
     const before = S.coins, stockBefore = shelfCount(S);
     const T = simulateDay(S);
     assert.ok(Object.values(S.shelf).every(n => n > 0));
+    // pazarlıkla satılan kitap etiketin altına inebilir; etiketin üstüne çıkamaz (en pahalı etiket ×1.2, en iyi durum ×1.3)
     const soldValue = Object.entries(T.sold).reduce((a, [g, n]) => a + n * GENRES[g].price, 0);
-    assert.equal(T.revenue, soldValue + T.tips);
+    assert.ok(T.revenue - T.tips <= Math.ceil(soldValue * 1.2 * 1.3) && T.revenue - T.tips >= soldValue * 0.5, `gelir ${T.revenue} / değer ${soldValue}`);
+    if (T.deals) assert.equal(T.deals.n, T.deals.won + T.deals.lost, 'her pazarlık biter');
     assert.equal(S.coins, before + T.revenue - T.costs.paid + T.stamps.length * STAMP_REWARD, 'satış − giderler + pul ödülü');
     assert.equal(shelfCount(S), stockBefore - T.soldCount);
     assert.ok(T.visitors >= TOWNS.ayvalik.traffic - BAL.trafficJitter);
@@ -316,6 +323,175 @@ test('kayıt: v3 kaydı v4\'e taşınır; yurt dışındaki oyuncu Ayvalık\'a d
   assert.equal(restore(JSON.parse(JSON.stringify(home))).town, home.town, 'Türkiye\'deki oyuncunun yeri değişmez');
 });
 
+// Pazarlık testleri için: raf dolu, dükkân açık bir gün ve tek bir müşteri
+function haggleDay(seed = 7) {
+  const S = newGame(seed); S.coins = 999; buyBox(S, 'roman'); buyBox(S, 'roman'); placeAll(S); openShop(S);
+  return S;
+}
+const romanOnShelf = S => Object.keys(S.shelf).find(id => BOOK[id].genre === 'roman' && S.shelf[id] > 0);
+
+test('pazarlık: müşteri özellikleri tipinin aralığında, aynı tohumla aynı; huylar arada bir düşer', () => {
+  const S = newGame(3);
+  let quirks = 0;
+  for (const k of ARCH_KEYS) for (let i = 0; i < 40; i++) {
+    const t = traitsFor(S, k), B = { ...TRAITS[ARCHETYPES[k].thrift || 'mid'], ...(ARCHETYPES[k].haggle || {}) };
+    if (t.quirk) { quirks++; assert.ok(QUIRKS[t.quirk]); continue; }
+    assert.ok(t.budget >= B.budget[0] && t.budget <= B.budget[1], k + ' bütçe ' + t.budget);
+    assert.ok(t.greed >= B.greed[0] && t.greed <= B.greed[1] && t.patience >= 1, k);
+  }
+  const n = ARCH_KEYS.length * 40;
+  assert.ok(quirks > n * 0.1 && quirks < n * 0.3, 'huy ' + quirks + '/' + n);
+  assert.deepEqual(traitsFor(newGame(5), 'ogrenci'), traitsFor(newGame(5), 'ogrenci'));
+  // koleksiyoncu öğrenciden çok daha varlıklı
+  const avg = k => { const T = newGame(9); let b = 0; for (let i = 0; i < 200; i++) b += traitsFor(T, k).budget; return b / 200; };
+  assert.ok(avg('koleksiyoncu') > avg('ogrenci') * 2.5);
+});
+
+test('pazarlık: ucuz etikette pazarlıksız alır, makul pahalıda teklif verir, çok pahalıda vazgeçer', () => {
+  const S = haggleDay(), id = romanOnShelf(S), cp = { ...peekCopy(S, id), price: 'normal', cond: 'iyi', rare: false };
+  const P = stickerOf(id, cp);
+  const mk = (budget, greed) => ({ id: 1, arch: 'ogrenci', wants: 'roman', look: 1, tr: { budget, greed, patience: 2, resolve: 0, touchy: 0, quirk: null } });
+  assert.equal(approach(S, mk(1e9, 0), id, cp).kind === 'leave', false);
+  assert.equal(approach(S, mk(P * 3, 0.02), id, { ...cp, price: 'ucuz' }).kind, 'buy');
+  const o = approach(S, mk(Math.round(P * 0.9), 0.2), id, cp);
+  assert.equal(o.kind, 'offer');
+  assert.ok(o.O < P && o.O <= o.R, 'teklif etiketin ve sınırın altında');
+  assert.equal(approach(S, mk(Math.round(P * 0.4), 0.1), id, cp).kind, 'leave');
+  // öneri isteyen (uyan kitap) bütçesi biraz yetmese de dener
+  assert.equal(approach(S, mk(Math.round(P * 0.6), 0.1), id, cp, 'perfect').kind, 'offer');
+});
+
+test('pazarlık: hamleler — kabul teklif fiyatından, sınırın altındaki istek kabul, sınırı aşan istek sabrı yer; bütçe asla aşılmaz', () => {
+  const S = newGame(11);
+  for (let i = 0; i < 400; i++) {
+    const c = { id: i, arch: 'ogrenci', tr: traitsFor(S, 'ogrenci') };
+    const P = 20 + (i % 9), R0 = 12 + (i % 11);
+    const d = { P, O: Math.min(P - 1, Math.floor(R0 * 0.8)), R: R0, W: R0 * 1.1, pat: c.tr.patience, final: false, rounds: 0 };
+    let last = d.O, o, guard = 0;
+    do {
+      o = respond(S, c, d, i % 3 === 0 ? 'hold' : 'mid');
+      if (o.out === 'counter' || o.out === 'final') { assert.ok(o.offer >= last && o.offer <= Math.max(last, Math.floor(R0)), 'teklif yükselir, sınırı aşmaz'); last = o.offer; }
+      if (o.out === 'deal') assert.ok(o.price <= R0, 'razı olduğundan fazla ödemez');
+    } while (!['deal', 'leave', 'angry'].includes(o.out) && ++guard < 10);
+    assert.ok(guard < 10, 'pazarlık biter');
+  }
+  const c = { id: 1, tr: { ...PLAIN_TRAITS } }, d = { P: 20, O: 14, R: 30, W: 30, pat: 2, final: false, rounds: 0 };
+  assert.deepEqual([respond(S, c, { ...d }, 'accept').price, respond(S, c, { ...d }, 'mid').price, respond(S, c, { ...d }, 'hold').price], [14, midOf(d), 20]);
+  assert.equal(respond(S, c, { ...d }, 'refuse').out, 'leave');
+  // son sözünden sonra yine istenirse gider
+  assert.equal(respond(S, c, { ...d, R: 15, final: true, O: 15 }, 'hold').out, 'leave');
+});
+
+test('pazarlık: kopya müşterinin elindeyken satılamaz; anlaşılamazsa aynı yerine döner, anlaşılırsa satılır; ziyaretçi bir kez sayılır', () => {
+  const S = haggleDay(21);
+  const tr = budget => ({ budget, greed: 0.3, patience: 2, resolve: 0, touchy: 0, quirk: null });
+  // bütçe çok düşük: vazgeçer, kopya hiç alınmaz
+  const n0 = shelfCount(S), r0 = resolveCustomer(S, { id: 5, arch: 'ogrenci', wants: 'roman', look: 5, tr: tr(1) });
+  assert.ok(!r0.deal && !r0.bought.length && shelfCount(S) === n0);
+  // pazarlığa gelen bir müşteri bulunana dek (arada pazarlıksız alanlar olabilir)
+  const nextDeal = from => {
+    for (let k = 0; k < 40; k++) {
+      const shelf = shelfCount(S), layout = JSON.stringify(S.layout), visitors = S.today.visitors;
+      const c = { id: from + k, arch: 'ogrenci', wants: 'roman', look: k, tr: tr(12) };
+      if (resolveCustomer(S, c).deal) return { c, shelf, layout, visitors };
+    }
+    throw new Error('pazarlığa gelen yok');
+  };
+  const A = nextDeal(100);
+  assert.equal(shelfCount(S), A.shelf - 1, 'kopya müşterinin elinde');
+  const out = haggleMove(S, A.c, 'refuse');
+  assert.equal(out.out, 'leave');
+  assert.equal(shelfCount(S), A.shelf, 'kopya rafa döndü');
+  assert.equal(JSON.stringify(S.layout), A.layout, 'aynı bölüm, aynı sıra');
+  assert.equal(S.today.visitors, A.visitors + 1, 'ziyaretçi bir kez');
+  // ikinci pazarlık: teklif kabul → satılır, kasa teklif kadar artar
+  const B = nextDeal(200), coins = S.coins, O = B.c.deal.O;
+  const o2 = haggleMove(S, B.c, 'accept');
+  assert.equal(o2.out, 'deal');
+  assert.equal(S.coins, coins + O + (o2.res.tea ? BAL.teaPrice : 0));
+  assert.equal(shelfCount(S), B.shelf - 1);
+  assert.ok(o2.res.bought.length === 1 && o2.res.pleased);
+  assert.equal(abandonDeal(S, B.c), null, 'biten pazarlık yeniden kapanmaz');
+});
+
+test('pazarlık: ilk baskı koleksiyoncunun elindeyken anlaşılamazsa ilk baskı işaretiyle döner', () => {
+  const S = haggleDay(33), id = romanOnShelf(S);
+  S.rare[id] = 1; syncLayout(S);
+  const c = { id: 9, arch: 'koleksiyoncu', reg: null, wants: 'roman', look: 9, ask: { tags: BOOK[id].tags.slice(0, 1), rare: true },
+    tr: { budget: 50, greed: 0.2, patience: 1, resolve: 0, touchy: 0, quirk: null } };
+  const r = recommend(S, c, id);
+  assert.ok(r.deal && r.deal.cp.rare, 'ilk baskı pazarlıkta');
+  assert.equal(S.rare[id] || 0, 0);
+  haggleMove(S, c, 'refuse');
+  assert.equal(S.rare[id], 1, 'ilk baskı geri geldi');
+  assert.equal(syncLayout(S).sections.flatMap(x => x.books).filter(e => e.id === id && e.rare).length, 1);
+});
+
+test('pazarlık: akıllı oyuncu hep kabul edenden çok kazanır; hep fiyatında direnen müşteri kaçırır', () => {
+  const run = policy => {
+    let coins = 0, lost = 0, n = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      const S = newGame(500 + seed); S.coins = 2000;
+      for (let d = 0; d < 8; d++) {
+        for (const g of ['roman', 'polisiye', 'cocuk', 'siir']) if (shelfCount(S) < shelfCap(S) - 5) buyBox(S, g);
+        const T = simulateDay(S, () => 0, undefined, { haggle: policy });
+        if (T.deals) { lost += T.deals.lost; n += T.deals.n; coins += T.deals.paid; }
+      }
+    }
+    return { coins, lost, n };
+  };
+  const accept = run(() => 'accept'), smart = run(HAGGLE_DEFAULT), hold = run(() => 'hold');
+  assert.ok(accept.n > 50, 'pazarlık sık: ' + accept.n);
+  assert.ok(smart.coins > accept.coins * 1.08, `akıllı ${smart.coins} / kabul ${accept.coins}`);
+  assert.ok(hold.lost > smart.lost * 2 && hold.lost > hold.n * 0.25, `direnen kaçırır: ${hold.lost}/${hold.n}`);
+});
+
+test('pazarlık: itibarın yüksek olduğu kasabada müşteriler daha az pazarlık eder', () => {
+  const gap = rep => {
+    const S = haggleDay(41), id = romanOnShelf(S), cp = peekCopy(S, id);
+    S.rep[S.town] = rep;
+    let g = 0, n = 0;
+    for (let i = 0; i < 300; i++) {
+      const c = { id: i, arch: 'teyze', wants: 'roman', look: i, tr: { budget: 1e9, greed: 0.3, patience: 2, resolve: 0, touchy: 0, quirk: null } };
+      const a = approach(S, c, id, cp);
+      if (a.kind === 'offer') { g += (a.R - a.O) / a.R; n++; }
+    }
+    return g / Math.max(1, n);
+  };
+  assert.ok(gap(40) < gap(0) * 0.8, `${gap(40).toFixed(3)} / ${gap(0).toFixed(3)}`);
+});
+
+test('pazarlık: parası yeten alışkanlıktan pazarlık eder, etikete razıdır; cebi dar olanla ilk cümleleri farklı', () => {
+  // ucuz etiket: bu müşterinin parası da gönlü de etikete yeter; pazarlık ederse yalnız alışkanlıktan
+  const S = haggleDay(51), id = romanOnShelf(S), cp = { ...peekCopy(S, id), price: 'ucuz', cond: 'iyi', rare: false };
+  let habit = 0;
+  for (let i = 0; i < 400; i++) {
+    const rich = { id: i, arch: 'teyze', wants: 'roman', look: i, tr: { budget: 200, greed: 0.35, patience: 2, resolve: 0, touchy: 0, quirk: null } };
+    const a = approach(S, rich, id, cp);
+    if (a.kind !== 'offer') continue;
+    habit++;
+    assert.ok(a.habit && a.R >= a.P && a.O < a.P, 'parası yeten pazarlıkçı etikete razı');
+    assert.equal(respond(S, rich, { ...a, pat: 2, final: false, rounds: 0 }, 'hold').price, a.P, 'fiyatında durunca etiketi öder');
+  }
+  assert.ok(habit > 400 * 0.35 && habit < 400 * 0.75, 'alışkanlık: ' + habit);
+  const voice = ARCHETYPES.teyze.voice, fill = l => l.split('{p}').join('₺9');
+  assert.ok(LINES.open[voice].map(fill).includes(openingLine(S, { arch: 'teyze', deal: { habit: true, O: 9 } })));
+  assert.ok(LINES.poor[voice].map(fill).includes(openingLine(S, { arch: 'teyze', deal: { habit: false, O: 9 } })));
+});
+
+test('pazarlık cümleleri: her durumda her üslupta var, fiyat yerine oturur, sayıdan sonra ek yok', () => {
+  for (const [kind, voices] of Object.entries(LINES)) for (const v of ['genc', 'resmi', 'samimi', 'turist', 'cocuk']) {
+    assert.ok(voices[v]?.length >= 2, kind + '/' + v);
+    for (const l of voices[v]) {
+      assert.ok(!/\{p\}['’]/.test(l), 'fiyattan sonra ek: ' + l);
+      assert.equal(l.includes('{p}'), ['open', 'poor', 'counter', 'final'].includes(kind), kind + ': ' + l);
+    }
+  }
+  const S = newGame(2), c = { arch: 'balikci', tr: traitsFor(S, 'balikci') };
+  const a = lineFor(S, c, 'open', 11), b = lineFor(S, c, 'open', 11);
+  assert.ok(a.includes('₺11') && !a.includes('{p}') && a !== b);
+});
+
 test('iflas koruması: kasa ve raf boşsa en ucuz koli kadar destek', () => {
   const S = newGame(1);
   emptyShelf(S);
@@ -370,8 +546,10 @@ test('müdavim: zevkine uyan, karşılanabilir istek; kasabasında uğrar', () =
 test('dostluk: tam isabet kalp verir, 3 kalpte ek bahşiş ve rica, rica getirilince ilerler, 5 kalpte hediye ya da hatıra', () => {
   const S = newGame(8);
   openShop(S);
+  // bu test dostluğu dener: müdavim pazarlık etmesin (pazarlık ayrı testlerde)
   const give = id => {
     const c = makeRegular(S, id);
+    c.tr = { ...PLAIN_TRAITS };
     const book = BOOKS.find(b => matchGrade(c.ask, b.id) === 'perfect');
     S.shelf = { [book.id]: 1 };
     return recommend(S, c, book.id);
@@ -881,7 +1059,7 @@ test('rehber: adımlar sırayla, doğru olayla ilerler; kapatılabilir; eski oyu
   assert.equal(tutorialEvent(S, 'open'), false, 'sırası gelmeyen olay ilerletmez');
   assert.equal(tutorialEvent(S, 'buy'), true);
   assert.equal(tutorialStep(S).done, 'shelve', 'koliden sonra rafa dizme adımı');
-  for (const ev of ['shelve', 'open', 'rec', 'next', 'spot', 'decor', 'book']) assert.ok(tutorialEvent(S, ev), ev);
+  for (const ev of ['shelve', 'open', 'haggle', 'rec', 'next', 'spot', 'decor', 'book']) assert.ok(tutorialEvent(S, ev), ev);
   assert.equal(tutorialStep(S), null, 'rehber bitti');
   const P = newGame(1);
   tutorialEvent(P, 'skip');
@@ -1344,21 +1522,26 @@ const { refill } = await import('../src/game/shelving.js');
 const { buffFor } = await import('../src/game/happenings.js');
 
 // aynı rafa farklı etiketle 60 tohumda gelen 10'ar müşteri: satılan kitap
-function soldTo(arch, tag) {
+function soldTo(arch, tag, what = 'n') {
   let n = 0;
   for (let seed = 1; seed <= 60; seed++) {
     const S = newGame(seed); S.coins = 999; placeAll(S); syncLayout(S);
     S.layout.sections.forEach((_, i) => setPrice(S, i, tag)); openShop(S);
-    for (let k = 0; k < 10; k++) n += resolveCustomer(S, { id: k, arch, wants: 'roman', look: k }).bought.length;
+    for (let k = 0; k < 10; k++) {
+      const c = { id: k, arch, wants: 'roman', look: k, tr: traitsFor(S, arch) };
+      let r = resolveCustomer(S, c);
+      while (c.deal) r = haggleMove(S, c, HAGGLE_DEFAULT(S, c, c.deal)).res || r;
+      n += what === 'paid' ? r.paid : r.bought.length;
+    }
   }
   return n;
 }
 
-test('fiyat etiketi müşterinin cebine göre: öğrenci ucuzu, turist pahalıyı sever', () => {
+test('fiyat etiketi müşterinin cebine göre: öğrenci ucuzu çok alır, turist pahalıya da öder', () => {
   const st = { ucuz: soldTo('ogrenci', 'ucuz'), normal: soldTo('ogrenci', 'normal'), pahali: soldTo('ogrenci', 'pahali') };
-  assert.ok(st.ucuz > st.normal && st.normal > st.pahali * 1.5, JSON.stringify(st));
-  const tu = { ucuz: soldTo('turist', 'ucuz'), pahali: soldTo('turist', 'pahali') };
-  assert.ok(tu.pahali > tu.ucuz, JSON.stringify(tu));
+  assert.ok(st.ucuz > st.normal && st.normal > st.pahali, JSON.stringify(st));
+  const tu = { ucuz: soldTo('turist', 'ucuz', 'paid'), pahali: soldTo('turist', 'pahali', 'paid') };
+  assert.ok(tu.pahali > tu.ucuz * 1.15, JSON.stringify(tu));
   for (const k of ARCH_KEYS) assert.ok(['tight', 'mid', 'loose', undefined].includes(ARCHETYPES[k].thrift), k);
 });
 

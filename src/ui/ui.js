@@ -46,6 +46,7 @@ import { mapPanel } from './panels/map.js';
 import { summaryPanel, paperPanel } from './panels/day.js';
 import { voyagePanel, grandPanel, mailPanel, kostasPanel, kostasFoundPanel, statsPanel, bookPanel, albumPanel, finalePanel } from './panels/book.js';
 import { settingsPanel } from './panels/settings.js';
+import { hagglePanel } from './panels/haggle.js';
 import { T, tw } from '../i18n/i18n.js';
 
 export function createUI(root, act) {
@@ -174,7 +175,7 @@ export function createUI(root, act) {
     }
   }
 
-  const api = { grandPanel, voyagePanel, useStage, stageOn: () => !!K.stage?.on, stageTick: () => K.stage?.tick(), hud, toast, speech, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, summaryPanel, closePanel, isOpen };
+  const api = { grandPanel, voyagePanel, useStage, stageOn: () => !!K.stage?.on, stageTick: () => K.stage?.tick(), hud, toast, speech, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, hagglePanel, summaryPanel, closePanel, isOpen };
   K.ui = api;
   return api;
 }

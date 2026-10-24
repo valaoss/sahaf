@@ -12,7 +12,7 @@ import { morningLetter, offerQuest, settleQuest } from './mail.js';
 import { scheduleHappenings, dueHappening, chooseHappening, buffFor, HAP } from './happenings.js';
 import { tidiness, placeAll } from './shelving.js';
 import { checkCountries } from './travel.js';
-import { satFactor, deliverFavor, plainCopies } from './shop.js';
+import { satFactor, deliverFavor, plainCopies, haggleMove } from './shop.js';
 import { addRep, repLevel, receiveOrders, keepsakeTraffic, favorOpen } from './bonds.js';
 import { onIsland, resolveAuction, roseDay, checkVoyage, checkGrand, voyageMorning, stat } from './voyage.js';
 import { FEATURES } from '../data/features.js';
@@ -81,7 +81,7 @@ export function closeShop(S) {
   T.costs.paid = paid;
   T.net = T.revenue - paid;
   // fiyat ünü: vazgeçenler ve ikna olanlar ertesi gün bu kasabada konuşur
-  const word = Math.min(BAL.wordMax, Math.max(BAL.wordMin, 1 + BAL.wordOfMouth * ((T.priceWon || 0) - (T.priceLost || 0))));
+  const word = Math.min(BAL.wordMax, Math.max(BAL.wordMin, 1 + (BAL.wordOfMouth * ((T.priceWon || 0) - (T.priceLost || 0)) + BAL.dealWord * (T.happyDeals || 0))));
   if (word !== 1) S.buffs.push({ day: S.day + 1, traffic: word, town: T.town, word: true });
   T.word = word;
   // bu kasabada doymuş türler (gün sonu teşhisi)
@@ -146,6 +146,8 @@ export function afterFerry(S) {
 
 // Başsız tam gün: test ve denge simülasyonu için. rec(S, ask, wants): öneri isteyene verilecek kitap (varsayılan: her şeyi bilen).
 // opts.favors: ricası rafta olan müdavim gelince rica getirilir (oyuncu gibi)
+// opts.haggle(S, c, deal): pazarlığa gelen müşteriye oyuncunun hamlesi (accept | mid | hold | refuse); varsayılan önce orta yol, sonra kabul
+export const HAGGLE_DEFAULT = (S, c, d) => d.rounds === 0 ? 'mid' : 'accept';
 export function simulateDay(S, pick = () => 0, rec = (S, ask) => bestBook(S, ask), opts = {}) {
   placeAll(S);
   openShop(S);
@@ -153,7 +155,10 @@ export function simulateDay(S, pick = () => 0, rec = (S, ask) => bestBook(S, ask
   while (!closingTime(S)) {
     for (const c of advanceClock(S, 30)) {
       if (opts.favors && c.reg && favorOpen(S, c.reg) && plainCopies(S, S.favors[c.reg].book) > 0) deliverFavor(S, c.reg);
-      else if (c.ask) recommend(S, c, rec(S, c.ask, c.wants)); else resolveCustomer(S, c);
+      else {
+        const r = c.ask ? recommend(S, c, rec(S, c.ask, c.wants)) : resolveCustomer(S, c);
+        for (let guard = 0; r.deal && c.deal && guard < 12; guard++) haggleMove(S, c, (opts.haggle || HAGGLE_DEFAULT)(S, c, c.deal));
+      }
     }
     for (let h; (h = dueHappening(S));) chooseHappening(S, h, pick(HAP[h].choices.length));
   }

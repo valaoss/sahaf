@@ -15,7 +15,8 @@ import { dayMods, weatherOf } from './calendar.js';
 import { buildAsk } from './asks.js';
 import { kostasDrop } from './story.js';
 import { remember, pickFresh, weightedFresh } from './memory.js';
-import { crateAdd, crateFree, takeCopy, chanceOf, refill } from './shelving.js';
+import { crateAdd, crateFree, takeCopy, peekCopy, putBack, refill } from './shelving.js';
+import { traitsFor, traitsOf, approach, respond, lineFor, stickerOf } from './haggle.js';
 import { EVENTS } from '../data/calendar.js';
 import { eventOf } from './calendar.js';
 import { countryOf, travelInfo, crossBorder, openCountries } from './travel.js';
@@ -225,6 +226,8 @@ export function makeCustomer(S) {
   const d = demandOf(S);
   for (const g in A.genres) d[g] *= A.genres[g];
   const c = { id: S.nextId++, arch, wants: weighted(S, d), look: Math.floor(rnd(S) * 1e9), style: A.style };
+  // pazarlıktaki gizli özellikleri (game/haggle.js)
+  c.tr = traitsFor(S, arch);
 
   if (rnd(S) < BAL.askChance * sp.ask * dayMods(S.day, S.town).ask * A.ask) {
     // koleksiyoncu çoğu zaman ilk baskı ister
@@ -267,7 +270,7 @@ export function makeRegular(S, id) {
   remember(S, 'book', target.id);
   const tags = target.tags.filter(t => R.likes.includes(t)).slice(0, 2);
   return { id: S.nextId++, reg: id, wants: R.genre, look: R.look, style: R.style,
-    ask: { tags, text: buildAsk(S, tags, askCtx(S, { voice: R.voice || 'samimi', bare: true })) } };
+    ask: { tags, text: buildAsk(S, tags, askCtx(S, { voice: R.voice || 'samimi', bare: true })) }, tr: traitsFor(S, null, true) };
 }
 
 // Kalp ekle; eşikleri geçince ödül bilgisini döndür
@@ -315,13 +318,21 @@ function pickBookOf(S, g) {
   return Object.keys(w).length ? weighted(S, w) : null;
 }
 
-// rareCopy: ilk baskı kopyası satılıyor (koleksiyoncuya, kat kat fiyata)
-function sell(S, id, res, rareCopy = false, mul = 1) {
-  // hangi kopya satıldı: bölümünün fiyat etiketi ve kitabın durumu fiyatı belirler
-  const cp = takeCopy(S, id, rareCopy || plainCopies(S, id) <= 0);
+// Satılacak kopyayı raftan al (müşterinin elinde). wantRare: ilk baskı kopyası. Dönüş: kopyanın yeri, etiketi, durumu, ilk baskı mı
+function holdCopy(S, id, wantRare) {
+  const cp = takeCopy(S, id, wantRare);
   takeBook(S, id);
   if (!S.shelf[id]) S.featured = S.featured.filter(x => x !== id);
-  if (rareCopy || plainCopies(S, id) < 0) { S.rare[id]--; if (!S.rare[id]) delete S.rare[id]; }
+  cp.rare = wantRare || plainCopies(S, id) < 0;
+  if (cp.rare) { S.rare[id]--; if (!S.rare[id]) delete S.rare[id]; }
+  return cp;
+}
+
+// Satış: kopya raftan alınır (pazarlıkta müşterinin elindeki kopya: held), fiyatı yazılır.
+// rareCopy: ilk baskı koleksiyoncuya satılıyor (kat kat fiyata) · price: pazarlıkta anlaşılan fiyat (yoksa etiket fiyatı × mul)
+function sell(S, id, res, rareCopy = false, mul = 1, held = null, price = null) {
+  // hangi kopya satıldı: bölümünün fiyat etiketi ve kitabın durumu fiyatı belirler
+  const cp = held || holdCopy(S, id, rareCopy || plainCopies(S, id) <= 0);
   const g = BOOK[id].genre, T = S.today;
   S.soldBooks[id] = (S.soldBooks[id] || 0) + 1;
   // satılan kitap hakkında bir şey öğrenilir (müşteri giderken söyler)
@@ -334,7 +345,7 @@ function sell(S, id, res, rareCopy = false, mul = 1) {
   const rose = rareCopy ? 0 : roseWithSale(S);
   if (rose) { res.paid += rose; T.roses = (T.roses || 0) + 1; }
   res.bought.push(id);
-  res.paid += Math.max(1, Math.round(GENRES[g].price * BAL.priceTags[cp.price].mul * BAL.conds[cp.cond].sell * (rareCopy ? BAL.rareMul : 1) * mul));
+  res.paid += price ?? Math.max(1, Math.round(stickerOf(id, { ...cp, rare: rareCopy }) * mul));
   if (rareCopy) { res.rare = true; S.totals.rareSold++; T.rareSold = (T.rareSold || 0) + 1; }
   T.sold[g] = (T.sold[g] || 0) + 1;
 }
@@ -345,33 +356,49 @@ function settle(S, res) {
   S.today.visitors++;
   return res;
 }
+// göz atan müşteri giderken: çay köşesi varsa arada bir çay alır
+function finish(S, res) {
+  if (S.upgrades.includes('cay') && rnd(S) < BAL.teaChance) { res.paid += BAL.teaPrice; res.tea = true; S.today.tea = (S.today.tea || 0) + 1; }
+  return settle(S, res);
+}
 
-// Normal müşteri raflara baktı: ne aldı, ne kadar ödedi, mutlu mu. Stok ve defter burada güncellenir.
+const dealStats = T => (T.deals = T.deals || { n: 0, won: 0, lost: 0, paid: 0, sticker: 0 });
+
+// Pazarlık başlar: kopya müşterinin elindedir (başkasına satılamaz); anlaşılamazsa rafa döner. rec: öneriyle gelen müşterinin bilgisi
+function startDeal(S, c, id, a, wantRare, rec = null) {
+  const featured = S.featured.includes(id);
+  const cp = holdCopy(S, id, wantRare);
+  c.deal = { id, cp, P: a.P, O: a.O, R: a.R, W: a.W, habit: !!a.habit, pat: traitsOf(c).patience, final: false, rounds: 0, rec, featured };
+  dealStats(S.today).n++;
+  return c.deal;
+}
+
+// Normal müşteri raflara baktı: beğendiği kitabı pazarlıksız alır, pazarlığa gelir (res.deal; sonuç haggleMove ile) ya da fiyatı görüp vazgeçer.
 export function resolveCustomer(S, c) {
   const T = S.today;
   const res = { bought: [], paid: 0, happy: false };
-  // almaya karar: temel istek × fiyat etiketinin bu müşterinin cebine etkisi. Etiketin payı gün sonu teşhisi için sayılır.
   const base = BAL.buyChance + (featuredOf(S, c.wants).length ? BAL.featureBuy : 0);
-  const has = plainOfGenre(S, c.wants) > 0, r = has ? rnd(S) : 1, p = base * chanceOf(S, c.wants, ARCHETYPES[c.arch]?.thrift || 'mid');
-  if (has && r >= p && r < base) T.priceLost = (T.priceLost || 0) + 1;
-  if (has && r < p && r >= base) T.priceWon = (T.priceWon || 0) + 1;
-  if (has && r < p) {
-    sell(S, pickBookOf(S, c.wants), res);
-    res.happy = true;
-    // ucuz rafta cebine bakan müşteri bir kitap daha alır (hacim artar, tür de daha çabuk doyar)
-    if (plainOfGenre(S, c.wants) > 0 && rnd(S) < BAL.extraChance * (p > base * 1.05 ? BAL.cheapExtra : 1)) sell(S, pickBookOf(S, c.wants), res);
-  } else {
-    if (plainOfGenre(S, c.wants) === 0) T.missed[c.wants] = (T.missed[c.wants] || 0) + 1;
+  const has = plainOfGenre(S, c.wants) > 0;
+  let g = has && rnd(S) < base ? c.wants : null;
+  if (!g) {
+    if (!has) T.missed[c.wants] = (T.missed[c.wants] || 0) + 1;
+    // başka bir türe göz atar: o türün kasabadaki doygunluğu da ilgisini etkiler
     const avail = {}, d = demandOf(S);
-    for (const g of GENRE_KEYS) if (plainOfGenre(S, g) > 0) avail[g] = d[g];
-    // başka bir türe göz atar: o türün fiyat etiketi ve kasabadaki doygunluğu da kararını etkiler
-    if (Object.keys(avail).length) {
-      const g2 = weighted(S, avail);
-      if (rnd(S) < BAL.altChance * satFactor(S, g2) * chanceOf(S, g2, ARCHETYPES[c.arch]?.thrift || 'mid')) sell(S, pickBookOf(S, g2), res);
+    for (const k of GENRE_KEYS) if (plainOfGenre(S, k) > 0) avail[k] = d[k];
+    if (Object.keys(avail).length) { const g2 = weighted(S, avail); if (rnd(S) < BAL.altChance * satFactor(S, g2)) g = g2; }
+  }
+  if (g) {
+    const id = pickBookOf(S, g), a = approach(S, c, id, peekCopy(S, id, false));
+    if (a.kind === 'offer') { res.deal = startDeal(S, c, id, a, false); return res; }
+    if (a.kind === 'leave') T.priceLost = (T.priceLost || 0) + 1;
+    else {
+      sell(S, id, res);
+      res.happy = true;
+      // etiketi cebine göre ucuz bulan bir kitap daha alabilir (hacim artar, tür de daha çabuk doyar)
+      if (plainOfGenre(S, g) > 0 && rnd(S) < BAL.extraChance * (a.cheap ? BAL.cheapExtra : 1)) sell(S, pickBookOf(S, g), res);
     }
   }
-  if (S.upgrades.includes('cay') && rnd(S) < BAL.teaChance) { res.paid += BAL.teaPrice; res.tea = true; T.tea = (T.tea || 0) + 1; }
-  return settle(S, res);
+  return finish(S, res);
 }
 
 // İsteğe uygunluk: istenen her etiket kitapta varsa 'perfect', biri varsa 'good'
@@ -393,6 +420,7 @@ export function bestBook(S, ask) {
 }
 
 // Öneri: oyuncu raftan bir kitap verdi (ya da null: "elimde yok" / müşteri beklemekten sıkıldı).
+// İsteğe uyan kitap ödemeye razı olduğu fiyatı artırır; etiket yine de yüksekse pazarlığa gelir (res.deal; sonuç haggleMove ile).
 // İlk baskı isteyen koleksiyoncu: ilk baskı verilirse kat kat öder; normal baskıda en fazla 'good'.
 // opts.tea: çay ikram edildi (alırsa fazladan bahşiş; müdavim 'good'da da ısınır)
 // opts.discount: uymayan öneri bile indirimle satılır (bahşiş yok, mutlu değil)
@@ -410,30 +438,96 @@ export function recommend(S, c, id, opts = {}) {
       res.discounted = true;
     }
     if (res.grade !== 'miss') {
-      sell(S, id, res, rareCopy);
-      res.happy = true;
-      res.tip = (res.grade === 'perfect' ? BAL.tipPerfect : BAL.tipGood) + effects(S).tip + dayMods(S.day, S.town).tip + (opts.tea ? BAL.teaTip : 0);
-      if (c.reg && (S.friends[c.reg] || 0) >= HEARTS_TIP) res.tip += REGULAR_TIP;
-      res.paid += res.tip;
-      T.tips += res.tip;
-      if (res.grade === 'perfect') {
-        S.totals.perfect++;
-        // müdavimine tam isabet: kasabada adın duyulur
-        const up = c.reg ? addRep(S, S.town, 1) : null;
-        if (up) T.repUp = up;
-        // mektuplar için: kime, ne zaman, nerede, hangi kitap
-        S.recHistory.push({ day: S.day, town: S.town, spot: S.spot, book: id, arch: c.arch || null, reg: c.reg || null, look: c.look });
-        // sınır aşılırsa önce mektubu gitmiş olanlar atılır; bekleyen öneriler korunur
-        if (S.recHistory.length > 80) { const i = S.recHistory.findIndex(r => r.sent); S.recHistory.splice(i >= 0 ? i : 0, 1); }
+      const want = rareCopy || plainCopies(S, id) <= 0;
+      const a = approach(S, c, id, peekCopy(S, id, want), res.grade);
+      if (a.kind === 'offer') {
+        T.recs[res.grade]++;
+        res.deal = startDeal(S, c, id, a, want, { grade: res.grade, tea: !!opts.tea, learned: res.learned, rareCopy });
+        return res;
       }
+      // beğendi ama bütçesinin çok üstünde: almadan gider
+      if (a.kind === 'leave') res.tooDear = true;
+      else completeRec(S, c, id, res, opts, rareCopy);
     }
   }
-  if (c.reg) {
-    if (!S.met.includes(c.reg)) S.met.push(c.reg);
-    if (res.grade === 'perfect' || (opts.tea && res.grade === 'good')) befriend(S, c.reg, res);
-    (T.regulars = T.regulars || []).push({ id: c.reg, grade: res.grade });
-  }
   T.recs[res.grade]++;
+  regularVisit(S, c, res, opts.tea);
+  return settle(S, res);
+}
+
+// Öneriye uyan kitap satıldı: (pazarlıksızsa) bahşiş; tam isabette itibar ve mektup kaydı. held/price: pazarlıkta anlaşılan kopya ve fiyat
+function completeRec(S, c, id, res, opts, rareCopy, held = null, price = null) {
+  const T = S.today;
+  sell(S, id, res, rareCopy, 1, held, price);
+  res.happy = true;
+  if (price === null) {
+    res.tip = (res.grade === 'perfect' ? BAL.tipPerfect : BAL.tipGood) + effects(S).tip + dayMods(S.day, S.town).tip + (opts.tea ? BAL.teaTip : 0);
+    if (c.reg && (S.friends[c.reg] || 0) >= HEARTS_TIP) res.tip += REGULAR_TIP;
+    res.paid += res.tip;
+    T.tips += res.tip;
+  }
+  if (res.grade === 'perfect') {
+    S.totals.perfect++;
+    // müdavimine tam isabet: kasabada adın duyulur
+    const up = c.reg ? addRep(S, S.town, 1) : null;
+    if (up) T.repUp = up;
+    // mektuplar için: kime, ne zaman, nerede, hangi kitap
+    S.recHistory.push({ day: S.day, town: S.town, spot: S.spot, book: id, arch: c.arch || null, reg: c.reg || null, look: c.look });
+    // sınır aşılırsa önce mektubu gitmiş olanlar atılır; bekleyen öneriler korunur
+    if (S.recHistory.length > 80) { const i = S.recHistory.findIndex(r => r.sent); S.recHistory.splice(i >= 0 ? i : 0, 1); }
+  }
+}
+
+// Müdavim uğradı: tanışılır; uyan kitabı aldıysa ısınır (kalp)
+function regularVisit(S, c, res, tea) {
+  if (!c.reg) return;
+  if (!S.met.includes(c.reg)) S.met.push(c.reg);
+  if (res.bought.length && !res.discounted && (res.grade === 'perfect' || (tea && res.grade === 'good'))) befriend(S, c.reg, res);
+  (S.today.regulars = S.today.regulars || []).push({ id: c.reg, grade: res.grade });
+}
+
+// Pazarlık hamlesi (game/haggle.js respond): accept | mid | hold | refuse. Dönüş: { out, offer?, price?, happy?, line, res? }.
+// Pazarlık bittiyse res: satış sonucu (kasaya işlenmiş); anlaşılamadıysa kopya rafa dönmüştür.
+export function haggleMove(S, c, move) {
+  const d = c.deal;
+  if (!d) return null;
+  const o = respond(S, c, d, move);
+  const kind = o.out === 'deal' ? (o.happy ? 'happy' : 'deal') : o.out;
+  o.line = lineFor(S, c, kind, o.out === 'counter' || o.out === 'final' ? o.offer : null);
+  if (o.out === 'deal') o.res = closeDeal(S, c, o.price, o.happy);
+  else if (o.out === 'leave' || o.out === 'angry') o.res = dropDeal(S, c, !o.polite);
+  return o;
+}
+// Müşterinin pazarlığı açan cümlesi (ilk teklifi): parası yetenle cebi dar olan farklı konuşur
+export const openingLine = (S, c) => c.deal ? lineFor(S, c, c.deal.habit ? 'open' : 'poor', c.deal.O) : '';
+// Pazarlığa gelen müşteri beklerken gitti (kimse ilgilenmedi): kopya rafa döner
+export const abandonDeal = (S, c) => c.deal ? dropDeal(S, c, false) : null;
+
+function closeDeal(S, c, price, happy) {
+  const d = c.deal, T = S.today, st = dealStats(T);
+  c.deal = null;
+  st.won++; st.paid += price; st.sticker += d.P;
+  // ucuza aldığını düşünen müşteri anlatır (ertesi gün kalabalık: closeShop'taki ağızdan ağıza)
+  if (happy) T.happyDeals = (T.happyDeals || 0) + 1;
+  const res = { bought: [], paid: 0, tip: 0, happy: true, haggled: true, pleased: happy, sticker: d.P };
+  if (!d.rec) { sell(S, d.id, res, false, 1, d.cp, price); return finish(S, res); }
+  res.grade = d.rec.grade;
+  res.learned = d.rec.learned;
+  completeRec(S, c, d.id, res, d.rec, d.rec.rareCopy, d.cp, price);
+  regularVisit(S, c, res, d.rec.tea);
+  return settle(S, res);
+}
+
+// upset: sabrı tükendi ya da fiyatı çok yüksek buldu (ertesi gün anlatır); kibarca vazgeçilen pazarlık iz bırakmaz
+function dropDeal(S, c, upset) {
+  const d = c.deal, T = S.today;
+  c.deal = null;
+  putBack(S, d.id, d.cp);
+  if (d.featured && !S.featured.includes(d.id) && S.featured.length < BAL.featureMax) S.featured.push(d.id);
+  dealStats(T).lost++;
+  if (upset) T.priceLost = (T.priceLost || 0) + 1;
+  const res = { bought: [], paid: 0, tip: 0, happy: false, haggled: true, upset };
+  if (d.rec) { res.grade = d.rec.grade; regularVisit(S, c, res, d.rec.tea); }
   return settle(S, res);
 }
 

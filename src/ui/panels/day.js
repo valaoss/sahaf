@@ -84,6 +84,7 @@ export function summaryPanel(S, D) {
     ${(D.regulars || []).length ? `<p class="recline">${T`Uğrayan müdavimler: ${regList}`}</p>` : ''}
     ${D.soldCount ? `<div class="chips">${chips(D.sold)}</div>` : ''}
     ${recLine}
+    ${D.deals?.n ? `<p class="recline">${T`🤝 Pazarlık: <b>${D.deals.n}</b> · anlaşılan <b>${D.deals.won}</b> · etiketin ortalama <b>%${Math.round(100 * D.deals.paid / Math.max(1, D.deals.sticker))}</b>'i alındı`}</p>` : ''}
     ${Object.keys(D.missed).length ? `<p class="hint">${T`Aranıp bulunamayan:`}</p><div class="chips">${chips(D.missed, 'miss')}</div>` : ''}
     ${(D.stamps || []).length ? `<p class="tip page">${T`🏅 Yeni pul: ${stampList} (+₺${D.stamps.length * STAMP_REWARD})`}</p>` : ''}
     ${D.auction ? `<p class="tip page">${T`🔨 Müzayede: «${BOOK[D.auction.book].title}» <b class="gold">₺${D.auction.price}</b>'ye satıldı.`}</p>` : ''}
@@ -116,7 +117,8 @@ export function weekFests(S) {
 // Gün sonu teşhisi: fiyat etiketinin etkisi (ve ağızdan ağıza), doymuş türler, sponsorluk
 export function diagnose(S, D) {
   const out = [];
-  if (D.priceLost) out.push(T`🏷️ <b>${D.priceLost}</b> kişi fiyatı görüp vazgeçti` + (D.word < 1 ? T` — konuşacaklar: yarın burada kalabalık %${Math.round((1 - D.word) * 100)} az` : '') + '.');
+  if (D.happyDeals) out.push(T`😊 <b>${D.happyDeals}</b> müşteri ucuza aldığını düşünüyor; yarın anlatırlar.`);
+  if (D.priceLost) out.push(T`🏷️ <b>${D.priceLost}</b> kişi fiyat yüzünden vazgeçti ya da pazarlıktan kızgın ayrıldı` + (D.word < 1 ? T` — konuşacaklar: yarın burada kalabalık %${Math.round((1 - D.word) * 100)} az` : '') + '.');
   if (D.priceWon) out.push(T`🏷️ Ucuz etiket <b>${D.priceWon}</b> kişiyi ikna etti` + (D.word > 1 ? T` — yarın burada kalabalık %${Math.round((D.word - 1) * 100)} fazla` : '') + '.');
   if ((D.saturated || []).length) out.push(T`📉 ${D.saturated.map(g => GENRES[g].icon + ' ' + GENRES[g].name).join(', ')} bu kasabada çok satıldı; ilgi düştü, birkaç günde toparlanır.`);
   if (D.sponsored) out.push(T`🎪 Sponsor olduğun festival: kalabalık ×${BAL.sponsorTraffic}.`);

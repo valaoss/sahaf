@@ -503,4 +503,63 @@ const RARE_REQ = [
   "A book {a}… but a first edition, please. Price is no object.",
 ];
 
-export default { LETTERS, HAPPENINGS, ROAD, VISITORS, REPLIES, TALK, GREET, CLOSE, CONTEXT, REQ_ONE, REQ_TWO, RARE_REQ };
+const HAGGLE_LINES = {
+  open: {
+    genc: ["How about {p} for this one?", "Can't buy without haggling, {p}?", "Let's make it {p} and call it a deal."],
+    resmi: ["A fine book. Would {p} be acceptable?", "I could offer you {p}.", "Just out of habit, I must ask: {p}?"],
+    samimi: ["Come on, {p}, and the tea's on me!", "{p} and I'll take it, eh?", "Shopping without haggling? Never! {p}!"],
+    turist: ["Oh, nice! {p}, okay? Tamam?", "{p}? Yes? Lütfen?", "Bazaar price? {p}!"],
+    cocuk: ["Mum said to haggle: {p}!", "Is {p} okay? Pleeease…", "{p}? Huh? Huh?"],
+  },
+  poor: {
+    genc: ["This is great, but would you take {p}? Pocket money only goes so far…", "{p}? It's the end of the month…", "I've got {p} on me, that's it…"],
+    resmi: ["Forgive me, I was thinking of {p}.", "My budget is a little tight; would {p} do?", "A pension only goes so far… {p}?"],
+    samimi: ["If I give you {p}, will you let it go? There's no more.", "Month's end has come around again, if only {p}…", "Honestly, my purse says {p}."],
+    turist: ["Only {p} left, sorry… okay?", "My wallet says {p}…", "{p}? Last coins…"],
+    cocuk: ["I've got {p} in my piggy bank… is that okay?", "Can I have it for {p}? Pleeease…", "Mum gave me {p}, is that enough?"],
+  },
+  counter: {
+    genc: ["Okay, okay, {p}. Don't push it though!", "Ugh… {p}, that's it.", "I'll go up a bit: {p}?"],
+    resmi: ["Very well, let's say {p}.", "I understand. Would {p} suit you?", "I can give {p}, more would be difficult."],
+    samimi: ["You're a stubborn one! {p}, alright?", "Fine then, {p}.", "{p} for you, but don't tell anyone!"],
+    turist: ["Hmm… {p}?", "Okay, okay. {p}!", "{p}, deal? Tamam?"],
+    cocuk: ["I found a bit more in my pocket: {p}!", "Is {p} okay? Look, all my coins…", "Okay… {p}."],
+  },
+  final: {
+    genc: ["Look, {p}. That's really it.", "My last word is {p}, or I'm off.", "{p}. Done, there's nothing else in my pocket."],
+    resmi: ["My final offer is {p}.", "{p}, I cannot give more.", "My budget is {p}, that's all."],
+    samimi: ["Last word, {p}, or I'll sulk!", "{p}, the rest is fate.", "{p} or nothing!"],
+    turist: ["{p}. Final!", "Last offer: {p}.", "Only {p}, sorry! Pardon!"],
+    cocuk: ["My piggy bank's empty… {p}.", "That's all of it: {p}!", "{p}… there's no more, promise!"],
+  },
+  deal: {
+    genc: ["Okay, deal!", "Fine, fine, I'll take it.", "Done."],
+    resmi: ["Agreed, thank you.", "Very well, that suits me.", "I accept."],
+    samimi: ["Enjoy the sale, here you go!", "Done, wrap it up.", "Fair enough, haggling with you is fun."],
+    turist: ["Deal! Teşekkürler!", "Okay, I take it!", "Yes, deal!"],
+    cocuk: ["Yay, it's mine!", "Okaaay!", "Hooray!"],
+  },
+  happy: {
+    genc: ["You're the best, thanks!", "Seriously? That's so nice!", "I'm telling my friends about this place!"],
+    resmi: ["Very kind of you, thank you.", "How lovely, thank you.", "I'll be shopping with you again."],
+    samimi: ["Bless your hands, dear!", "May it bring you luck, I'll be back!", "Ooh, what a good bookseller you are!"],
+    turist: ["Wonderful, teşekkürler!", "So kind! Thanks!", "Great price, thank you!"],
+    cocuk: ["Yaaay! Thank you!", "You're the best!", "I'm going to read it right now!"],
+  },
+  leave: {
+    genc: ["Never mind, some other time.", "Nah, it's not working.", "Forget it, thanks."],
+    resmi: ["We couldn't agree. Good day.", "I'm sorry, I've changed my mind.", "Another time, perhaps."],
+    samimi: ["Ah well, not meant to be.", "Never mind, dear, good luck.", "I'll take a stroll, maybe I'll be back."],
+    turist: ["No, sorry. Bye!", "Too much for me. Thank you!", "Maybe later!"],
+    cocuk: ["Okay… bye.", "Mum will be cross, I'd better go.", "Didn't work…"],
+  },
+  angry: {
+    genc: ["At that price? You can't be serious!", "What a rip-off!", "No way!"],
+    resmi: ["That price is outrageous.", "I can't accept that. Good day.", "Unbelievable."],
+    samimi: ["Well well, is it made of gold?", "For that I'd get two at the market!", "Oh come on, no way!"],
+    turist: ["Too expensive! No!", "What? No, no.", "That is crazy!"],
+    cocuk: ["That's too expensiiive!", "I don't have that much!", "That's not fair!"],
+  },
+};
+
+export default { HAGGLE_LINES, LETTERS, HAPPENINGS, ROAD, VISITORS, REPLIES, TALK, GREET, CLOSE, CONTEXT, REQ_ONE, REQ_TWO, RARE_REQ };

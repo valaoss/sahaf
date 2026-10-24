@@ -38,6 +38,9 @@ export default {
   "«{0}»! Bunu nereden buldun? Yıllardır arıyordum.": "«{0}»! Where did you find it? I've been looking for years.",
   "🏅 Yeni pul: {0} {1}": "🏅 New stamp: {0} {1}",
 
+  // v3 pazarlık
+  "Kitabı çok beğendi ama etiket fiyatı bütçesini fazlasıyla aşıyordu.": "They loved the book, but the price tag was way over their budget.",
+  "Müşteriler kitap seçip tezgâha gelir: pazarlık et! ❓ balonlu müşteri senden öneri ister.": "Customers pick a book and bring it to the counter: haggle! A customer with a ❓ wants a recommendation.",
   // v3 sabah ve açılış
   "📦 Siparişin koliye geldi: {0}": "📦 Your order arrived in the crate: {0}",
   "💌 Teyzenden bir mektup var: sağ üstteki 📜 Defter'de.": "💌 There's a letter from your aunt: in the 📜 Notebook at the top right.",
