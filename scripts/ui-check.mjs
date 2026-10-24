@@ -26,17 +26,26 @@ const server = await createServer({ logLevel: 'error', server: { port: 5390, str
 await server.listen();
 const base = `http://127.0.0.1:${server.httpServer.address().port}/`;
 
-const port = 9300 + Math.floor(Math.random() * 400);
 const profile = mkdtempSync(join(tmpdir(), 'sahaf-ui-'));
-const chrome = spawn(chromePath, ['--headless=new', '--no-sandbox', '--disable-gpu', '--mute-audio', `--remote-debugging-port=${port}`,
-  `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
-let failed = 0;
-try {
-  let ws;
-  for (let i = 0; i < 80 && !ws; i++) {
-    await sleep(250);
-    try { const p = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find(t => t.type === 'page'); if (p) ws = new WebSocket(p.webSocketDebuggerUrl); } catch {}
+// Chrome açılışı CI makinesinde bazen yavaş: her denemede 45 sn beklenir, en fazla üç kez yeniden başlatılır
+let chrome = null;
+async function launch() {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const port = 9300 + Math.floor(Math.random() * 400);
+    chrome = spawn(chromePath, ['--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--no-first-run', '--mute-audio',
+      `--remote-debugging-port=${port}`, `--user-data-dir=${join(profile, "a" + attempt)}`, 'about:blank'], { stdio: 'ignore' });
+    for (let i = 0; i < 180; i++) {
+      await sleep(250);
+      try { const p = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find(t => t.type === 'page'); if (p) return new WebSocket(p.webSocketDebuggerUrl); } catch {}
+    }
+    console.log(`Chrome ${attempt + 1}. denemede açılmadı, yeniden başlatılıyor`);
+    chrome.kill();
   }
+  return null;
+}
+let failed = 0, checked = 0;
+try {
+  const ws = await launch();
   if (!ws) throw new Error('Chrome hata ayıklama bağlantısı açılmadı');
   await new Promise((ok, no) => { ws.onopen = ok; ws.onerror = no; });
   let id = 0;
@@ -69,6 +78,7 @@ try {
       }
       await sleep(WAIT);
       const problems = [...errs.map(e => 'hata: ' + e), ...(text ? [] : ['boş panel']), ...[...new Set(warns)].map(k => 'çeviri yok: ' + k)];
+      checked++;
       if (problems.length) failed++;
       console.log(`${problems.length ? '✗' : '✓'} ${lang} ${p || '(ana)'} | ${text}${problems.length ? '\n    ' + problems.join('\n    ') : ''}`);
     }
@@ -78,10 +88,10 @@ try {
   console.error(e);
   failed++;
 } finally {
-  chrome.kill();
+  chrome?.kill();
   await server.close();
   await sleep(300);
   try { rmSync(profile, { recursive: true, force: true }); } catch {}
 }
-console.log(failed ? `${failed} panel sorunlu` : `arayüz temiz: ${PANELS.length * LANGS.length} panel`);
+console.log(failed ? `${failed} panel sorunlu` : `arayüz temiz: ${checked} panel`);
 process.exit(failed ? 1 : 0);
