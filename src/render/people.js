@@ -128,7 +128,7 @@ export function createCrowd(view, handlers) {
     if (r.grade) say(p, r.grade === 'perfect' ? '🤩' : r.grade === 'good' ? '🙂' : '😕');
     else say(p, r.happy ? '💛' : r.bought.length ? '🙂' : '😕');
     if (r.paid) { handlers.paid?.(p.x); view.pay?.(p); }
-    for (const id of r.bought || []) view.bookFly?.(p.x, GENRES[BOOK[id].genre].color);
+    (r.bought || []).forEach((id, k) => view.bookFly?.(p.x, GENRES[BOOK[id].genre].color, r.spots?.[k], k));
     if (r.paid) view.floatText(p.x, `+₺${r.paid}${r.rare ? ' ✨' : ''}`, r.rare ? '#d9961a' : '#c7802b');
     else if (!r.grade) view.floatText(p.x, GENRES[p.c.wants].icon + '✕', '#a07d6c');
     if (r.grade === 'perfect') view.hearts(p.x);

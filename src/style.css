@@ -668,3 +668,66 @@ svg.world #wvan { transform-box: view-box; }
 .gcard.locked { filter: saturate(.55); opacity: .92; }
 .gcard.locked .gicon { opacity: .6; }
 .panel h4 { margin: .6em 0 .3em; font-size: .95em; opacity: .8; }
+/* v3 Faz 4: raf kapakları, fiyat etiketleri, tutma-gölge-oturma, depo paneli */
+.st-doors { position: absolute; left: 656px; top: 542px; width: 358px; height: 172px; perspective: 600px; pointer-events: none !important; }
+.st-door { position: absolute; top: 0; width: 50%; height: 100%; box-sizing: border-box; border: 4px solid #8a5a3c; border-radius: 3px;
+  background: linear-gradient(135deg, rgba(220, 240, 245, .55), rgba(170, 205, 215, .35) 45%, rgba(255, 255, 255, .5) 50%, rgba(170, 205, 215, .35) 56%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); transition: transform .38s cubic-bezier(.3, 1.25, .5, 1), opacity .38s; }
+.st-door::after { content: ''; position: absolute; top: 46%; width: 3px; height: 16px; border-radius: 2px; background: #e8c27a; }
+.st-door.l { left: 0; transform-origin: 0 50%; transform: rotateY(-108deg); opacity: .35; }
+.st-door.l::after { right: 4px; }
+.st-door.r { right: 0; transform-origin: 100% 50%; transform: rotateY(108deg); opacity: .35; }
+.st-door.r::after { left: 4px; }
+.st-doors.shut .st-door { transform: none; opacity: 1; }
+.stage-shelf .spine2 .pt { position: absolute; left: 50%; bottom: -1px; transform: translateX(-50%); font-style: normal; font-size: 3.8px; font-weight: 700; line-height: 5px;
+  padding: 0 1px; border-radius: 1px; background: #fff6e8; color: #6b4a3a; box-shadow: 0 .4px 0 rgba(0,0,0,.3); }
+.stage-shelf .spine2 .pt.own { background: #ffe08a; color: #6b3f12; }
+.stage-shelf .spine2.c-temiz .pt, .stage-shelf .spine2.rare .pt { color: #8a5a1a; }
+.stage-shelf .spine2 { transition: transform .14s ease-out; }
+.stage-shelf .spine2.shift { transform: translateX(5px); }
+.stage-shelf.dragging .st-sec { outline: .8px dashed rgba(255, 233, 160, .45); }
+.stage-shelf.dragging .st-sec.over { outline: 1.4px solid #ffd56b; background: rgba(255, 233, 160, .26); box-shadow: 0 0 6px rgba(255, 213, 107, .6); }
+.ghost2 { box-shadow: 0 1.2em 1.2em -0.2em rgba(40, 25, 15, .45); filter: drop-shadow(0 .5em .6em rgba(0,0,0,.18)); transition: none; }
+.spine2.lifted { opacity: .25; }
+@keyframes land2 { 0% { transform: translateY(-10px) scale(1.06); } 45% { transform: translateY(1px) scale(1.03, .94); } 75% { transform: scale(.98, 1.03); } 100% { transform: none; } }
+.stage-shelf .spine2.land { animation: land2 .32s cubic-bezier(.3, 1.3, .5, 1); }
+/* depo: yatayda sağda, dikeyde altta */
+.stage-depot { position: absolute; z-index: 5; display: flex; flex-direction: column; gap: .4em; background: var(--cream); border: .16em solid var(--edge);
+  border-radius: 1em; box-shadow: 0 .25em 0 var(--edge-d); padding: .6em; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: auto; }
+.stage-depot.show { opacity: 1; transform: none !important; }
+.stage-depot.side { right: .8em; top: 4.6em; bottom: .8em; width: min(30%, 21em); transform: translateX(1.5em); }
+.stage-depot.tall { left: .6em; right: .6em; bottom: .6em; height: 33%; transform: translateY(1.5em); }
+.stage-depot.over { outline: .18em dashed #e8a33c; background: #fff6df; }
+.stage-depot.dragging { box-shadow: 0 .25em 0 var(--edge-d), 0 0 0 .2em rgba(232, 163, 60, .25); }
+.dp-head { display: flex; align-items: center; gap: .5em; }
+.dp-head span { color: #8a7468; font-weight: 600; }
+.dp-head .btn { margin-left: auto; }
+.dp-tabs { display: flex; gap: .3em; flex-wrap: wrap; }
+.dp-tabs button { font: inherit; font-size: .85em; border: .1em solid var(--edge); background: #fff8ec; border-radius: 999px; padding: .1em .55em; cursor: pointer; }
+.dp-tabs button.on { background: #ffe9b8; }
+.dp-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6em, 1fr)); gap: .5em; align-content: start; padding: .2em; }
+.stage-depot.tall .dp-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 4.4em; overflow-x: auto; overflow-y: hidden; }
+.spine2.cover { height: auto; min-height: 0; aspect-ratio: 2 / 3; flex: none; width: auto; border-radius: .25em .4em .4em .25em; display: flex; flex-direction: column; justify-content: center;
+  align-items: center; gap: .15em; padding: .3em .25em; text-align: center; overflow: hidden; color: #fff;
+  background: linear-gradient(90deg, rgba(0,0,0,.18) 0 .3em, transparent .3em), var(--c); box-shadow: 0 .15em .25em rgba(0,0,0,.25); }
+.spine2.cover span { writing-mode: horizontal-tb; transform: none; white-space: normal; max-height: none; }
+.spine2.cover .cv-t { font-size: .62em; font-weight: 700; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.spine2.cover .cv-a { font-size: .5em; opacity: .85; line-height: 1.1; }
+.spine2.cover .cv-band { position: absolute; left: .3em; right: 0; top: 18%; height: .18em; background: rgba(255,255,255,.35); }
+.spine2.cover .cv-g { font-style: normal; font-size: .7em; }
+.spine2.cover .cv-n { position: absolute; right: .15em; top: .15em; font-style: normal; font-size: .58em; font-weight: 700; background: #fff6e8; color: #6b4a3a; border-radius: 999px; padding: 0 .35em; }
+.spine2.cover .cv-c { position: absolute; left: .45em; bottom: .2em; font-style: normal; font-size: .45em; background: rgba(0,0,0,.25); border-radius: .3em; padding: 0 .3em; }
+.spine2.cover.rare { background: linear-gradient(90deg, rgba(0,0,0,.12) 0 .3em, transparent .3em), linear-gradient(135deg, #fff3b0, #e7b84a 60%); color: #6b4a1a; }
+.spine2.cover:hover { transform: translateY(-.15em); }
+.spine2.cover.sel { transform: translateY(-.25em); }
+.st-pricecard { display: inline-flex; align-items: center; gap: .35em; background: #fff1d6; border: .1em solid #ecd3a3; border-radius: 999px; padding: .1em .5em; }
+.st-pricecard b { min-width: 2.6em; text-align: center; }
+.pc-scale { position: relative; width: 4em; height: .4em; border-radius: 999px; background: linear-gradient(90deg, #8bc49a, #f2c45a 50%, #e57f73); }
+.pc-mid { position: absolute; left: 50%; top: -.2em; width: .1em; height: .8em; background: #6b4a3a; }
+.pc-now { position: absolute; top: -.25em; width: .9em; height: .9em; margin-left: -.45em; border-radius: 50%; background: #fff; border: .12em solid #6b4a3a; }
+.stage-depot.side ~ .stage-bar { left: 35%; max-width: 64%; }
+.dp-grid:has(> .hint) { display: block; }
+.spine2.cover { aspect-ratio: auto; width: 100%; height: 6.6em; }
+.stage-depot.tall .spine2.cover { height: 6.2em; }
+.dp-grid { grid-auto-rows: min-content; }
+.dp-head b { white-space: nowrap; }

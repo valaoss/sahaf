@@ -160,6 +160,12 @@ const SFX = {
   letter: t => [72, 76, 79, 84, 88].forEach((m, i) => bell(sfxBus, midiToHz(m), t + i * 0.08, 1.1, 0.7)),
   hap: t => { pluck(sfxBus, midiToHz(79), t, 0.3, 0.7); pluck(sfxBus, midiToHz(86), t + 0.12, 0.5, 0.7); },
   whoosh: t => { const f = noiseBurst(sfxBus, t, 0.7, 400, 0.6, 0.35); f.frequency.exponentialRampToValueAtTime(1800, t + 0.6); },
+  // raf etkileşimi ve satış (v3 Faz 4)
+  lift: t => { const f = noiseBurst(sfxBus, t, 0.1, 3200, 1.2, 0.12); f.frequency.exponentialRampToValueAtTime(4800, t + 0.09); },
+  place: t => { noiseBurst(sfxBus, t, 0.05, 900, 2.2, 0.35); bass(sfxBus, 150, t, 0.08, 0.55); pluck(sfxBus, midiToHz(76), t + 0.02, 0.08, 0.18); },
+  door: t => { const f = noiseBurst(sfxBus, t, 0.32, 700, 1.4, 0.16); f.frequency.exponentialRampToValueAtTime(380, t + 0.3); bass(sfxBus, 110, t + 0.22, 0.1, 0.4); },
+  wrap: t => { for (let i = 0; i < 3; i++) noiseBurst(sfxBus, t + i * 0.07, 0.06, 3800 + i * 600, 1.5, 0.18); },
+  till: t => { pluck(sfxBus, midiToHz(72), t, 0.06, 0.4); bell(sfxBus, midiToHz(96), t + 0.05, 0.7, 0.8); bell(sfxBus, midiToHz(91), t + 0.12, 0.8, 0.6); },
 };
 
 export function sfx(name) {

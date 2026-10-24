@@ -436,7 +436,7 @@ const KOSTAS = [
 
 const TUT_STEPS = [
   { text: "Good morning! First, buy a crate from the 📦 Wholesaler." },
-  { text: "Your crate is here! 📚 Shelve the books: drag them, or tap “Shelve all”. A section that matches its genre draws more customers." },
+  { text: "The books are in your stock! 📚 Shelve them: hold a cover and drag it onto a shelf, or tap “Fill the gaps”. A section that matches its genre draws more customers." },
   { text: "Shelves are ready. Now 🔔 Open shop." },
   { text: "A customer brought a book to the counter: accept their offer, meet them halfway or stick to your price. Their patience has limits!" },
   { text: "When a customer with a ❓ bubble arrives, tap them and pick the book that best fits what they say." },

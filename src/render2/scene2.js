@@ -98,14 +98,14 @@ export function buildScene2(host) {
   function aim(kind) {
     cam.kind = kind;
     if (kind === 'shelf') {
-      // dikeyde: raf penceresi, ön tezgâh ve altındaki koli sığar. Yatayda koli karavanın sağında durur (ui/shelf-stage.js .side),
-      // bu yüzden kamera daha çok yaklaşır: pencere + tezgâh (546–756) ve yanındaki koli (1032–1228)
-      const z = tall ? Math.max(1.02, Math.min(2.3, (W / k) / 370))
-        : Math.max(1.02, Math.min(2.6, (W / k) / 640, (H / k) / 290));
-      const cx = tall ? 835 : 945, cy = tall ? 720 : 640;
-      // yakınlaşma noktası p öyle seçilir ki C ekranın ortasına gelsin: c0 = p + (C - p)·z → p = (c0 - C·z) / (1 - z)
-      // c0: yakınlaşmasız kamerada ekranın ortasındaki sahne noktası
-      const c0x = (W / 2 - ox) / k, c0y = (H / 2 - oy) / k;
+      // raf penceresi ve ön tezgâh (650–1020 × 546–756) depo panelinin bıraktığı boşluğa sığar (ui/shelf-stage.js):
+      // yatayda depo sağda (~%30), pencere kalan alanın ortasına; dikeyde depo altta (~%33), pencere üstteki alanın ortasına
+      const z = tall ? Math.max(1.02, Math.min(2.3, (W / k) / 380, (H * 0.5 / k) / 230))
+        : Math.max(1.02, Math.min(2.6, (W * 0.64 / k) / 400, (H * 0.78 / k) / 250));
+      const cx = 835, cy = tall ? 650 : 655, sx = tall ? W / 2 : W * 0.35, sy = tall ? H * 0.39 : H * 0.53;
+      // yakınlaşma noktası p öyle seçilir ki C ekranda (sx, sy)'ye gelsin: c0 = p + (C - p)·z → p = (c0 - C·z) / (1 - z)
+      // c0: yakınlaşmasız kamerada (sx, sy)'deki sahne noktası
+      const c0x = (sx - ox) / k, c0y = (sy - oy) / k;
       Object.assign(cam, { tz: z, tfx: (c0x - cx * z) / (1 - z), tfy: (c0y - cy * z) / (1 - z) });
     } else if (kind === 'cart') Object.assign(cam, { tz: 1.32, tfx: 835, tfy: 560 });
     else Object.assign(cam, { tz: 1, tfx: 830, tfy: 600 });

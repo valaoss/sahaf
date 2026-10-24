@@ -53,7 +53,7 @@ try {
   ws.onmessage = m => {
     const d = JSON.parse(m.data);
     if (d.method === 'Runtime.exceptionThrown') errs.push(d.params.exceptionDetails.exception?.description?.split('\n')[0] || d.params.exceptionDetails.text);
-    if (d.method === 'Log.entryAdded' && d.params.entry.level === 'error') errs.push(d.params.entry.text);
+    if (d.method === 'Log.entryAdded' && d.params.entry.level === 'error' && !/favicon/.test(d.params.entry.url || '')) errs.push(d.params.entry.text);
     if (d.method === 'Runtime.consoleAPICalled' && d.params.type === 'warning' && d.params.args[0]?.value === 'çeviri yok:') warns.push(d.params.args[1]?.value);
     wait.get(d.id)?.(d);
   };
@@ -82,6 +82,38 @@ try {
       if (problems.length) failed++;
       console.log(`${problems.length ? '✗' : '✓'} ${lang} ${p || '(ana)'} | ${text}${problems.length ? '\n    ' + problems.join('\n    ') : ''}`);
     }
+  }
+  // Raf etkileşimi: gerçek fare olaylarıyla depodan rafa, raftan depoya sürükle; kitaba dokunup fiyat kartında + bas
+  if (!ONLY || ONLY.includes('raf')) {
+    errs.length = 0;
+    const ev = async expr => (await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })).result?.result?.value;
+    const mouse = (type, x, y) => send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: 1, pointerType: 'mouse' });
+    const dragFrom = async (a, b) => { await mouse('mousePressed', a.x, a.y); for (let k = 1; k <= 12; k++) { await mouse('mouseMoved', a.x + (b.x - a.x) * k / 12, a.y + (b.y - a.y) * k / 12); await sleep(16); } await mouse('mouseReleased', b.x, b.y); await sleep(450); };
+    const center = sel => ev(`(() => { const r = document.querySelector(${JSON.stringify(sel)})?.getBoundingClientRect(); return r && { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+    const counts = () => ev(`({ crate: __sahaf.crate.length, shelf: Object.values(__sahaf.shelf).reduce((a, b) => a + b, 0) })`);
+    await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
+    await send('Page.navigate', { url: `${base}?sahne=1&panel=ic` });
+    await sleep(2500);
+    const steps = [];
+    const c0 = await counts();
+    const doors = await ev(`!document.querySelector('.st-doors')?.classList.contains('shut')`);
+    steps.push(['raf kapakları açık', doors]);
+    // depodaki ilk kapağın türünün bölümünde boş yuva (yoksa herhangi bir boş yuva)
+    const slot = await center('.st-sec .st-slot');
+    await dragFrom(await center('.stage-depot .cover'), slot);
+    const c1 = await counts();
+    steps.push(['depodan rafa', c1.crate === c0.crate - 1 && c1.shelf === c0.shelf + 1]);
+    await dragFrom(await center('.st-sec .spine2'), await center('.stage-depot .dp-grid'));
+    const c2 = await counts();
+    steps.push(['raftan depoya', c2.crate === c1.crate + 1 && c2.shelf === c1.shelf - 1]);
+    const sp = await center('.st-sec .spine2');
+    await mouse('mousePressed', sp.x, sp.y); await mouse('mouseReleased', sp.x, sp.y); await sleep(300);
+    const before = await ev(`document.querySelector('.st-pricecard b')?.textContent`);
+    await ev(`document.querySelector('[data-tagp="1"]').click()`); await sleep(300);
+    const own = await ev(`__sahaf.layout.sections.flatMap(s => s.books).some(e => e.own)`);
+    steps.push(['fiyat kartı (' + before + ' → +1)', !!before && own]);
+    for (const [name, ok] of steps) { checked++; if (!ok) failed++; console.log(`${ok ? '✓' : '✗'} raf: ${name}`); }
+    if (errs.length) { failed++; console.log('✗ raf: hata\n    ' + errs.join('\n    ')); }
   }
   ws.close();
 } catch (e) {

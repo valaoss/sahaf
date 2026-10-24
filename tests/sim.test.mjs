@@ -45,7 +45,7 @@ import { genreOpen, unlockGenre, isMezatDay, daysToMezat, mezatOf, buyLot, appre
 import { dayEndOf } from '../src/game/state.js';
 import { haggleMove, abandonDeal, openingLine } from '../src/game/shop.js';
 import { HAGGLE_DEFAULT } from '../src/game/day.js';
-import { peekCopy } from '../src/game/shelving.js';
+import { peekCopy, setBookPrice, marketOf } from '../src/game/shelving.js';
 
 let passed = 0;
 const test = (name, fn) => { fn(); passed++; console.log('✓ ' + name); };
@@ -711,6 +711,47 @@ test('hedef: önce bir sonraki araba, sonra satış araçları, sonra kilitli t�
   const A = newGame(88), B = newGame(88); B.shelfLv = 3;
   openShop(A); openShop(B);
   assert.ok(B.arrivals.length > A.arrivals.length);
+});
+
+test('fiyat kartı: raftaki kopyaya kendi fiyatı yazılır; sınırlı, taşınınca kalır, koliye dönünce düşer, pazarlıktan dönen kopyada korunur', () => {
+  const S = haggleDay(91), L = syncLayout(S), sec = L.sections.findIndex(x => x.books.length >= 2), e = L.sections[sec].books[0];
+  const m = marketOf(e.id, e.cond, e.rare);
+  assert.equal(setBookPrice(S, sec, 0, 21), null);
+  assert.equal(S.layout.sections[sec].books[0].own, 21);
+  assert.equal(peekCopy(S, e.id).own === 21 || S.shelf[e.id] > 1, true);
+  assert.equal(setBookPrice(S, sec, 0, 9999), null);
+  assert.equal(S.layout.sections[sec].books[0].own, Math.round(m * 3), 'en fazla piyasa değerinin üç katı');
+  assert.equal(setBookPrice(S, sec, 0, 0), null);
+  assert.equal(S.layout.sections[sec].books[0].own, 1, 'en az ₺1');
+  assert.equal(setBookPrice(S, sec, 99, 5), 'Böyle bir kitap yok.');
+  // pazarlıksız alan müşteri kartın fiyatını öder
+  setBookPrice(S, sec, 0, 4);
+  const only = S.layout.sections[sec].books[0].id;
+  for (const x of S.layout.sections.flatMap(q => q.books)) if (x.id === only && x !== S.layout.sections[sec].books[0]) x.own = 4;
+  const c = { id: 1, arch: 'turist', wants: BOOK[only].genre, look: 1, tr: { budget: 500, greed: 0, patience: 2, resolve: 0, touchy: 0, quirk: null, care: 'konu' } };
+  const coins = S.coins;
+  const id = Object.keys(S.shelf).filter(k => BOOK[k].genre === BOOK[only].genre);
+  for (const k of id) if (k !== only) { delete S.shelf[k]; }
+  syncLayout(S);
+  const r = resolveCustomer(S, c);
+  assert.ok(r.bought.length >= 1 && r.bought[0] === only);
+  assert.equal(r.paid - (r.tea ? BAL.teaPrice : 0), 4 * r.bought.length, 'kartın fiyatı');
+  assert.ok(r.spots && r.spots[0].sec >= 0, 'raftaki yeri bilinir');
+  // taşınınca kalır, koliye dönünce düşer
+  const T = haggleDay(92); T.shelfLv = 3;
+  const TL = syncLayout(T), s2 = TL.sections.findIndex(x => x.books.length);
+  setBookPrice(T, s2, 0, 17);
+  const to = TL.sections.findIndex((x, k) => k !== s2 && x.books.length < sectionCap(T));
+  assert.equal(moveBook(T, s2, 0, to, 0), null);
+  assert.equal(T.layout.sections[to].books[0].own, 17);
+  T.crate = [];
+  unshelve(T, to, 0);
+  assert.equal(T.crate[0].own, undefined);
+  // kayıttan dönüşte korunur, bozuk değer düşer
+  setBookPrice(T, s2, 0, 13);
+  const J = JSON.parse(JSON.stringify(T)); J.layout.sections[s2].books[0].own = 13; J.layout.sections[s2].books[1 % J.layout.sections[s2].books.length].own = 'x';
+  const M = restore(J);
+  assert.equal(M.layout.sections[s2].books[0].own, 13);
 });
 
 test('iflas koruması: kasa ve raf boşsa en ucuz koli kadar destek', () => {

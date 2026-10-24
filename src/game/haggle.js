@@ -46,7 +46,8 @@ const greedOf = (S, c) => Math.max(traitsOf(c).greed * Math.max(0.4, 1 - TRUST_P
 const likesOf = c => (c.reg ? REGULARS[c.reg]?.likes : ARCHETYPES[c.arch]?.likes) || [];
 
 // Bir kopyanın etiket fiyatı: tür fiyatı × bölümün fiyat etiketi × durumu (× ilk baskı). cp: game/shelving.js takeCopy/peekCopy
-export const stickerOf = (id, cp) => Math.max(1, Math.round(GENRES[BOOK[id].genre].price * BAL.priceTags[cp.price].mul
+// own: oyuncunun o kopyaya yazdığı fiyat kartı (game/shelving.js setBookPrice)
+export const stickerOf = (id, cp) => cp.own || Math.max(1, Math.round(GENRES[BOOK[id].genre].price * BAL.priceTags[cp.price].mul
   * BAL.conds[cp.cond].sell * (cp.rare ? BAL.rareMul : 1)));
 
 // Müşterinin bu kopyaya biçtiği değer: piyasa değeri (etiketsiz) × zevkine uygunluk × kişisel oynama.

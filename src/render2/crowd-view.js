@@ -1,12 +1,36 @@
 // Canvas'ta insanlar: render/people.js durum makinesinin görünümü. Her kişi bir iskelet (rig.js);
 // pozlar zamana göre hesaplanır, durum geçişleri yumuşak (açılar hedefe doğru akar).
 import { buildRig, drawCell } from './rig.js';
+import { slotXY, COUNTER } from '../render/shelf-geo.js';
 
 const TAU = Math.PI * 2;
 const deg = d => d * Math.PI / 180;
 const wave = f => 0.5 - 0.5 * Math.cos(TAU * f);
 const frac = x => x - Math.floor(x);
 const BUBBLE = new Path2D('M-34 470 L34 470 C48 470 56 478 56 492 L56 516 C56 530 48 538 34 538 L12 538 L0 554 L-10 538 L-34 538 C-48 538 -56 530 -56 516 L-56 492 C-56 478 -48 470 -34 470Z');
+
+// satış: 0–.3 raftan kalkıp tezgâha iner · .3–.5 kâğıda sarılır (kraft rengi, sicim) · .5–1 kavisle müşterinin eline
+const ease = v => v * v * (3 - 2 * v);
+function drawSale(ctx, f, u) {
+  let x, y, wrap = 0, s = 1;
+  if (u < .3) {
+    const v = u / .3, lift = Math.min(1, v * 4);
+    x = f.x0 + (COUNTER.x - f.x0) * ease(Math.max(0, v - .2) / .8);
+    y = f.y0 - 14 * lift + (COUNTER.y - f.y0 + 14) * ease(Math.max(0, v - .2) / .8);
+    s = 1 + .15 * lift;
+  } else if (u < .5) { x = COUNTER.x; y = COUNTER.y; wrap = (u - .3) / .2; s = 1.15 - .1 * wrap; }
+  else { const v = ease((u - .5) / .5); x = COUNTER.x + (f.x1 - COUNTER.x) * v; y = COUNTER.y + (f.y1 - COUNTER.y) * v - 70 * Math.sin(Math.PI * v); wrap = 1; s = 1.05; }
+  ctx.save(); ctx.translate(x, y); ctx.scale(s * 1.6, s * 1.6);
+  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(-8, 11, 18, 4);
+  ctx.fillStyle = f.color; ctx.fillRect(-9, -12, 18, 24);
+  ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(-6, -9, 12, 3);
+  if (wrap > 0) {
+    // kâğıt aşağıdan yukarı sarar, sonra sicim çapraz bağlanır
+    ctx.fillStyle = '#d8b98a'; ctx.fillRect(-10, 13 - 26 * Math.min(1, wrap * 1.4), 20, 26 * Math.min(1, wrap * 1.4));
+    if (wrap > .7) { ctx.strokeStyle = '#8a5a3c'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, 13); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.stroke(); }
+  }
+  ctx.restore();
+}
 
 export function canvasCrowdView(getScale) {
   const list = [], fx = [];
@@ -28,8 +52,11 @@ export function canvasCrowdView(getScale) {
     remove(p) { const i = list.indexOf(p); if (i >= 0) list.splice(i, 1); },
     floatText(x, text, color) { fx.push({ x, y: 560, text, color, size: 34, bold: true, t0: now, dur: 1.5 }); },
     pay(p) { p.v.payAt = now; },
-    // satılan kitap raftan müşterinin eline süzülür
-    bookFly(x, color) { fx.push({ book: true, x0: 760 + Math.random() * 140, y0: 600, x1: x, y1: 690, color, t0: now, dur: .55 }); },
+    // satılan kitap raftaki yerinden kalkar, tezgâhta kâğıda sarılır, müşterinin eline uzanır (spot: { sec, i, cap }, k: aynı müşterinin kaçıncı kitabı)
+    bookFly(x, color, spot, k = 0) {
+      const from = spot && spot.sec >= 0 ? slotXY(spot.sec, spot.i, spot.cap) : { x: 760 + Math.random() * 140, y: 600 };
+      fx.push({ book: true, x0: from.x, y0: from.y, x1: x, y1: 690, color, t0: now + k * .25, dur: 1.05 });
+    },
     hearts(x) { for (let i = 0; i < 4; i++) fx.push({ x: x - 30 + i * 20, y: 520, text: '💛', size: 28, t0: now + i * .12, dur: 1.5 }); },
 
     // dokunma: öneri bekleyen kişiye isabet
@@ -53,14 +80,7 @@ export function canvasCrowdView(getScale) {
         const f = fx[i], u = (t - f.t0) / f.dur;
         if (u >= 1) { fx.splice(i, 1); continue; }
         if (u < 0) continue;
-        if (f.book) {
-          const e = u * u * (3 - 2 * u), x = f.x0 + (f.x1 - f.x0) * e, y = f.y0 + (f.y1 - f.y0) * e - 120 * Math.sin(Math.PI * u);
-          ctx.save(); ctx.translate(x, y); ctx.rotate(u * 5);
-          ctx.fillStyle = f.color; ctx.fillRect(-9, -12, 18, 24);
-          ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(-6, -9, 12, 3);
-          ctx.restore();
-          continue;
-        }
+        if (f.book) { drawSale(ctx, f, u); continue; }
         // style.css "float": 0–%20 belirip büyür, sonra yavaşlayarak yükselip söner
         const w = (u - .2) / .8;
         const alpha = u < .2 ? u / .2 : 1 - w;

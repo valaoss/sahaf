@@ -503,6 +503,18 @@ Her faz ayrı commit ve yayın olur.
 - **Ses:** efektler prosedürel sese eklenir.
 - **Veri güdümlü yuvalar:** raf yuvaları veriden gelir; araba değişince kod değişmez.
 - **Bitiş ölçütü:** CDP ile sürükle-bırak testleri. Telefonda 60 kare (iPhone profili, başsız ölçüm). Dizme elle ve hızlı yoldan yapılabilir.
+- **Durum (25.10.2026): yapıldı, kare hızı ölçülmedi.**
+  - **Depo paneli** (`ui/shelf-stage.js`): Yatayda sağda, dikeyde altta. Kitaplar kapaklarıyla, aynı kopyalar "×adet" ile görünür; tür süzgeci ve «Boşlukları doldur» var. Raftaki kitap panele sürüklenince depoya döner. Kamera pencereyi panelin bıraktığı boşluğa oturtur (`render2/scene2.js` aim).
+  - **Raf kapakları:** Raf modu açılırken camlı kapaklar yana açılır, kapanırken kapanır.
+  - **Tutma ve bırakma** (`ui/shelf-drag.js`):
+    - Tutunca kitap %8 büyüyüp yükselir, altına gölge düşer.
+    - Bırakılabilecek bölümler kesik çizgiyle, üstündeki bölüm parlayarak belirir; o bölümde kitaplar yana kayıp yer açar.
+    - Bırakınca esneyerek oturur.
+  - **Fiyat kartı** (`game/shelving.js` `setBookPrice`): Her sırtın altında fiyat etiketi var. Seçili raf kitabında ± düğmeleri ve piyasa değeri ölçeği çıkar; en fazla piyasa değerinin üç katı. «Bölüm etiketi» kartı siler. Kart taşınınca kalır, depoya dönünce düşer, pazarlıktan dönen kopyada korunur.
+  - **Satış animasyonu** (`render2/crowd-view.js` `drawSale`, `render/shelf-geo.js`): Satılan kitap raftaki yerinden kalkar, tezgâhta kraft kâğıda sarılıp sicimle bağlanır, kavisle müşterinin eline uzanır.
+  - **Sesler:** kaldırma, oturma, raf kapağı, kâğıt, kasa (prosedürel).
+  - **CI:** `npm run ui-check` gerçek fare olaylarıyla depodan rafa, raftan depoya sürükler ve fiyat kartına basar.
+  - **Ölçülmeyen:** Telefonda kare hızı ölçülmedi; başsız Chrome'un sayıları güvenilir değil, gerçek iPhone'da bakılmalı.
 
 ### Faz 5 — Yeni kitap arabası (öncelik 4; **referans görsel gelince**)
 - **Görsel:** referansa göre üç çeyrek bakışlı araba; seviye 1–3.

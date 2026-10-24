@@ -3,6 +3,18 @@
 export default {
   // toptancı
   "Toptancı": "Wholesaler",
+  // raf modu ve depo (v3 Faz 4)
+  "Depo": "Stock",
+  "Depodaki kitapları türlerinin bölümlerindeki boşluklara dizer; raftakilere dokunmaz": "Shelves your stock into the gaps of matching sections; books already on the shelves stay put",
+  "Boşlukları doldur": "Fill the gaps",
+  "Bu türden kitap yok.": "No books of this genre.",
+  "Depo boş: 📦 Toptancıdan kitap al. Raftaki bir kitabı buraya sürüklersen depoya döner.": "Stock is empty: 📦 buy books at the wholesaler. Drag a book from the shelf here to put it back in stock.",
+  "Bölümün fiyat etiketi (kendi fiyat kartı olmayan kitaplar için) · ucuz: cebine bakan kolay alır · pahalı: pazarlık eden çoğalır": "Section price tag (for books without their own price card) · cheap: thrifty customers buy easily · pricey: more people haggle",
+  "Piyasa değeri ₺{0}": "Market value ₺{0}",
+  "piyasa ₺{0}": "market ₺{0}",
+  "Bölüm etiketi": "Section tag",
+  "rafa, depoya ya da ⭐ vitrine dokun": "tap a shelf, the stock or the ⭐ display",
+  "Kitabı tut ve sürükle ya da dokunup seç": "Hold a book and drag it, or tap to select",
   "Kilitli · satış ₺{0}": "Locked · sells for ₺{0}",
   "Türü aç": "Unlock genre",
   "Sahaf mezatı": "Booksellers' auction",

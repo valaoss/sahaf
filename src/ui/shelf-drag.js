@@ -1,8 +1,17 @@
 // Raf etkileşimi (panel ve karavan içi katman ortak): sürükle-bırak, dokun-seç, etiket ve fiyat seçimi.
-// DOM kuralı: sırtlar .spine2[data-from="c:i" | "s:bölüm:i"], bölümler [data-sec], koli [data-crate], vitrin [data-vit],
+// Tutunca kitap büyüyüp yükselir (gölgesiyle), bırakılabilecek yerler vurgulanır, üstünden geçilen bölümde kitaplar yana kayıp yer açar.
+// DOM kuralı: sırtlar .spine2[data-from="c:i" | "s:bölüm:i"], bölümler [data-sec], depo [data-crate], vitrin [data-vit],
 // etiket düğmesi [data-lab], fiyat düğmesi [data-price], "Hepsini diz" [data-auto].
 import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { T } from '../i18n/i18n.js';
+import { sfx } from '../audio/audio.js';
+
+// üstünden geçilen bölümde bırakılacak yerden sonraki sırtlar yana kayar
+function openGap(t) {
+  document.querySelectorAll('.spine2.shift').forEach(n => { if (!t || t.to !== 'sec' || !t.el.contains(n)) n.classList.remove('shift'); });
+  if (!t || t.to !== 'sec') return;
+  [...t.el.querySelectorAll('.spine2')].forEach((n, i) => n.classList.toggle('shift', i >= t.pos));
+}
 
 export const NEXT_PRICE = { ucuz: 'normal', normal: 'pahali', pahali: 'ucuz' };
 
@@ -23,7 +32,7 @@ export function targetAt(x, y) {
   return null;
 }
 
-// o: { act, S, sel: () => seçili, setSel(v), rerender(), scrollEl (kenarda otomatik kaydırma), onDrop(t) }
+// o: { act, S, sel: () => seçili, setSel(v), rerender(), scrollEl (kenarda otomatik kaydırma), onDrop(t), onDrag(açık mı) }
 export function wireShelf(root, o) {
   const drop = (from, t) => {
     if (!t) return;
@@ -73,15 +82,19 @@ export function wireShelf(root, o) {
         document.body.appendChild(drag.tag);
         drag.dx = drag.x0 - r.left; drag.dy = drag.y0 - r.top;
         el.classList.add('lifted');
+        o.onDrag?.(true);
+        sfx('lift');
       }
-      drag.ghost.style.transform = `translate(${e.clientX - drag.dx}px, ${e.clientY - drag.dy}px) rotate(-4deg)`;
+      drag.ghost.style.transform = `translate(${e.clientX - drag.dx}px, ${e.clientY - drag.dy - 6}px) rotate(-4deg) scale(1.08)`;
       drag.tag.style.transform = `translate(calc(${e.clientX}px - 50%), ${e.clientY - 64}px)`;
       if (o.scrollEl) {
         const pr = o.scrollEl.getBoundingClientRect();
         if (e.clientY > pr.bottom - 40) o.scrollEl.scrollTop += 12; else if (e.clientY < pr.top + 40) o.scrollEl.scrollTop -= 12;
       }
-      root.querySelectorAll('.over').forEach(n => n.classList.remove('over'));
-      targetAt(e.clientX, e.clientY)?.el?.classList.add('over');
+      document.querySelectorAll('.over').forEach(n => n.classList.remove('over'));
+      const t = targetAt(e.clientX, e.clientY);
+      t?.el?.classList.add('over');
+      openGap(t);
     });
     const end = e => {
       if (!drag || drag.el !== el) return;
@@ -89,6 +102,9 @@ export function wireShelf(root, o) {
       if (d.ghost) {
         d.ghost.remove(); d.tag?.remove();
         el.classList.remove('lifted');
+        o.onDrag?.(false);
+        openGap(null);
+        document.querySelectorAll('.over').forEach(n => n.classList.remove('over'));
         drop(d.from, targetAt(e.clientX, e.clientY));
       } else {
         // dokunma: seç / seçimi kaldır / seçiliyken raftaki başka bir sırta dokunmak onun yanına taşır
@@ -99,10 +115,10 @@ export function wireShelf(root, o) {
       }
     };
     el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', () => { if (drag?.ghost) { drag.ghost.remove(); drag.tag?.remove(); } drag = null; el.classList.remove('lifted'); });
+    el.addEventListener('pointercancel', () => { if (drag?.ghost) { drag.ghost.remove(); drag.tag?.remove(); o.onDrag?.(false); openGap(null); } drag = null; el.classList.remove('lifted'); });
   });
-  // seçiliyken bölüme, koliye ya da vitrine dokun
-  root.querySelectorAll('[data-sec], [data-crate], [data-vit]').forEach(n => n.addEventListener('click', e => {
+  // seçiliyken bölüme, depoya ya da vitrine dokun (depo panelinin kendisi de hedef)
+  [...(root.matches('[data-crate]') ? [root] : []), ...root.querySelectorAll('[data-sec], [data-crate], [data-vit]')].forEach(n => n.addEventListener('click', e => {
     if (!o.sel() || e.target.closest('.spine2, [data-lab], [data-price], .labpick2')) return;
     drop(o.sel(), targetAt(e.clientX, e.clientY));
   }));

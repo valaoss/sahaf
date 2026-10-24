@@ -2,9 +2,10 @@
 // bölümlere tür etiketi asar. Yalnızca rafa konmuş kitap satılır: S.shelf (sayılar) rafın kendisidir,
 // S.layout ise o kopyaların hangi bölümde hangi sırada durduğunu tutar.
 // Satış, olay, hediye gibi S.shelf'i doğrudan değiştiren her şeyden sonra syncLayout düzeni sayılarla uzlaştırır.
-// Her kopyanın durumu (cond: yipranmis | iyi | temiz) ve her bölümün fiyat etiketi (price: ucuz | normal | pahali) satış fiyatını belirler.
+// Her kopyanın durumu (cond: yipranmis | iyi | temiz) ve her bölümün fiyat etiketi (price: ucuz | normal | pahali) satış fiyatını belirler;
+// oyuncu bir kopyaya kendi fiyat kartını da yazabilir (own, ₺): o zaman bölüm etiketi o kopyaya uygulanmaz.
 import { BOOK } from '../data/books.js';
-import { GENRE_KEYS } from '../data/genres.js';
+import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { BAL } from '../data/balance.js';
 import { shelfCap, shelfCount } from './state.js';
 
@@ -39,7 +40,7 @@ export function syncLayout(S) {
   for (const sec of L.sections) {
     if (!BAL.priceTags[sec.price]) sec.price = 'normal';
     sec.books = sec.books.filter(e => e && BOOK[e.id]);
-    for (const e of sec.books) if (!BAL.conds[e.cond]) e.cond = 'iyi';
+    for (const e of sec.books) { if (!BAL.conds[e.cond]) e.cond = 'iyi'; if (e.own !== undefined && !(Number.isFinite(e.own) && e.own >= 1)) delete e.own; }
     for (const e of sec.books) have[e.id] = (have[e.id] || 0) + 1;
   }
   for (const id in have) {
@@ -115,13 +116,17 @@ export function setPrice(S, sec, tag) {
 
 // Satılan kopyayı raftan al (S.shelf sayısını sell düşürür): müşteri ucuz bölümdekini önce görür.
 // wantRare: koleksiyoncuya ilk baskı. Dönüş: o kopyanın bölüm fiyat etiketi ve durumu.
+// Kopyanın etiket fiyatı: kendi fiyat kartı ya da tür fiyatı × bölüm etiketi × durumu (× ilk baskı)
+export const marketOf = (id, cond = 'iyi', rare = false) => GENRES[BOOK[id].genre].price * BAL.conds[cond].sell * (rare ? BAL.rareMul : 1);
+export const copyPrice = (id, e, secPrice) => e.own || Math.max(1, Math.round(marketOf(id, e.cond || 'iyi', e.rare) * BAL.priceTags[secPrice].mul));
+// müşteri aynı kitabın en ucuz kopyasını görür
 function bestCopy(S, id, wantRare) {
   syncLayout(S);
   let best = null;
-  const rank = { ucuz: 0, normal: 1, pahali: 2 };
   S.layout.sections.forEach((sec, si) => sec.books.forEach((e, i) => {
     if (e.id !== id || e.rare !== wantRare) return;
-    if (!best || rank[sec.price] < rank[best.sec.price]) best = { sec, si, i };
+    const p = copyPrice(id, e, sec.price);
+    if (!best || p < best.p) best = { sec, si, i, p };
   }));
   return best;
 }
@@ -130,13 +135,25 @@ export function takeCopy(S, id, wantRare = false) {
   const best = bestCopy(S, id, wantRare);
   if (!best) return { price: 'normal', cond: 'iyi', sec: -1, i: -1, rare: wantRare };
   const [e] = best.sec.books.splice(best.i, 1);
-  return { price: best.sec.price, cond: e.cond || 'iyi', sec: best.si, i: best.i, rare: wantRare };
+  return { price: best.sec.price, cond: e.cond || 'iyi', sec: best.si, i: best.i, rare: wantRare, own: e.own || null };
 }
 // takeCopy'nin seçeceği kopya, rafa dokunmadan (pazarlık öncesi etiket fiyatı için)
 export function peekCopy(S, id, wantRare = false) {
   const best = bestCopy(S, id, wantRare);
   if (!best) return { price: 'normal', cond: 'iyi', sec: -1, i: -1, rare: wantRare };
-  return { price: best.sec.price, cond: best.sec.books[best.i].cond || 'iyi', sec: best.si, i: best.i, rare: wantRare };
+  const e = best.sec.books[best.i];
+  return { price: best.sec.price, cond: e.cond || 'iyi', sec: best.si, i: best.i, rare: wantRare, own: e.own || null };
+}
+
+// Raftaki bir kopyanın fiyat kartı: price ₺ (piyasa değerinin en fazla üç katı) ya da null (bölüm etiketine döner)
+export function setBookPrice(S, sec, i, price) {
+  syncLayout(S);
+  const e = S.layout.sections[sec]?.books[i];
+  if (!e) return 'Böyle bir kitap yok.';
+  if (price === null) { delete e.own; return null; }
+  if (!Number.isFinite(price)) return 'Geçersiz fiyat.';
+  e.own = Math.max(1, Math.min(Math.round(marketOf(e.id, e.cond || 'iyi', e.rare) * 3), Math.round(price)));
+  return null;
 }
 // Pazarlıkta anlaşılamadı: müşterinin elindeki kopya rafta eski yerine döner (S.shelf, S.rare ve düzen birlikte)
 export function putBack(S, id, cp) {
@@ -144,7 +161,7 @@ export function putBack(S, id, cp) {
   S.shelf[id] = (S.shelf[id] || 0) + 1;
   if (cp.rare) S.rare[id] = (S.rare[id] || 0) + 1;
   const b = S.layout.sections[cp.sec]?.books;
-  if (b) b.splice(Math.max(0, Math.min(cp.i, b.length)), 0, { id, rare: !!cp.rare, cond: cp.cond || 'iyi' });
+  if (b) b.splice(Math.max(0, Math.min(cp.i, b.length)), 0, { id, rare: !!cp.rare, cond: cp.cond || 'iyi', ...(cp.own ? { own: cp.own } : {}) });
   syncLayout(S);
 }
 

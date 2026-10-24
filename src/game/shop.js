@@ -16,7 +16,7 @@ import { dayMods, weatherOf } from './calendar.js';
 import { buildAsk } from './asks.js';
 import { kostasDrop } from './story.js';
 import { remember, pickFresh, weightedFresh } from './memory.js';
-import { crateAdd, crateFree, takeCopy, peekCopy, putBack, refill } from './shelving.js';
+import { crateAdd, crateFree, takeCopy, peekCopy, putBack, refill, sectionCap } from './shelving.js';
 import { traitsFor, traitsOf, approach, respond, lineFor, hintFor, stickerOf } from './haggle.js';
 import { patronOf, patronAfterSale, patronAfterMiss } from './patrons.js';
 import { EVENTS } from '../data/calendar.js';
@@ -350,6 +350,8 @@ function sell(S, id, res, rareCopy = false, mul = 1, held = null, price = null) 
   const sat = (S.sat[S.town] = S.sat[S.town] || {});
   sat[g] = (sat[g] || 0) + 1;
   if (cp.sec >= 0 && T.secSold) T.secSold[cp.sec]++;
+  // kitabın raftaki yeri: satış animasyonu oradan kalkar (render2/crowd-view.js bookFly)
+  (res.spots = res.spots || []).push({ sec: cp.sec, i: cp.i, cap: sectionCap(S) });
   (T.soldIds = T.soldIds || []).push(id);
   // İspanya: kitabın yanına bir gül
   const rose = rareCopy ? 0 : roseWithSale(S);

@@ -21,7 +21,7 @@ import { weatherOf, dayMods, eventOf } from './game/calendar.js';
 import { checkStory, checkUnlocks } from './game/story.js';
 import { checkCountries } from './game/travel.js';
 import { roadEvent, chooseRoad, ROAD_BY_ID } from './game/road.js';
-import { placeAll, shelve, unshelve, moveBook, setLabel, setPrice, syncLayout } from './game/shelving.js';
+import { placeAll, shelve, unshelve, moveBook, setLabel, setPrice, syncLayout, setBookPrice } from './game/shelving.js';
 import { replyFor } from './game/replies.js';
 import { tutorialStep, tutorialEvent } from './game/tutorial.js';
 import { HAP, dueHappening, chooseHappening } from './game/happenings.js';
@@ -74,7 +74,7 @@ function toFrame(x, y) {
 const crowd = createCrowd(scene.crowdView(), {
   browse(c) {
     const r = resolveCustomer(S, c);
-    if (r.bought.length) { scene.setStock(S); tap(); sfx('coin'); }
+    if (r.bought.length) { scene.setStock(S); tap(); sale(); }
     return r;
   },
   // öneri isteyene ya da tezgâhta pazarlık bekleyene dokunuldu: panel açılır, saat durur
@@ -114,6 +114,9 @@ const crowd = createCrowd(scene.crowdView(), {
   paid: x => { const at = toFrame(x, 540); ui.flyCoin(at.xf, at.yf); },
 });
 
+// Satış sesi: kitap raftan kalkar, tezgâhta kâğıda sarılır (render2/crowd-view.js bookFly), para kasaya düşer
+function sale() { sfx('lift'); setTimeout(() => sfx('wrap'), 320); setTimeout(() => sfx('till'), 640); }
+
 // Önerinin sonucu: müşterinin karşılığı (konuşma kartı), kalp, hediye, rica
 function afterRec(c, r, id = r.bought[0] || null) {
   if (r.bought.length) { scene.setStock(S); tap(r.grade === 'perfect' ? 'MEDIUM' : 'LIGHT'); }
@@ -138,7 +141,7 @@ function openHaggle(c) {
   ui.hagglePanel(S, c, openingLine(S, c), m => {
     const o = haggleMove(S, c, m);
     if (!o.res) sfx('tap');
-    else if (o.res.bought.length) { scene.setStock(S); tap(o.happy ? 'MEDIUM' : 'LIGHT'); sfx(o.happy ? 'heart' : 'coin'); }
+    else if (o.res.bought.length) { scene.setStock(S); tap(o.happy ? 'MEDIUM' : 'LIGHT'); sale(); if (o.happy) setTimeout(() => sfx('heart'), 700); }
     else { scene.setStock(S); sfx('sad'); }
     if (o.res && tutorialEvent(S, 'haggle')) saveGame(S);
     return o;
@@ -190,6 +193,7 @@ const COMMANDS = {
     if (o.op === 'auto') { if (!placeAll(S)) why = T`Rafta boş yer yok.`; else { sfx('page'); tutorialEvent(S, 'shelve'); } }
     else if (o.op === 'label') why = setLabel(S, o.sec, o.g);
     else if (o.op === 'price') why = setPrice(S, o.sec, o.tag);
+    else if (o.op === 'tag') { const [, x, y] = o.from.split(':').map(Number); why = setBookPrice(S, x, y, o.price); }
     else if (o.op === 'drop') {
       const [k, x, y] = o.from.split(':').map((v, i) => i ? +v : v);
       if (o.to === 'vit') {
@@ -201,7 +205,7 @@ const COMMANDS = {
         if (!why && k === 'c') tutorialEvent(S, 'shelve');
       }
     }
-    attempt(why, () => { tap(); sfx('tap'); saveGame(S); scene.setStock(S); }, () => ui.interiorPanel(S));
+    attempt(why, () => { tap(); sfx(o.op === 'drop' || o.op === 'auto' ? 'place' : 'tap'); saveGame(S); scene.setStock(S); }, () => ui.interiorPanel(S));
   },
   decor: () => { if (tutorialEvent(S, 'decor')) saveGame(S); ui.decorPanel(S); },
   paper: () => { sfx('page'); ui.paperPanel(S); },
@@ -400,7 +404,7 @@ if (PREVIEW) {
   if (panel === 'stock') { S.coins = 120; ui.stockPanel(S); }
   if (panel === 'oneri') { S.upgrades = ['cay']; let c; do c = makeCustomer(S); while (!c.ask); ui.recPanel(S, c, () => {}, true, { onTalk: () => talkHint(S, c), tea: true, teaLine: () => teaLine(S) }); if (q.has('konustur')) setTimeout(() => { document.querySelector('[data-talk]')?.click(); document.querySelector('[data-tea]')?.click(); }, 300); }
   if (panel === 'konus') { const c = makeCustomer(S); c.arch = 'balikci'; c.style = ARCHETYPES.balikci.style; c.ask = { tags: ['deniz'] }; ui.speech(c, replyFor(S, c, { grade: 'perfect' }, 'yasliadam'), 'perfect', 'Bahşiş ₺5', toFrame(1210, 470)); }
-  if (panel === 'ic') { S.coins = 999; S.shelfLv = 1; buyBox(S, 'roman'); placeAll(S); buyBox(S, 'siir'); buyBox(S, 'fantastik'); S.featured = Object.keys(S.shelf).slice(2, 4); ui.interiorPanel(S); }
+  if (panel === 'ic') { S.coins = 999; S.shelfLv = 1; S.genres = Object.keys(GENRES); buyBox(S, 'roman'); placeAll(S); buyBox(S, 'siir'); buyBox(S, 'fantastik'); S.featured = Object.keys(S.shelf).slice(2, 4); ui.interiorPanel(S); }
   // ?insanlar: farklı tiplerden on kişilik dizi (yürüyen, okuyan, sevinen)
   if (q.has('insanlar')) {
     const kinds = ['ogrenci', 'emekli', 'balikci', 'turist', 'anne', 'cocuk', 'sevgili', 'yazar', 'teyze', 'sorfcu'];
