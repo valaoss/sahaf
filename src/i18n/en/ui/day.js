@@ -138,6 +138,8 @@ export default {
   "Pul albümü": "Stamp album",
   "Hikâye": "Story",
   // pazarlık şeridi
+  "Tezgâh kirası": "Stall rent",
+  "Kasadaki parayla alabileceklerin:": "What you can afford with the money in the till:",
   "{0} bir kitap bu.": "It's a book {0}.",
   "Ben de okudum": "I've read it",
   "Bunu ben de okudum; son sayfası uzun süre aklımdan çıkmadı.": "I've read this one myself; the last page stayed with me for ages.",

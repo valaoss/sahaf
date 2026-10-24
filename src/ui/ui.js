@@ -60,7 +60,7 @@ export function createUI(root, act) {
       <div class="col right">
         <span class="pill coins">🪙 <b id="coins"></b></span>
         <span class="pill shelf">📚 <span id="shelf"></span></span>
-        <span class="icons"><button class="pill gear" data-a="decor" title="${T`Süsle`}">🪴</button><button class="pill gear" data-a="book" title="${T`Defter`}">📜</button><button class="pill gear" id="gear" title="${T`Ayarlar`}">⚙️</button></span>
+        <span class="icons"><button class="pill gear" data-a="decor" title="${T`Atölye`}">🔨</button><button class="pill gear" data-a="book" title="${T`Defter`}">📜</button><button class="pill gear" id="gear" title="${T`Ayarlar`}">⚙️</button></span>
       </div>
     </div>
     <div class="bottom" id="bottom"></div>

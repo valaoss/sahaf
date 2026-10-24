@@ -1,5 +1,7 @@
 // Gün döngüsü: dükkânı aç → saat ilerledikçe müşteri gelir → kapanış özeti → ertesi sabah.
 import { BAL } from '../data/balance.js';
+import { SHELF_LEVELS } from '../data/decor.js';
+import { dayEndOf } from './state.js';
 import { TOWNS } from '../data/towns.js';
 import { rnd, rndInt } from '../core/rng.js';
 import { REGULARS, REGULAR_KEYS, VISIT_CHANCE } from '../data/regulars.js';
@@ -20,7 +22,7 @@ import { FEATURES } from '../data/features.js';
 
 export function openShop(S) {
   if (S.phase !== 'morning') return 'Dükkân zaten açık.';
-  const len = BAL.dayEnd - BAL.dayStart;
+  const len = dayEndOf(S) - BAL.dayStart;
   // yeni gelinen kasabada karavanı merak edenler de uğrar
   const newTown = S.town !== S.prevTown;
   // hava ve etkinlik kalabalığı çarpar; süs ve yeni kasaba ilgisi üstüne eklenir
@@ -30,8 +32,8 @@ export function openShop(S) {
   // okuma köşesi bağışlanan kasaba ve sponsor olunan festival daha kalabalık
   // en yüksek itibar (kasabanın sahafı) da kalabalığı artırır; hatıralar kendi kasabalarında birer ziyaretçi getirir
   const civic = (S.donated.includes(S.town) ? BAL.donateTraffic : 1) * (sponsoredToday(S) ? BAL.sponsorTraffic : 1) * (repLevel(S) >= 3 ? 1.08 : 1)
-    * (roseDay(S) ? BAL.roseDayTraffic : 1);
-  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic * buffFor(S) * tidy * civic) + effects(S).traffic + keepsakeTraffic(S) + (newTown ? BAL.newTownTraffic : 0);
+    * (roseDay(S) ? BAL.roseDayTraffic : 1) * (S.upgrades.includes('fener') ? BAL.fenerTraffic : 1);
+  const base = Math.round(TOWNS[S.town].traffic * spotOf(S).traffic * mods.traffic * buffFor(S) * tidy * civic) + effects(S).traffic + keepsakeTraffic(S) + (newTown ? BAL.newTownTraffic : 0) + SHELF_LEVELS[S.shelfLv].traffic;
   const n = Math.max(4, base + rndInt(S, BAL.trafficJitter * 2 + 1) - BAL.trafficJitter);
   const times = [];
   for (let i = 0; i < n; i++) {
@@ -64,7 +66,7 @@ export function openShop(S) {
 // Saati ilerletir, saati gelen müşterileri döndürür
 export function advanceClock(S, minutes) {
   if (S.phase !== 'open') return [];
-  S.clock = Math.min(S.clock + minutes, BAL.dayEnd);
+  S.clock = Math.min(S.clock + minutes, dayEndOf(S));
   const due = [];
   while (S.arrivals.length && S.arrivals[0] <= S.clock) { S.arrivals.shift(); due.push(makeCustomer(S)); }
   while (S.regArrivals.length && S.regArrivals[0].t <= S.clock) due.push(makeRegular(S, S.regArrivals.shift().id));
@@ -72,7 +74,7 @@ export function advanceClock(S, minutes) {
   return due;
 }
 
-export const closingTime = S => S.phase === 'open' && S.clock >= BAL.dayEnd && !S.arrivals.length && !S.regArrivals.length && !S.patArrivals.length && !S.haps.length;
+export const closingTime = S => S.phase === 'open' && S.clock >= dayEndOf(S) && !S.arrivals.length && !S.regArrivals.length && !S.patArrivals.length && !S.haps.length;
 
 export function closeShop(S) {
   if (S.phase !== 'open') return null;

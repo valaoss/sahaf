@@ -7,7 +7,7 @@ export const TUT_STEPS = [
   { on: 'open', text: '❓ balonlu bir müşteri gelince ona dokun; cümlesine en uygun kitabı seç.', target: null, done: 'rec' },
   { on: 'evening', text: 'Gün bitti! Özeti oku, sonra ☀️ Ertesi sabah.', target: '[data-next]', done: 'next' },
   { on: 'morning', text: 'Üstteki konuma dokun: 📍 mekânını değiştirip başka müşterilerle tanış.', target: '[data-a="spot"]', done: 'spot' },
-  { on: 'morning', text: 'Kasada para birikince sağ üstteki 🪴 ile karavanı süsle: süsler müşterileri etkiler.', target: '[data-a="decor"]', done: 'decor' },
+  { on: 'morning', text: 'Kasada para birikince sağ üstteki 🔨 Atölye: yeni araba, satış araçları ve süsler orada.', target: '[data-a="decor"]', done: 'decor' },
   { on: 'morning', text: 'Son ipucu: 📜 Defter, teyzenin mektuplarını ve tanıştığın müşterileri saklar. İyi okumalar!', target: '[data-a="book"]', done: 'book' },
 ];
 

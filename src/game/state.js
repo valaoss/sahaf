@@ -1,6 +1,6 @@
 // Oyun durumu: DOM'a dokunmaz, testler ve denge simülasyonu aynı modülleri kullanır.
 import { BAL, SEASONS } from '../data/balance.js';
-import { GENRE_KEYS } from '../data/genres.js';
+import { GENRES, GENRE_KEYS } from '../data/genres.js';
 import { BOOK, booksOf } from '../data/books.js';
 import { DEFAULT_DECOR, SHELF_LEVELS } from '../data/decor.js';
 import { SPOTS, firstSpot } from '../data/spots.js';
@@ -13,7 +13,7 @@ import { learnAll } from './knowledge.js';
 
 // Kayıt şeması sürümü. Yeni sürümde: SAVE_V'yi artır, MIGRATIONS'a bir önceki sürümden taşıyan adımı ekle,
 // tests/sim.test.mjs'te o sürümün örnek kaydını yükleyen bir test yaz. Eksik alanları restore() doğrulaması doldurur.
-export const SAVE_V = 4;
+export const SAVE_V = 5;
 
 // Başlangıç rafı: her türden farklı kitaplar
 function startShelf(S) {
@@ -71,6 +71,9 @@ export function newGame(seed = Date.now()) {
     regArrivals: [],           // açık gün: gelecek müdavimler [{ t, id }]
     patArrivals: [],           // açık gün: uğrayacak tanıdıklar [{ t, id }]
     patrons: {},               // kartını bırakan tanıdıklar (game/patrons.js)
+    genres: ['roman', 'polisiye', 'cocuk'],   // açık türler (game/progress.js)
+    apprentice: 0.9,           // çırak eşiği: etiketin bu oranındaki teklifi kabul eder (0 kapalı)
+    mezat: null,               // bugünkü mezatta alınanlar { key, sold }
     travelled: false,          // bu sabah yola çıkıldı mı
     clock: BAL.dayStart,
     arrivals: [],              // açık gün: henüz gelmemiş müşterilerin saatleri
@@ -129,6 +132,9 @@ const MIGRATIONS = {
   2: saved => ({ ...saved, v: 3 }),
   // v3 → v4 (v3 sadeleştirme: Akdeniz kenara alındı): yurt dışındaki oyuncu Ayvalık'a döner (mekânı restore() düzeltir);
   // bukinist kutusundaki ve müzayededeki kitaplar koliye geri gelir. Pasaport, sayfalar ve ülkeler kayıtta durur.
+  // v4 → v5 (v3 Faz 3: araba basamakları): eski raf seviyesi bir basamak yukarı kayar (yeni oyun el arabasıyla başlar);
+  // eski oyuncunun bütün türleri açık kalır
+  4: saved => ({ ...saved, v: 5, shelfLv: (Number.isFinite(saved.shelfLv) ? saved.shelfLv : 0) + 1, genres: Object.keys(GENRES) }),
   3: saved => {
     const out = { ...saved, v: 4 };
     const abroad = (TOWNS[saved.town]?.country || 'tr') !== 'tr';
@@ -215,6 +221,8 @@ export function restore(saved) {
   // dükkân açıkken kayıt yazılmaz (core/save.js); eski sürümlerden kalma gün ortası kaydı o sabaha döner
   // rehber eklenmeden önce başlamış oyunlarda rehber gösterilmez
   if (saved.tut === undefined && S.totals.days > 0) S.tut = -1;
+  S.genres = [...new Set(['roman', 'polisiye', 'cocuk', ...S.genres.filter(g => GENRES[g])])];
+  if (![0.8, 0.9, 0].includes(S.apprentice)) S.apprentice = 0.9;
   // tanıdıklar: bozuk kayıt (bilinmeyen tip ya da kasaba, eksik özellik) atılır
   for (const id in S.patrons) { const P = S.patrons[id]; if (!isObj(P) || !ARCHETYPES[P.arch] || !TOWNS[P.town] || !isObj(P.tr) || !isObj(P.seen)) delete S.patrons[id]; }
   if (S.phase === 'open') { S.phase = 'morning'; S.arrivals = []; S.regArrivals = []; S.patArrivals = []; S.haps = []; S.today = null; S.clock = BAL.dayStart; }
@@ -222,6 +230,8 @@ export function restore(saved) {
 }
 
 export const shelfCap = S => SHELF_LEVELS[S.shelfLv].cap;
+// dükkânın kapanış saati: akşam feneri bir saat uzatır
+export const dayEndOf = S => BAL.dayEnd + (S.upgrades?.includes('fener') ? BAL.fenerMinutes : 0);
 export const shelfCount = S => Object.values(S.shelf).reduce((n, c) => n + c, 0);
 export function genreCount(S, g) {
   let n = 0;

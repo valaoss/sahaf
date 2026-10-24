@@ -10,6 +10,9 @@ import { buyBox, travel, rescue, demandOf, donate, sponsor, sponsorable, refillS
 import { placeAll, setPrice, SECTIONS } from '../src/game/shelving.js';
 import { equipDecor, upgradeShelf, buyUpgrade } from '../src/game/decor.js';
 import { BOOK } from '../src/data/books.js';
+import { GENRES } from '../src/data/genres.js';
+import { UPGRADES } from '../src/data/decor.js';
+import { genreOpen, unlockGenre } from '../src/game/progress.js';
 import { ARCHETYPES } from '../src/data/archetypes.js';
 import { knownTags, knowsAll, readBook, readsLeft } from '../src/game/knowledge.js';
 import { favorOpen, ordered, orderBook } from '../src/game/bonds.js';
@@ -32,20 +35,23 @@ function buyShelved(S, g) {
 function stockSmart(S) {
   const d = demandOf(S);
   for (;;) {
-    const g = GENRE_KEYS.slice().sort((a, b) => genreCount(S, a) / d[a] - genreCount(S, b) / d[b])[0];
+    const g = GENRE_KEYS.filter(k => genreOpen(S, k)).sort((a, b) => genreCount(S, a) / d[a] - genreCount(S, b) / d[b])[0];
     if (buyShelved(S, g)) break;
   }
 }
 // Hep aynı türü alır
 function stockLazy(S) { while (!buyShelved(S, 'roman')); }
 
-// Kenara para ayırıp sırayla raf, ziyaretçi süsü ve masa süsü alır
+// Kenara para ayırıp sırayla alır: kasabada aranan kilitli tür, araba basamağı, satış araçları, süsler (koliye yetecek para kalır)
+// önce araba (sıradaki basamağa para biriktirir); öteki alımlar o basamağın parasına dokunmaz
 function invest(S) {
-  const next = SHELF_LEVELS[S.shelfLv + 1];
-  if (next && S.coins > next.price + 60) upgradeShelf(S);
-  if (S.coins > 140) equipDecor(S, 'bayrak');
-  if (S.coins > 160) equipDecor(S, 'lamba');
-  if (S.coins > 160) equipDecor(S, 'mum');
+  const d = demandOf(S), next = SHELF_LEVELS[S.shelfLv + 1];
+  if (next && S.coins > next.price + 100) upgradeShelf(S);
+  const spare = () => S.coins - (SHELF_LEVELS[S.shelfLv + 1]?.price || 0) * 0.6;
+  for (const g of GENRE_KEYS.filter(k => !genreOpen(S, k)).sort((a, b) => d[b] - d[a])) if (spare() > GENRES[g].unlock + 100) unlockGenre(S, g);
+  for (const k of ['paket', 'cay', 'fener']) if (spare() > UPGRADES[k].price + 150) buyUpgrade(S, k);
+  if (S.coins > 240) equipDecor(S, 'bayrak');
+  if (S.coins > 300) equipDecor(S, 'lamba');
 }
 
 // bütün bölümlere aynı fiyat etiketi
@@ -134,11 +140,17 @@ if (!ONLY || ONLY === 'gercek') {
   for (const [name, play] of Object.entries(REAL)) {
     const curve = Array(DAYS).fill(0);
     let perfect = 0, asked = 0, favors = 0, spent = 0;
+    // ilk harcamanın (koli dışı) ve araba basamaklarının günü (ulaşılamadıysa sayılmaz)
+    const firstBuy = [], lvDay = [[], [], [], []];
     for (let r = 0; r < RUNS; r++) {
       const S = newGame(4000 + r), rec = reader(4000 + r);
+      let bought = false;
       for (let d = 0; d < DAYS; d++) {
         rescue(S);
+        const own = S.upgrades.length + S.genres.length + S.shelfLv + S.decor.owned.length;
         play(S, d);
+        if (!bought && S.upgrades.length + S.genres.length + S.shelfLv + S.decor.owned.length > own) { bought = true; firstBuy.push(d + 1); }
+        if (!lvDay[S.shelfLv].done) for (let l = 1; l <= S.shelfLv; l++) if (lvDay[l].length < r + 1) lvDay[l].push(d + 1);
         const T = simulateDay(S, () => 0, rec, { favors: true });
         perfect += T.recs.perfect; asked += T.recs.perfect + T.recs.good + T.recs.miss; favors += T.favors || 0;
         curve[d] += S.coins / RUNS;
@@ -147,7 +159,9 @@ if (!ONLY || ONLY === 'gercek') {
     }
     rows[name] = curve[DAYS - 1];
     const pts = [7, 14, 30, 60].map(d => `${d}.g ₺${Math.round(curve[d - 1])}`).join(' · ');
-    console.log(`${name.padEnd(38)} ${pts} | tam isabet %${Math.round(100 * perfect / Math.max(1, asked))}, ${(favors / RUNS).toFixed(1)} rica, ₺${Math.round(spent)} harcama`);
+    const avg = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(0) : '–';
+    const steps = firstBuy.length ? ` | ilk alım ${avg(firstBuy)}.g, araba ${[1, 2, 3].map(l => `${avg(lvDay[l])}.g (${lvDay[l].length}/${RUNS})`).join(' → ')}` : '';
+    console.log(`${name.padEnd(38)} ${pts} | tam isabet %${Math.round(100 * perfect / Math.max(1, asked))}, ${(favors / RUNS).toFixed(1)} rica, ₺${Math.round(spent)} harcama${steps}`);
   }
   const lazy = rows['hep roman'], smart = rows['akıllı, tek kasaba'];
   console.log(`  → tembel oyuncu akıllıdan %${Math.round(100 * (1 - lazy / smart))} geride`);

@@ -8,7 +8,7 @@ import { TOWNS } from './data/towns.js';
 import { COUNTRIES } from './data/countries.js';
 import { GENRES } from './data/genres.js';
 import { BOOK } from './data/books.js';
-import { DECOR, PAINTS, UPGRADES } from './data/decor.js';
+import { DECOR, PAINTS, UPGRADES, SHELF_LEVELS } from './data/decor.js';
 import { newGame, shelfCount, shelfCap, seasonOf } from './game/state.js';
 import { buyBox, travel, resolveCustomer, recommend, rescue, chooseSpot, spotOf, makeRegular, makeCustomer, toggleFeature, buyStall, talkHint, teaLine, refillShelves, donate, sponsor, haggleMove, openingLine, abandonDeal } from './game/shop.js';
 import { REGULARS, HEARTS_MAX } from './data/regulars.js';
@@ -42,6 +42,7 @@ import { createCrowd, personSVG, figureMeta } from './render/people.js';
 import { ARCHETYPES } from './data/archetypes.js';
 import { createAmbient } from './render/ambient.js';
 import { createUI } from './ui/ui.js';
+import { unlockGenre, buyLot, setApprentice, apprenticeTakes } from './game/progress.js';
 import { FEATURES } from './data/features.js';
 import { WEATHER, EVENTS } from './data/calendar.js';
 
@@ -100,7 +101,15 @@ const crowd = createCrowd(scene.crowdView(), {
       } });
   },
   // müşteri bir kitapla tezgâha geldi: başka panel açık değilse pazarlık şeridi hemen açılır, değilse 🏷️ balonuyla bekler
-  offer(c) { if (!ui.isOpen() && S.phase === 'open') { crowd.engage(c); openHaggle(c); } },
+  offer(c) {
+    // çırak: eşiğin üstündeki teklifi senin yerine kabul eder
+    if (apprenticeTakes(S, c.deal)) {
+      const o = haggleMove(S, c, 'accept');
+      crowd.answer(c, o.res); scene.setStock(S); sfx('coin');
+      return ui.toast(T`🧒 Çırak sattı: «${BOOK[o.res.bought[0]].title}» ₺${o.res.paid}`);
+    }
+    if (!ui.isOpen() && S.phase === 'open') { crowd.engage(c); openHaggle(c); }
+  },
   timeout: c => c.deal ? abandonDeal(S, c) : recommend(S, c, null),
   paid: x => { const at = toFrame(x, 540); ui.flyCoin(at.xf, at.yf); },
 });
@@ -204,7 +213,7 @@ const COMMANDS = {
   // dil değişince oyun yeniden açılır: içerik açılışta yerleşir (i18n/en)
   lang: v => { setLang(v); location.reload(); },
   upgrade: key => attempt(buyUpgrade(S, key), () => {
-    tap('MEDIUM'); sfx('box'); scene.setUpgrades(S.upgrades); scene.setPaintFx(settings.paint !== false); saveGame(S);
+    tap('MEDIUM'); sfx('box'); scene.setUpgrades(upgradeView()); scene.setPaintFx(settings.paint !== false); saveGame(S); ui.confetti();
     ui.toast(T`${UPGRADES[key].icon} ${UPGRADES[key].name} karavana eklendi`); stampCheck();
   }, () => ui.decorPanel(S)),
   toggle: key => {
@@ -255,9 +264,16 @@ const COMMANDS = {
     ui.stockPanel(S);
   },
   'decor-on': key => attempt(equipDecor(S, key), () => {
-    tap(); scene.setDecor(S.decor.on); scene.setUpgrades(S.upgrades); saveGame(S); ui.toast(T`${DECOR[key].icon} ${DECOR[key].name} yerine kondu`); stampCheck();
+    tap(); scene.setDecor(S.decor.on); scene.setUpgrades(upgradeView()); saveGame(S); ui.toast(T`${DECOR[key].icon} ${DECOR[key].name} yerine kondu`); stampCheck();
   }, () => ui.decorPanel(S)),
-  'shelf-up': () => attempt(upgradeShelf(S), () => { tap('MEDIUM'); sfx('box'); scene.setStock(S); saveGame(S); ui.toast(T`Raflar büyüdü: ${shelfCap(S)} kitap`); stampCheck(); }, () => ui.decorPanel(S)),
+  // yeni araba basamağı: karavanda görünür (koli yığını, çatı bagajı, yan kanat), konfeti
+  'shelf-up': () => attempt(upgradeShelf(S), () => {
+    tap('MEDIUM'); sfx('heart'); scene.setStock(S); scene.setUpgrades(upgradeView()); saveGame(S); ui.confetti();
+    ui.toast(T`${SHELF_LEVELS[S.shelfLv].icon} Yeni araban: ${SHELF_LEVELS[S.shelfLv].name}! Raflara ${shelfCap(S)} kitap sığar.`); stampCheck();
+  }, () => ui.decorPanel(S)),
+  unlock: g => attempt(unlockGenre(S, g), () => { tap('MEDIUM'); sfx('heart'); saveGame(S); ui.toast(T`${GENRES[g].icon} ${GENRES[g].name} açıldı: artık kolisini alabilirsin.`); }, () => ui.stockPanel(S)),
+  lot: i => attempt(buyLot(S, i), () => { tap(); sfx('page'); saveGame(S); ui.toast(T`📜 İlk baskı koliye kondu: rafa diz, koleksiyoncuyu bekle.`); }, () => ui.stockPanel(S)),
+  apprentice: v => attempt(setApprentice(S, v), () => { tap(); saveGame(S); }, () => ui.decorPanel(S)),
   paint: key => attempt(choosePaint(S, key), () => { tap(); scene.setPaint(S.paint); saveGame(S); stampCheck(); }, () => ui.decorPanel(S)),
   travel: key => {
     const why = travel(S, key);
@@ -334,6 +350,9 @@ const ui = createUI(document.getElementById('ui'), act);
 // yeni motorda raflar karavanın kendisinde dizilir
 if (MOTOR2) ui.useStage(() => scene.screenMap());
 
+// karavanda görünenler: satış araçları ve araba basamağı (render/scene.js setUpgrades)
+function upgradeView() { return [...S.upgrades, 'lv' + S.shelfLv]; }
+
 function refreshDay() {
   const m = dayMods(S.day, S.town);
   scene.setSeason(seasonOf(S.day));
@@ -365,6 +384,7 @@ refreshDay();
 scene.setDaylight(0);
 scene.setStock(S);
 scene.setDecor(S.decor.on);
+scene.setUpgrades(upgradeView());
 scene.setPaint(PAINTS[S.paint] ? S.paint : 'nane');
 // açılış: krem perde yazı tipi ve sahne hazır olunca kalkar
 if (PREVIEW) {
@@ -395,7 +415,10 @@ if (PREVIEW) {
     S.townDays = { ayvalik: 7, foca: 5 };
     ui.statsPanel(S);
   }
-  if (q.has('gelistir')) { S.upgrades = ['cay', 'plak']; scene.setUpgrades(S.upgrades); }
+  if (q.has('gelistir')) { S.upgrades = ['cay', 'plak', 'paket', 'fener', 'cirak']; S.shelfLv = +q.get('gelistir') || 3; scene.setUpgrades(upgradeView()); scene.setStock(S); }
+  // ?panel=atolye: dolu bir atölye · ?panel=stock&mezat: mezat günü
+  if (panel === 'atolye') { S.coins = 900; S.upgrades = ['cirak', 'paket']; ui.decorPanel(S); }
+  if (q.has('mezat')) { while (S.day % BAL.mezatEvery !== BAL.mezatOn) S.day++; S.coins = 300; ui.stockPanel(S); }
   if (panel === 'harita') { if (q.has('acik')) { S.unlocked = Object.keys(TOWNS); S.countries = Object.keys(COUNTRIES); } ui.mapPanel(S); }
   if (panel === 'pasaport') { S.countries = ['tr', 'gr']; S.passport = { tr: 1, gr: 12 }; ui.bookPanel(S); document.querySelector('[data-tab="passport"]')?.click(); }
   if (panel === 'kostas') { S.pages = PAGES.map(p => p.id); S.unlocked.push('bozcaada'); S.kostasFound = ['yasliadam', 'odysseia', 'korfez']; ui.kostasPanel(S); }

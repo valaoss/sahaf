@@ -2,11 +2,12 @@
 // Ortak durum ve yardımcılar ui/kit.js'te; ana arayüzün işlevlerine (raf, konfeti, konuşma) K.ui üzerinden ulaşılır.
 import { BAL } from '../../data/balance.js';
 import { T, tw } from '../../i18n/i18n.js';
+import { genreOpen, mezatOf, daysToMezat, goalOf, APPRENTICE_STEPS } from '../../game/progress.js';
 import { FEATURES } from '../../data/features.js';
 import { GENRES, GENRE_KEYS } from '../../data/genres.js';
 import { TOWNS, TOWN_KEYS } from '../../data/towns.js';
 import { BOOK, booksOf, TAGS } from '../../data/books.js';
-import { DECOR, SLOTS, PAINTS, UPGRADES } from '../../data/decor.js';
+import { DECOR, SLOTS, PAINTS, UPGRADES, SHELF_LEVELS } from '../../data/decor.js';
 import { THEMES } from '../../audio/compose.js';
 import { worldSVG, routePath, townXY, declutter, flagSVG, WW, WH } from '../../render/world.js';
 import { hasBackup } from '../../core/save.js';
@@ -50,6 +51,11 @@ export function stockPanel(S) {
     ? `<p class="hint">${T`Dün burada aranıp bulunamayan:`} ${chips(S.lastDay.missed, 'sm')}</p>` : '';
   const cards = GENRE_KEYS.map(g => {
     const G = GENRES[g], why = canBuyBox(S, g);
+    // kilitli tür: bir kez ödenip açılır (kasabada aranıyorsa açmak kazandırır)
+    if (!genreOpen(S, g)) return `<div class="gcard locked" style="--c:${G.color}">
+      <div class="gicon">${G.icon}</div><div class="gname">${G.name}</div>
+      <div class="gmeta">🔒 ${T`Kilitli · satış ₺${G.price}`}</div>
+      <button class="btn sm ${S.coins < G.unlock ? 'off' : ''}" data-unlock="${g}">₺${G.unlock} · ${T`Türü aç`}</button></div>`;
     return `<div class="gcard" style="--c:${G.color}">
       <div class="gicon">${G.icon}</div>
       <div class="gname">${G.name}</div>
@@ -66,10 +72,17 @@ export function stockPanel(S) {
       <div class="st-foot"><span class="cond2">${COND_NAME[x.cond]}</span>${x.rare ? `<span class="rarebadge">✨ ${T`İlk baskı`}</span>` : ''}
         <button class="btn sm" data-stall="${x.i}" ${x.sold ? 'disabled' : ''}>${x.sold ? T`Alındı` : '₺' + x.cost}</button></div></div>`;
   }).join('');
-  const fee = parkFee(S) ? '₺' + parkFee(S) : T`ücretsiz`;
+  const rent = parkFee(S) + upkeepOf(S);
+  // sahaf mezatı: haftada bir sabah ilk baskılar
+  const lots = mezatOf(S).map(l => { const b = BOOK[l.id], G = GENRES[b.genre]; return `<div class="scard2 ${l.sold ? 'sold' : ''} c-${l.cond}" style="--c:${G.color}">
+      <div class="st-title">${G.icon} ${b.title}</div><div class="st-author">${b.author}</div>
+      <div class="st-foot"><span class="cond2">${COND_NAME[l.cond]}</span><span class="rarebadge">✨ ${T`İlk baskı`}</span>
+        <button class="btn sm" data-lot="${l.i}" ${l.sold ? 'disabled' : ''}>${l.sold ? T`Alındı` : '₺' + l.price}</button></div></div>`; }).join('');
+  const mezat = lots ? `<h3>📜 ${T`Sahaf mezatı`} <span class="hint">· ${T`ilk baskılar; koleksiyoncu gelirse kat kat kazandırır, gelmezse rafında bekler`}</span></h3><div class="stall2">${lots}</div>`
+    : `<p class="hint">📜 ${T`Sahaf mezatı ${daysToMezat(S)} gün sonra: ilk baskılar satışa çıkacak.`}</p>`;
   const p = openPanel(`
     <h2>📦 ${T`Toptancı`} <button class="btn sm" data-inside>📚 ${T`Raflar`}${S.crate.length ? ` · 📦 ${S.crate.length}` : ''}</button></h2>
-    <p class="hint">${T`Bu kasabada çok aranan:`} <b>${hot}</b> · ${T`Akşam ödenecek: 🅿️ park ${fee} · 🪴 bakım ₺${upkeepOf(S)}`}</p>${missed}
+    <p class="hint">${T`Bu kasabada çok aranan:`} <b>${hot}</b> · ${T`Akşam ödenecek: 🏪 tezgâh kirası ₺${rent}`}</p>${missed}
     ${S.quest ? `<p class="hint">📌 ${T`İlan:`} ${questText(S.quest)} <b>(${questProgress(S).have}/${questProgress(S).n})</b></p>` : ''}
     <div class="gridline"><span>🪙 <b>${S.coins}</b></span><span>📚 ${T`Raflar`} <b>${shelfCount(S)}/${shelfCap(S)}</b></span>
       <button class="btn sm hl2" data-refill title="${T`Etiketli bölümlerdeki boşlukları kendi türünden kolilerle doldurur ve dizer`}">🔁 ${T`Rafı tamamla`}</button></div>
@@ -77,8 +90,11 @@ export function stockPanel(S) {
     ${orderRows(S)}
     <h3>🧺 ${T`Bugün pazar tezgâhında`} <span class="hint">· ${T`tek tek seç; yıpranmış ucuz ama ucuza satılır, temiz pahalı ama iyi kazandırır`}</span></h3>
     <div class="stall2">${stall}</div>
+    ${mezat}
     <div class="row end"><button class="btn hl" data-close>${T`Tamam`}</button></div>`, 'wide');
   p.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => act('buy', b.dataset.buy));
+  p.querySelectorAll('[data-unlock]').forEach(b => b.onclick = () => act('unlock', b.dataset.unlock));
+  p.querySelectorAll('[data-lot]').forEach(b => b.onclick = () => act('lot', +b.dataset.lot));
   p.querySelector('[data-refill]').onclick = () => act('refill');
   p.querySelectorAll('[data-order]').forEach(b => b.onclick = () => act('order', b.dataset.order));
   p.querySelectorAll('[data-stall]').forEach(b => b.onclick = () => act('stall', +b.dataset.stall));
@@ -128,7 +144,7 @@ export function spotPanel(S) {
     const hot = Object.keys(sp.demand).map(g => GENRES[g].icon).join(' ');
     return `<div class="dcard spot ${here ? 'is-on' : ''}"><div class="dicon">${SCENE_ICON[sp.scene]}</div>
       <div><div class="gname">${sp.name}</div><div class="gmeta">${sp.desc}</div>
-      <div class="gmeta">👣 ${T`Kalabalık:`} <b>${level(sp.traffic, .9, 1.2)}</b> · 💬 ${T`Öneri:`} <b>${level(sp.ask, .9, 1.3)}</b> · 🅿️ ${parkFee(S, k) ? '₺' + parkFee(S, k) : T`ücretsiz`} · ${T`Sevilen:`} ${hot}</div></div>
+      <div class="gmeta">👣 ${T`Kalabalık:`} <b>${level(sp.traffic, .9, 1.2)}</b> · 💬 ${T`Öneri:`} <b>${level(sp.ask, .9, 1.3)}</b> · 🏪 ${T`kira ₺${parkFee(S, k) + upkeepOf(S)}`} · ${T`Sevilen:`} ${hot}</div></div>
       ${here ? `<span class="on">✓ ${T`Buradasın`}</span>` : `<button class="btn sm" data-spot="${k}">${T`Burada kur`}</button>`}</div>`;
   }).join('');
   const regs = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town).map(id => {
@@ -177,7 +193,28 @@ export function giftPanel(f) {
   p.querySelector('[data-close]').onclick = closePanel;
 }
 
+// Hedef çubuğu: sıradaki büyük hedef ve kasadaki paranın ona oranı (Atölye ve akşam kartı)
+export function goalBar(S) {
+  const g = goalOf(S);
+  if (!g) return `<div class="goal done">🏁 ${T`Atölyede alınacak bir şey kalmadı. Sırada teyzenin dükkânı var…`}</div>`;
+  const pct = Math.min(100, Math.round(100 * S.coins / g.price));
+  return `<div class="goal"><span>🎯 ${T`Sıradaki hedef:`} <b>${g.icon} ${g.name}</b></span>
+    <span class="goalbar"><i style="width:${pct}%"></i></span><small>₺${Math.min(S.coins, g.price)} / ₺${g.price}${pct >= 100 ? ` · ${T`alınabilir!`}` : ''}</small></div>`;
+}
+
+// Atölye: araba basamağı, satış araçları, süsler, boya, hatıralar. Her satın alma karavanda görünür.
 export function decorPanel(S) {
+  const cur = SHELF_LEVELS[S.shelfLv], ns = nextShelf(S);
+  const cart = `<div class="dcard is-on"><div class="dicon">${cur.icon}</div><div><div class="gname">${cur.name}</div>
+      <div class="gmeta">${T`${cur.cap} kitaplık raf`}${cur.traffic ? ` · 👣 +${cur.traffic}` : ''}</div></div><span class="on">✓</span></div>
+    ${ns ? `<div class="dcard"><div class="dicon">${ns.icon}</div><div><div class="gname">${ns.name}</div>
+      <div class="gmeta">${T`${ns.cap} kitaplık raf · yeni araba merak edilir: +${ns.traffic} ziyaretçi`}</div></div>
+      <button class="btn sm ${S.coins < ns.price ? 'off' : ''}" data-shelf>₺${ns.price} · ${T`Al`}</button></div>` : ''}`;
+  const tool = k => {
+    const u = UPGRADES[k], has = S.upgrades.includes(k);
+    const extra = k === 'cirak' && has ? `<div class="chips">${APPRENTICE_STEPS.map(v => `<button class="btn sm ${S.apprentice === v ? 'hl' : ''}" data-appr="${v}">${v ? T`≥ %${Math.round(v * 100)}` : T`Kapalı`}</button>`).join('')}</div>` : '';
+    return `<div class="dcard ${has ? 'is-on' : ''}"><div class="dicon">${u.icon}</div><div><div class="gname">${u.name}</div><div class="gmeta">${u.desc}${u.upkeep ? ` · 🏪 ${T`kiraya +₺${u.upkeep}/gün`}` : ''}</div>${extra}</div>${has ? '<span class="on">✓</span>' : `<button class="btn sm ${S.coins < u.price ? 'off' : ''}" data-upgrade="${k}">₺${u.price} · ${T`Al`}</button>`}</div>`;
+  };
   const slots = Object.keys(SLOTS).map(slot => {
     const items = Object.keys(DECOR).filter(k => DECOR[k].slot === slot).map(k => {
       const d = DECOR[k], on = S.decor.on[slot] === k, owned = S.decor.owned.includes(k);
@@ -188,30 +225,22 @@ export function decorPanel(S) {
       const btn = on ? `<span class="on">✓ ${T`Takılı`}</span>`
         : `<button class="btn sm ${!owned && S.coins < d.price ? 'off' : ''}" data-decor="${k}">${owned ? T`Tak` : `₺${d.price} · ${T`Al`}`}</button>`;
       return `<div class="dcard ${on ? 'is-on' : ''}"><div class="dicon">${d.icon}</div>
-        <div><div class="gname">${d.name}</div><div class="gmeta">${d.desc}${d.price > 0 ? ` · 🪴 ${T`bakım ₺${Math.ceil(d.price / BAL.upkeepPer)}/gün`}` : ''}</div></div>${btn}</div>`;
+        <div><div class="gname">${d.name}</div><div class="gmeta">${d.desc}${d.price > 0 ? ` · 🏪 ${T`kiraya +₺${Math.ceil(d.price / BAL.upkeepPer)}/gün`}` : ''}</div></div>${btn}</div>`;
     }).join('');
-    return `<h3>${SLOTS[slot].name}</h3><div class="dgrid">${items}</div>`;
+    return `<h4>${SLOTS[slot].name}</h4><div class="dgrid">${items}</div>`;
   }).join('');
-  const ns = nextShelf(S);
-  const shelfCard = ns
-    ? `<div class="dcard"><div class="dicon">📚</div><div><div class="gname">${T`Raf genişletme`}</div>
-        <div class="gmeta">${T`${shelfCap(S)} → ${ns.cap} kitap`}</div></div>
-        <button class="btn sm ${S.coins < ns.price ? 'off' : ''}" data-shelf>₺${ns.price} · ${T`Yap`}</button></div>`
-    : `<div class="dcard is-on"><div class="dicon">📚</div><div><div class="gname">${T`Raflar`}</div><div class="gmeta">${T`En büyük hâlinde (${shelfCap(S)} kitap)`}</div></div><span class="on">✓</span></div>`;
   const paints = Object.keys(PAINTS).map(k => {
     const p = PAINTS[k], on = S.paint === k, owned = S.paints.includes(k);
     return `<button class="swatch ${on ? 'is-on' : ''}" data-paint="${k}" style="--b:${p.body};--e:${p.edge}">
       <i></i><span>${p.name}</span><small>${on ? '✓' : owned ? T`Seç` : '₺' + p.price}</small></button>`;
   }).join('');
   const p = openPanel(`
-    <h2>🪴 ${T`Süsle ve geliştir`}</h2>
-    <p class="hint">${T`Süsler müşterileri etkiler; her yuvaya bir tane takılır. Aldığın süs sende kalır.`} 🪙 <b>${S.coins}</b></p>
-    ${slots}
-    <h3>${T`Atölye`}</h3><div class="dgrid">${shelfCard}${Object.keys(UPGRADES).map(k => {
-      const u = UPGRADES[k], has = S.upgrades.includes(k);
-      return `<div class="dcard ${has ? 'is-on' : ''}"><div class="dicon">${u.icon}</div><div><div class="gname">${u.name}</div><div class="gmeta">${u.desc}${u.upkeep ? ` · 🪴 ${T`gider ₺${u.upkeep}/gün`}` : ''}</div></div>${has ? '<span class="on">✓</span>' : `<button class="btn sm ${S.coins < u.price ? 'off' : ''}" data-upgrade="${k}">₺${u.price} · ${T`Al`}</button>`}</div>`;
-    }).join('')}</div>
-    <h3>${T`Karavan boyası`}</h3><div class="swatches">${paints}</div>
+    <h2>🔨 ${T`Atölye`} <span class="hint">🪙 <b>${S.coins}</b></span></h2>
+    ${goalBar(S)}
+    <h3>🛒 ${T`Araban`}</h3><div class="dgrid">${cart}</div>
+    <h3>🛠️ ${T`Satış araçları`}</h3><div class="dgrid">${['paket', 'cay', 'fener', 'cirak', 'koltuk', 'plak'].map(tool).join('')}</div>
+    <h3>🪴 ${T`Süsler`} <span class="hint">· ${T`her yuvaya bir tane; aldığın süs sende kalır`}</span></h3>${slots}
+    <h3>🎨 ${T`Boya`}</h3><div class="swatches">${paints}</div>
     <h3>🎁 ${T`Hatıralar`} <span class="hint">· ${T`dost müdavimlerin bıraktıkları; her biri kendi kasabasında +${BAL.keepsakeTraffic} ziyaretçi`}</span></h3>
     ${S.keepsakes.length ? `<div class="dgrid">${S.keepsakes.filter(id => KEEPSAKES[id]).map(id => `<div class="dcard is-on"><div class="dicon">${KEEPSAKES[id].icon}</div><div><div class="gname">${KEEPSAKES[id].name}</div><div class="gmeta">${REGULARS[id].name} · ${TOWNS[REGULARS[id].town].name}</div></div></div>`).join('')}</div>` : `<p class="hint">${T`Bir müdavimle beş kalbe ulaşınca ilk hatıran gelir.`}</p>`}
     <div class="row end"><button class="btn hl" data-close>${T`Tamam`}</button></div>`, 'wide');
@@ -219,6 +248,7 @@ export function decorPanel(S) {
   p.querySelectorAll('[data-paint]').forEach(b => b.onclick = () => act('paint', b.dataset.paint));
   p.querySelector('[data-shelf]')?.addEventListener('click', () => act('shelf-up'));
   p.querySelectorAll('[data-upgrade]').forEach(b => b.onclick = () => act('upgrade', b.dataset.upgrade));
+  p.querySelectorAll('[data-appr]').forEach(b => b.onclick = () => act('apprentice', +b.dataset.appr));
   p.querySelector('[data-close]').onclick = closePanel;
   return p;
 }

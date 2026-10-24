@@ -41,6 +41,8 @@ import { TRAITS, LINES, QUIRKS, HINTS, CARES, SOZ_MAX } from '../src/data/haggle
 import { patronArrivals, memoryGreed } from '../src/game/patrons.js';
 import { makePatron } from '../src/game/shop.js';
 import { learnAll } from '../src/game/knowledge.js';
+import { genreOpen, unlockGenre, isMezatDay, daysToMezat, mezatOf, buyLot, apprenticeTakes, setApprentice, goalOf, affordable } from '../src/game/progress.js';
+import { dayEndOf } from '../src/game/state.js';
 import { haggleMove, abandonDeal, openingLine } from '../src/game/shop.js';
 import { HAGGLE_DEFAULT } from '../src/game/day.js';
 import { peekCopy } from '../src/game/shelving.js';
@@ -54,6 +56,8 @@ const legacyTest = (name, fn) => test(name + ' (kenarda)', () => {
   try { fn(); } finally { Object.assign(FEATURES, was); }
 });
 const emptyShelf = S => { S.shelf = {}; };
+// v3 Faz 3 öncesi testler: bütün türler açık, araba eski başlangıç rafında (30 kitap)
+const roomy = S => { S.genres = [...GENRE_KEYS]; S.shelfLv = Math.max(S.shelfLv, 1); S.layout = null; return S; };
 
 test('veri: her türde 40 kitap, etiketler tanımlı, kimlikler benzersiz, her etiket en az 12 kitapta', () => {
   for (const g of GENRE_KEYS) assert.equal(booksOf(g).length, 40, g);
@@ -76,7 +80,7 @@ test('yeni oyun başlangıç değerleri', () => {
 });
 
 test('koli: para düşer, o türden farklı kitaplar koliye gelir, dizilince rafa geçer', () => {
-  const S = newGame(1);
+  const S = roomy(newGame(1));
   const before = genreCount(S, 'siir');
   assert.equal(buyBox(S, 'siir'), null);
   assert.equal(S.coins, BAL.startCoins - boxCost('siir'));
@@ -90,7 +94,7 @@ test('koli: para düşer, o türden farklı kitaplar koliye gelir, dizilince raf
 });
 
 test('koli: koli ve raf kapasitesi, para ve saat sınırları', () => {
-  const S = newGame(1);
+  const S = roomy(newGame(1));
   S.coins = 10000;
   assert.equal(buyBox(S, 'cocuk'), null);
   assert.equal(buyBox(S, 'cocuk'), null);
@@ -101,7 +105,7 @@ test('koli: koli ve raf kapasitesi, para ve saat sınırları', () => {
   while (!buyBox(S, 'cocuk'));
   assert.equal(S.crate.length, BAL.crateCap);
   assert.equal(buyBox(S, 'cocuk'), 'Karavanda yer yok.');
-  const P = newGame(1); P.coins = 1;
+  const P = roomy(newGame(1)); P.coins = 1;
   assert.equal(buyBox(P, 'tarih'), 'Paran yetmiyor.');
   openShop(P);
   assert.equal(buyBox(P, 'tarih'), 'Koli yalnızca sabah alınır.');
@@ -203,19 +207,20 @@ test('süs: satın al, tak, etkiler toplanır; yalnız sabah', () => {
   assert.equal(equipDecor(S, 'mum'), 'Dükkân açıkken düzenleme yapılmaz.');
 });
 
-test('yükseltme: raf büyür, boya değişir', () => {
+test('araba basamakları: el arabasından karavana raf büyür, boya değişir', () => {
   const S = newGame(1);
-  S.coins = 1000;
-  assert.equal(upgradeShelf(S), null);
-  assert.equal(shelfCap(S), 40);
-  assert.equal(upgradeShelf(S), null);
+  S.coins = 5000;
+  assert.deepEqual(SHELF_LEVELS.map(x => x.cap), [18, 30, 40, 50]);
+  assert.equal(shelfCap(S), 18, 'el arabasıyla başlanır');
+  for (const cap of [30, 40, 50]) { assert.equal(upgradeShelf(S), null); assert.equal(shelfCap(S), cap); }
   assert.equal(upgradeShelf(S), 'Raflar zaten en büyük hâlinde.');
-  assert.equal(S.coins, 1000 - SHELF_LEVELS[1].price - SHELF_LEVELS[2].price);
+  const cart = SHELF_LEVELS.reduce((n, x) => n + x.price, 0);
+  assert.equal(S.coins, 5000 - cart);
   assert.equal(choosePaint(S, 'pembe'), null);
   assert.equal(S.paint, 'pembe');
   assert.equal(choosePaint(S, 'nane'), null);
   assert.equal(choosePaint(S, 'pembe'), null);
-  assert.equal(S.coins, 1000 - SHELF_LEVELS[1].price - SHELF_LEVELS[2].price - PAINTS.pembe.price);
+  assert.equal(S.coins, 5000 - cart - PAINTS.pembe.price);
 });
 
 test('tam gün: stok eksiye düşmez, defter tutarlı, para korunur', () => {
@@ -314,7 +319,7 @@ test('kayıt: v3 kaydı v4\'e taşınır; yurt dışındaki oyuncu Ayvalık\'a d
   const v3 = JSON.parse(JSON.stringify(S));
   v3.v = 3;
   const M = restore(v3);
-  assert.equal(M.v, 4);
+  assert.equal(M.v, newGame(1).v);
   assert.equal(M.town, 'ayvalik');
   assert.ok(SPOTS.ayvalik[M.spot], 'Ayvalık\'ta geçerli bir mekân');
   assert.deepEqual(M.crate.map(e => e.id).sort(), ['garip', 'hobbit', 'kurk']);
@@ -617,6 +622,97 @@ test('pazarlık cümleleri: her durumda her üslupta var, fiyat yerine oturur, s
   assert.ok(a.includes('₺11') && !a.includes('{p}') && a !== b);
 });
 
+test('tür kilitleri: üç türle başlanır; kilitli tür koli olarak alınmaz, toptancıda açılır, boş ikiz bölüm yeni türe geçer', () => {
+  const S = newGame(81); S.coins = 500;
+  assert.deepEqual(GENRE_KEYS.filter(g => genreOpen(S, g)), ['roman', 'polisiye', 'cocuk']);
+  assert.deepEqual(syncLayout(S).sections.map(x => x.label), ['roman', 'polisiye', 'cocuk', 'roman', 'polisiye', 'cocuk']);
+  assert.equal(buyBox(S, 'siir'), 'Bu tür henüz kilitli: toptancıdan aç.');
+  assert.ok(stallOf(S).every(x => genreOpen(S, BOOK[x.id].genre)), 'tezgâhta yalnız açık türler');
+  S.layout.sections[3].books = [];
+  assert.equal(unlockGenre(S, 'siir'), null);
+  assert.equal(S.coins, 500 - GENRES.siir.unlock);
+  assert.equal(unlockGenre(S, 'siir'), 'Bu tür zaten açık.');
+  assert.ok(S.layout.sections.some(x => x.label === 'siir'), 'boş ikiz bölüm şiire geçti');
+  assert.equal(buyBox(S, 'siir'), null);
+  const P = newGame(82); P.coins = 10;
+  assert.equal(unlockGenre(P, 'tarih'), 'Paran yetmiyor.');
+  // eski kayıt (v4): bütün türler açık, raf bir basamak yukarı (30 → kitap arabası)
+  const old = JSON.parse(JSON.stringify(newGame(83))); old.v = 4; old.shelfLv = 0; delete old.genres;
+  const M = restore(old);
+  assert.deepEqual(M.genres.slice().sort(), [...GENRE_KEYS].sort());
+  assert.equal(shelfCap(M), 30);
+});
+
+test('mezat: haftada bir sabah üç ilk baskı; alınan koliye ilk baskı olarak düşer, koleksiyoncuya kârla satılır', () => {
+  const S = newGame(84); S.coins = 2000;
+  while (!isMezatDay(S)) S.day++;
+  assert.equal(daysToMezat(S), 0);
+  const lots = mezatOf(S);
+  assert.equal(lots.length, BAL.mezatLots);
+  assert.deepEqual(mezatOf(S).map(l => l.id), lots.map(l => l.id), 'aynı gün aynı lotlar');
+  for (const l of lots) {
+    const sale = stickerOf(l.id, { price: 'normal', cond: l.cond, rare: true });
+    assert.ok(l.price < sale * 0.8 && l.price > sale * 0.4, `lot ₺${l.price} / satış ₺${sale}`);
+  }
+  assert.equal(buyLot(S, 0), null);
+  assert.deepEqual(S.crate.at(-1), { id: lots[0].id, rare: true, cond: lots[0].cond });
+  assert.equal(buyLot(S, 0), 'Bu kitap satıldı.');
+  S.day++;
+  assert.deepEqual(mezatOf(S), []);
+  assert.equal(buyLot(S, 1), 'Bugün mezat yok.');
+  assert.equal(daysToMezat(S), BAL.mezatEvery - 1);
+});
+
+test('satış araçları: fener günü uzatır ve kalabalığı artırır; paket köşesi hediye sözü açar; çırak eşiğin üstünü kabul eder', () => {
+  const visitors = fener => {
+    let n = 0;
+    for (let seed = 1; seed <= 30; seed++) { const S = newGame(900 + seed); if (fener) S.upgrades.push('fener'); n += simulateDay(S).visitors; }
+    return n;
+  };
+  const S = newGame(85);
+  assert.equal(dayEndOf(S), BAL.dayEnd);
+  S.upgrades.push('fener');
+  assert.equal(dayEndOf(S), BAL.dayEnd + BAL.fenerMinutes);
+  assert.ok(visitors(true) > visitors(false) * 1.08, 'fenerle daha çok ziyaretçi');
+  // paket köşesi
+  const c = { arch: 'sevgili', tr: { budget: 30, greed: 0.2, patience: 2, resolve: 0, touchy: 0, quirk: null, care: 'hediye' } };
+  const d = { id: 'yasliadam', cp: { price: 'normal', cond: 'iyi', rare: false }, P: 14, O: 9, R: 12, W: 12, B: 30, pat: 2, rounds: 0, soz: null, seen: {} };
+  S.known = {};
+  assert.ok(!sozOptions(S, c, d).some(o => o.kind === 'hediye'));
+  S.upgrades.push('paket');
+  const h = sozOptions(S, c, d).find(o => o.kind === 'hediye');
+  assert.ok(h && sozFit(c, h) === 1, 'hediye arayana tam dokunur');
+  // çırak
+  const deal = { P: 20, O: 18, rec: null };
+  assert.equal(apprenticeTakes(S, deal), false, 'çırak yokken');
+  S.upgrades.push('cirak');
+  assert.equal(apprenticeTakes(S, deal), true, '%90 eşiği');
+  assert.equal(apprenticeTakes(S, { ...deal, O: 17 }), false);
+  assert.equal(apprenticeTakes(S, { ...deal, rec: {} }), false, 'öneriyle gelene sen bakarsın');
+  assert.equal(setApprentice(S, 0.8), null);
+  assert.equal(apprenticeTakes(S, { ...deal, O: 16 }), true);
+  assert.equal(setApprentice(S, 0), null);
+  assert.equal(apprenticeTakes(S, deal), false, 'kapalı');
+  assert.equal(setApprentice(S, 0.5), 'Böyle bir ayar yok.');
+});
+
+test('hedef: önce bir sonraki araba, sonra satış araçları, sonra kilitli türler; kasaya göre alınabilecekler', () => {
+  const S = newGame(86);
+  assert.equal(goalOf(S).name, SHELF_LEVELS[1].name);
+  S.shelfLv = SHELF_LEVELS.length - 1;
+  assert.equal(goalOf(S).kind, 'tool');
+  S.upgrades = ['paket', 'cay', 'fener', 'cirak'];
+  assert.equal(goalOf(S).kind, 'genre');
+  S.genres = [...GENRE_KEYS];
+  assert.equal(goalOf(S), null);
+  const P = newGame(87); P.coins = 170;
+  assert.deepEqual(affordable(P).map(x => x.price), [80, 160, 160].filter(x => x <= 170));
+  // yeni araba kalabalık getirir
+  const A = newGame(88), B = newGame(88); B.shelfLv = 3;
+  openShop(A); openShop(B);
+  assert.ok(B.arrivals.length > A.arrivals.length);
+});
+
 test('iflas koruması: kasa ve raf boşsa en ucuz koli kadar destek', () => {
   const S = newGame(1);
   emptyShelf(S);
@@ -771,7 +867,7 @@ test('ana hikâye: sayfalar sırayla açılır, finalde ödül', () => {
   S.visited = ['ayvalik', 'cunda', 'foca'];
   assert.deepEqual(progressOf(S), { now: 3, of: 4 });
   S.visited.push('alacati');
-  S.totals.perfect = 50; S.totals.sold = 999; S.totals.festivals = 3; S.shelfLv = 2; S.friends.hasan = 4;
+  S.totals.perfect = 50; S.totals.sold = 999; S.totals.festivals = 3; S.shelfLv = 3; S.friends.hasan = 4;
   // koşullar çoktan tutsa da günde bir sayfa açılır
   assert.equal(checkStory(S), 'dostlar');
   assert.equal(checkStory(S), 'liste');
@@ -1119,7 +1215,7 @@ test('yeni kasabalar: kilitli başlar, hikâyeyle açılır', () => {
 });
 
 test('2. bölüm: Kostas kitapları yalnız hikâye bitince, doğru kasaba ve türde çıkar', () => {
-  const S = newGame(4);
+  const S = roomy(newGame(4));
   S.coins = 1e6; S.shelfLv = 2;
   const k0 = KOSTAS[0];
   S.town = k0.town;
@@ -1761,14 +1857,14 @@ const { CONTEXT } = await import('../src/data/asks.js');
 const { morningLetter } = await import('../src/game/mail.js');
 
 test('kitap bilgisi: teyzenin kitapları bilinir, koliden gelenler bilinmez', () => {
-  const S = newGame(31);
+  const S = roomy(newGame(31));
   for (const id in S.shelf) assert.ok(KN.knowsAll(S, id), id);
   S.coins = 99; buyBox(S, 'tarih');
   assert.ok(S.crate.some(e => !KN.knowsAll(S, e.id)));
 });
 
 test('kitap bilgisi: satınca en fazla bir, önerince yalnız isteğe uyan etiketler öğrenilir', () => {
-  const S = newGame(32); S.coins = 99; buyBox(S, 'fantastik'); placeAll(S); openShop(S);
+  const S = roomy(newGame(32)); S.coins = 99; buyBox(S, 'fantastik'); placeAll(S); openShop(S);
   const id = S.crate.length ? S.crate[0].id : Object.keys(S.shelf).find(i => !KN.knowsAll(S, i));
   const before = KN.knownTags(S, id).length;
   const ask = { tags: [BOOK[id].tags[0], Object.keys(TAGS).find(t => !BOOK[id].tags.includes(t))] };
@@ -1785,7 +1881,7 @@ test('kitap bilgisi: satınca en fazla bir, önerince yalnız isteğe uyan etike
 });
 
 test('okuma köşesi: sabahları günde iki kitap (koltukla üç), bütün etiketler açılır, ertesi sabah yenilenir', () => {
-  const S = newGame(34); S.coins = 999; buyBox(S, 'tarih'); buyBox(S, 'siir'); placeAll(S);
+  const S = roomy(newGame(34)); S.coins = 999; buyBox(S, 'tarih'); buyBox(S, 'siir'); placeAll(S);
   const fresh = Object.keys(S.shelf).filter(id => !KN.knowsAll(S, id));
   assert.ok(fresh.length >= 4);
   assert.equal(KN.readBook(S, fresh[0]), null);

@@ -12,8 +12,10 @@ export const SECTIONS = 6;
 export const sectionCap = S => Math.ceil(shelfCap(S) / SECTIONS);
 export const crateFree = S => BAL.crateCap - S.crate.length;
 
-function fresh() {
-  return { sections: GENRE_KEYS.slice(0, SECTIONS).map(g => ({ label: g, price: 'normal', books: [] })) };
+// yeni düzen: bölümler açık türlerle sırayla etiketlenir (bütün türler açıksa her türe bir bölüm)
+function fresh(S) {
+  const open = GENRE_KEYS.filter(g => !S.genres || S.genres.includes(g));
+  return { sections: Array.from({ length: SECTIONS }, (_, i) => ({ label: open[i % open.length], price: 'normal', books: [] })) };
 }
 
 // boş yer: önce etiketi uyan bölüm, sonra etiketsiz, sonra herhangi biri; yer yoksa -1
@@ -31,7 +33,7 @@ export function bestSection(S, id, allowFull = false) {
 export function syncLayout(S) {
   S.crate = S.crate || [];
   if (!S.layout || !Array.isArray(S.layout.sections) || S.layout.sections.length !== SECTIONS
-    || S.layout.sections.some(sec => !sec || !Array.isArray(sec.books))) S.layout = fresh();
+    || S.layout.sections.some(sec => !sec || !Array.isArray(sec.books))) S.layout = fresh(S);
   const L = S.layout;
   const have = {};
   for (const sec of L.sections) {

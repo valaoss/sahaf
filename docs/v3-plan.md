@@ -467,6 +467,33 @@ Her faz ayrı commit ve yayın olur.
 - **Kira ve hedef:** günlük tezgâh kirası; akşam kartında "sıradaki hedef" çubuğu.
 - **Ayar:** simülasyonla zaman çizelgesi 4.4'e oturtulur.
 - **Bitiş ölçütü:** İlk modül ~10. dk'da, seviye 2 ~30. dk'da alınabilir. Her harcama sahnede bir şey değiştirir.
+- **Durum (24.10.2026): yapıldı.**
+  - **Atölye** (sağ üstte 🔨, `ui/panels/shop.js` `decorPanel`): hedef çubuğu, araba, satış araçları, süsler, boya, hatıralar tek ekranda.
+  - **Araba basamakları** (`SHELF_LEVELS`): el arabası 18 → kitap arabası 30 (₺350) → büyük kitap arabası 40 (₺800) → kitap karavanı 50 (₺1600). Her basamak ziyaretçi de getirir. Kayıt v5: eski oyuncunun rafı bir basamak yukarı kayar, bütün türleri açık kalır.
+  - **Tür kilitleri** (`game/progress.js`): Başta roman, polisiye ve çocuk açık. Şiir ₺80, tarih ₺160, fantastik ₺200. Açılınca boş ikiz bölüm yeni türün etiketini alır.
+  - **Sahaf mezatı:** Haftada bir sabah toptancıda üç ilk baskı çıkar. Fiyatı, koleksiyoncuya satış fiyatının %45–75'i; koleksiyoncu gelmezse rafta bekler.
+  - **Satış araçları:**
+    - Paket köşesi (₺160): hediye arayana tam dokunan 🎁 sözü açar.
+    - Akşam feneri (₺260): dükkân bir saat geç kapanır, +%15 ziyaretçi.
+    - Çırak (₺450): eşiğin (%80 / %90 / kapalı) üstündeki teklifleri kabul eder; öneriyle gelene sen bakarsın.
+    - Çay köşesi duruyor.
+  - **Tezgâh kirası:** Park ve bakım tek satırda, toptancıda ve akşam kartında.
+  - **Hedef çubuğu:** Akşam kartında sıradaki büyük hedef ve kasadaki parayla alınabilecekler.
+  - **Sahnede görünenler:**
+    - Paket köşesi sergi masasında, fener direği, çırak arabanın yanında.
+    - Kitap arabasında koli yığını, büyük arabada yan kanat raf, karavanda bayrak dizisi.
+    - Arabanın kendisi Faz 5'te değişecek.
+  - **Ölçüm** (`npm run sim -- gercek`; önce arabaya biriktiren oyuncu, 30 oyun):
+
+    | Adım | Gün | Yaklaşık süre |
+    |---|---|---|
+    | İlk alım | 2 | ~10 dk |
+    | Kitap arabası | 8 | ~30–35 dk |
+    | Büyük kitap arabası | 16 | |
+    | Kitap karavanı | 29 | ~2–2,5 saat |
+
+    60. günde ₺10,2k.
+  - **Not:** Tembel oyuncu (hep roman) akıllıdan artık %18 geride (önce %40). Başta yalnız üç tür açık; çeşit avantajı türler açıldıkça gelir.
 
 ### Faz 4 — Raf ve depo etkileşimi (öncelik 3)
 - **Depo paneli:** kapaklar ve adetler; telefonda çekmece.

@@ -41,6 +41,8 @@ import { personSVG, figureMeta, nameOf } from '../../render/people.js';
 import { ARCHETYPES } from '../../data/archetypes.js';
 import { K, act, openPanel, closePanel, chips, hearts } from '../kit.js';
 import { voyagePanel, grandPanel, bookPanel } from './book.js';
+import { goalBar } from './shop.js';
+import { affordable } from '../../game/progress.js';
 import { T, tw } from '../../i18n/i18n.js';
 
 // D: gün sonu raporu (closeShop'un döndürdüğü)
@@ -71,7 +73,8 @@ export function summaryPanel(S, D) {
       <div><span>${D.costs ? T`Net` : T`Kasa`}</span><b class="gold">${(D.net ?? D.revenue) >= 0 ? '+' : '−'}₺${Math.abs(D.net ?? D.revenue)}</b></div>
       <div><span>${T`Toplam`}</span><b>🪙 ${S.coins}</b></div>
     </div>
-    ${D.costs ? `<div class="ledger"><span>${T`Satış`} <b>+₺${D.revenue}</b></span><span>🅿️ ${T`Park`} <b>${D.costs.park ? '−₺' + D.costs.park : T`ücretsiz`}</b></span><span>🪴 ${T`Bakım`} <b>−₺${D.costs.upkeep}</b></span><span class="net">${T`Net`} <b>${D.net >= 0 ? '+' : '−'}₺${Math.abs(D.net)}</b></span></div>` : ''}
+    ${D.costs ? `<div class="ledger"><span>${T`Satış`} <b>+₺${D.revenue}</b></span><span>🏪 ${T`Tezgâh kirası`} <b>−₺${D.costs.paid ?? D.costs.park + D.costs.upkeep}</b></span><span class="net">${T`Net`} <b>${D.net >= 0 ? '+' : '−'}₺${Math.abs(D.net)}</b></span></div>` : ''}
+    ${goalBar(S)}${affordable(S).length ? `<p class="hint">🛍️ ${T`Kasadaki parayla alabileceklerin:`} ${affordable(S).map(x => `${x.icon} ${x.name} (₺${x.price})`).join(' · ')}</p>` : ''}
     <p>${profitNote}${D.newTown ? T` Yeni kasabada karavanı merak edenler de uğradı.` : ''}</p>
     ${D.secSold && S.layout ? `<div class="heat">${S.layout.sections.map((sec, i) => `<span style="--c:${sec.label ? GENRES[sec.label].color : '#c9b49a'};--a:${Math.min(1, D.secSold[i] / Math.max(1, ...D.secSold)).toFixed(2)}"><i>${sec.label ? GENRES[sec.label].icon : '🏷️'}</i><b>${D.secSold[i]}</b><small>${{ ucuz: '₺↓', normal: '₺', pahali: '₺↑' }[sec.price]}</small></span>`).join('')}</div>` : ''}
     ${diagnose(S, D)}

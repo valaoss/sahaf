@@ -34,6 +34,10 @@ export const BAL = {
   wordOfMouth: 0.03, wordMin: 0.75, wordMax: 1.15,
   // tanıdıklar (game/patrons.js): memnun ayrılanın kartını bırakma ihtimali, günlük uğrama ihtimali, en fazla tanıdık
   patronChance: 0.3, patronVisit: 0.3, patronMax: 18,
+  // sahaf mezatı (game/progress.js): her mezatEvery günde bir, gün % mezatEvery === mezatOn sabahı; lot sayısı;
+  // lot fiyatı = koleksiyoncuya satış fiyatının mezatMin–(mezatMin+mezatSpread) katı
+  mezatEvery: 7, mezatOn: 4, mezatLots: 3, mezatMin: 0.45, mezatSpread: 0.3,
+  fenerMinutes: 60, fenerTraffic: 1.15,   // akşam feneri: dükkân bu kadar geç kapanır, bu kadar fazla ziyaretçi
   dealWord: 0.005,     // pazarlıkta ucuza aldığını düşünen her müşteri (daha az anlatır: zaten pazarlık etti)
   // kasabaya okuma köşesi bağışı: o kasabada park ücretsiz, kalabalık kalıcı olarak artar
   donateCost: 300,

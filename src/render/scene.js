@@ -11,7 +11,7 @@ import { syncLayout, sectionCap } from '../game/shelving.js';
 import { DECOR_ART } from './decor-art.js';
 import { spotArt, GROUND, SHOW_HOUSES } from './spot-art.js';
 import { landmarkArt, ARCH } from './landmarks.js';
-import { svgView } from './people.js';
+import { svgView, personSVG } from './people.js';
 
 // Çay köşesi: tabure, demlik, iki ince belli bardak, buhar
 const TEA_ART = `<ellipse cx="0" cy="4" rx="34" ry="7" fill="#c9a676" opacity=".6"/>
@@ -20,6 +20,32 @@ const TEA_ART = `<ellipse cx="0" cy="4" rx="34" ry="7" fill="#c9a676" opacity=".
   <path d="M2 -42 C10 -44 12 -48 14 -52" fill="none" stroke="#e57f73" stroke-width="3" stroke-linecap="round"/>
   <path d="M8 -30 L18 -30 L19 -44 L7 -44Z" fill="#d6563a" opacity=".85"/><path d="M-30 -30 L-22 -30 L-21 -42 L-31 -42Z" fill="#d6563a" opacity=".85"/>
   <path class="steam" d="M13 -48 C9 -54 17 -58 13 -66" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>`;
+
+// Paket köşesi: kâğıt rulosu, sicim, sarılı paket
+const WRAP_ART = `<rect x="-4" y="-16" width="44" height="16" rx="3" fill="#e8d3b0" stroke="#b9956a" stroke-width="2"/>
+  <ellipse cx="-4" cy="-8" rx="5" ry="8" fill="#d8bf95" stroke="#b9956a" stroke-width="2"/>
+  <rect x="48" y="-22" width="30" height="22" rx="3" fill="#f6a5c0"/><path d="M63 -22 L63 0 M48 -11 L78 -11" stroke="#fff4e0" stroke-width="3"/>
+  <path d="M58 -26 Q63 -20 68 -26 Q63 -30 58 -26Z" fill="#fff4e0"/>`;
+// Akşam feneri: direk ve fener (akşam yanar)
+const LANTERN_ART = `<rect x="-3" y="-150" width="6" height="150" rx="3" fill="#5b4636"/><path d="M-3 -150 L26 -150" stroke="#5b4636" stroke-width="5" stroke-linecap="round"/>
+  <path d="M26 -150 L26 -138" stroke="#5b4636" stroke-width="2"/><g class="lantern-glow"><circle cx="26" cy="-118" r="30" fill="#ffd56b" opacity=".22"/></g>
+  <rect x="16" y="-138" width="20" height="28" rx="5" fill="#ffd56b" stroke="#5b4636" stroke-width="3"/><circle cx="26" cy="-124" r="4" fill="#fff6c2" class="twinkle"/>
+  <ellipse cx="0" cy="0" rx="18" ry="4" fill="#c9a676" opacity=".6"/>`;
+// Araba basamakları: kitap arabasında koli yığını, büyük arabada yan kanat raf, karavanda bayrak dizisi
+const CRATES_ART = `<ellipse cx="34" cy="2" rx="50" ry="7" fill="#c9a676" opacity=".6"/>
+  <rect x="0" y="-40" width="44" height="40" rx="3" fill="#c48a5f" stroke="#8a5a3c" stroke-width="3"/><rect x="40" y="-30" width="34" height="30" rx="3" fill="#b07a50" stroke="#8a5a3c" stroke-width="3"/>
+  <g><rect x="6" y="-52" width="8" height="14" fill="#e57f73"/><rect x="16" y="-55" width="7" height="17" fill="#5b8bd0"/><rect x="25" y="-51" width="9" height="13" fill="#f2c45a"/><rect x="46" y="-40" width="8" height="12" fill="#8bc49a"/><rect x="56" y="-42" width="7" height="14" fill="#b98ad6"/></g>`;
+// karavanda çatı kenarı boyunca bayrak dizisi (ikinci dereceden eğri üstünde üçgenler)
+const BUNTING_ART = (() => {
+  const C = ['#f08a7e', '#f2c45a', '#8bc49a', '#5b8bd0', '#b98ad6', '#f6a5c0'], at = t => [(1 - t) ** 2 * 40 + 2 * (1 - t) * t * 225 + t * t * 410, (1 - t) ** 2 * 66 + 2 * (1 - t) * t * 2 + t * t * 66];
+  let out = '<path d="M40 66 Q225 2 410 66" fill="none" stroke="#7a4e33" stroke-width="2.5"/>';
+  for (let i = 0; i < 12; i++) { const [x1, y1] = at(i / 12 + 0.01), [x2, y2] = at((i + 1) / 12 - 0.01); out += '<path d="M' + x1.toFixed(0) + ' ' + y1.toFixed(0) + ' L' + x2.toFixed(0) + ' ' + y2.toFixed(0) + ' L' + ((x1 + x2) / 2).toFixed(0) + ' ' + ((y1 + y2) / 2 + 20).toFixed(0) + 'Z" fill="' + C[i % C.length] + '"/>'; }
+  return out;
+})();
+const WING_ART = `<path d="M0 0 L70 0 L70 12 L0 12Z" fill="#a8704a"/><path d="M62 12 L62 120" stroke="#7a4e33" stroke-width="6"/>
+  <rect x="0" y="-62" width="70" height="62" rx="4" fill="#6b4a3a"/><path d="M0 -31 L70 -31" stroke="#5a3d30" stroke-width="4"/>
+  <g><rect x="6" y="-58" width="8" height="25" fill="#e57f73"/><rect x="15" y="-56" width="7" height="23" fill="#f6a5c0"/><rect x="23" y="-58" width="9" height="25" fill="#8bc49a"/><rect x="34" y="-55" width="7" height="22" fill="#5b8bd0"/><rect x="43" y="-58" width="9" height="25" fill="#f2c45a"/>
+  <rect x="8" y="-27" width="9" height="25" fill="#b98ad6"/><rect x="18" y="-25" width="8" height="23" fill="#e57f73"/><rect x="28" y="-27" width="8" height="25" fill="#5b8bd0"/><rect x="38" y="-24" width="9" height="22" fill="#c48a5f"/></g>`;
 
 // Plak çalar: dönen plak ve boru
 const GRAMO_ART = `<rect x="-26" y="-14" width="52" height="16" rx="3" fill="#8a5a3c"/>
@@ -153,6 +179,7 @@ const MARKUP = `
     <path d="M6 72 L194 72 L192 82 L8 82Z" fill="#f08a7e" opacity=".8"/>
     <g id="tableBooks"></g>
     <g id="slotTable" transform="translate(170 54)"></g>
+    <g id="slotWrap" transform="translate(10 54)"></g>
   </g>
 
   <ellipse cx="830" cy="790" rx="300" ry="26" fill="#c9a676" opacity=".55"/>
@@ -175,8 +202,10 @@ const MARKUP = `
       <text x="85" y="42" text-anchor="middle" font-size="34" font-weight="700" fill="#f08a7e">Sahaf</text>
       <circle cx="18" cy="31" r="6" fill="#f2c45a"/><circle cx="152" cy="31" r="6" fill="#f2c45a"/>
     </g>
+    <g id="slotRack"></g>
     <g id="slotRoof" transform="translate(392 32)"></g>
     <g id="slotGramo" transform="translate(92 30)"></g>
+    <g id="slotWing" transform="translate(438 210)"></g>
     <rect id="cartHit" x="10" y="0" width="430" height="350" fill="transparent" style="cursor:pointer"/>
     <path d="M30 104 C120 150 330 150 420 104" fill="none" stroke="#5a3d30" stroke-width="3"/>
     <g id="lights"></g>
@@ -208,6 +237,9 @@ const MARKUP = `
   </g>
 
   <g id="slotGround" transform="translate(1510 780)"></g>
+  <g id="slotCrates" transform="translate(1215 778)"></g>
+  <g id="slotLantern" transform="translate(1330 772)"></g>
+  <g id="slotHelper" transform="translate(604 806) scale(.62) translate(0 -806)"></g>
   <g id="ambientFront"></g>
   <g id="slotTea" transform="translate(64 660) scale(1.3)"></g>
   </g>
@@ -455,10 +487,18 @@ export function buildScene(host) {
       $('slotTable').innerHTML = DECOR_ART[on.table] || '';
       $('slotGround').innerHTML = DECOR_ART[on.ground] || '';
     },
-    // karavan geliştirmeleri: çay köşesi (kaldırımda), plak çalar (çatıda)
+    // karavan geliştirmeleri: çay köşesi (kaldırımda), plak çalar (çatıda), paket köşesi (sergi masasında), fener, çırak;
+    // araba basamağı 'lv1'..'lv3' (koli yığını, yan kanat raf, bayrak dizisi)
     setUpgrades(list) {
       $('slotTea').innerHTML = list.includes('cay') ? TEA_ART : '';
       $('slotGramo').innerHTML = list.includes('plak') ? GRAMO_ART : '';
+      $('slotWrap').innerHTML = list.includes('paket') ? WRAP_ART : '';
+      $('slotLantern').innerHTML = list.includes('fener') ? LANTERN_ART : '';
+      $('slotHelper').innerHTML = list.includes('cirak') ? personSVG(424242, { age: 'child', hat: 1, hatC: '#f08a7e', coat: '#f2c45a' }) : '';
+      const lv = Math.max(0, ...list.filter(x => /^lv\d$/.test(x)).map(x => +x[2]));
+      $('slotCrates').innerHTML = lv >= 1 ? CRATES_ART : '';
+      $('slotWing').innerHTML = lv >= 2 ? WING_ART : '';
+      $('slotRack').innerHTML = lv >= 3 ? BUNTING_ART : '';
     },
     setPaint(key) {
       const p = PAINTS[key];

@@ -659,3 +659,12 @@ svg.world #wvan { transform-box: view-box; }
 .hg-soz { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: .4em; align-items: center; margin-top: .2em; }
 .hg-soz .hint { margin: 0; }
 .hg-soz .soz { background: #fff7e3; border-color: #e6c98f; }
+/* Faz 3: hedef çubuğu, kilitli tür, atölye alt başlıkları */
+.goal { display: flex; flex-wrap: wrap; align-items: center; gap: .3em .7em; margin: .5em 0 .7em; padding: .55em .8em; border-radius: .9em; background: #fff1d6; border: .12em solid #ecd3a3; }
+.goal.done { justify-content: center; }
+.goalbar { flex: 1 1 8em; height: .7em; border-radius: 999px; background: rgba(160, 125, 92, .2); overflow: hidden; }
+.goalbar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #f2c45a, #e8a33c); transition: width .5s; }
+.goal small { opacity: .75; }
+.gcard.locked { filter: saturate(.55); opacity: .92; }
+.gcard.locked .gicon { opacity: .6; }
+.panel h4 { margin: .6em 0 .3em; font-size: .95em; opacity: .8; }

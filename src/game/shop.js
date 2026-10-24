@@ -9,7 +9,8 @@ import { REGULARS, HEARTS_MAX, HEARTS_TIP, REGULAR_TIP, GIFT_COINS } from '../da
 import { ARCHETYPES, ARCH_KEYS } from '../data/archetypes.js';
 import { DECOR, UPGRADES } from '../data/decor.js';
 import { rnd, rndInt, rndPick, weighted } from '../core/rng.js';
-import { shelfCount, shelfCap, takeBook, seasonOf } from './state.js';
+import { shelfCount, shelfCap, takeBook, seasonOf, dayEndOf } from './state.js';
+import { genreOpen } from './progress.js';
 import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
 import { buildAsk } from './asks.js';
@@ -32,6 +33,7 @@ export { askText } from './asks.js';
 export const boxCost = g => GENRES[g].cost * BAL.boxSize;
 
 export function canBuyBox(S, g) {
+  if (GENRES[g] && !genreOpen(S, g)) return 'Bu tür henüz kilitli: toptancıdan aç.';
   if (!GENRES[g]) return 'Böyle bir tür yok.';
   if (S.phase !== 'morning') return 'Koli yalnızca sabah alınır.';
   if (onIsland(S)) return 'Adada toptancı yok: koliyi karşıda al, sonra kayıkla geç.';
@@ -561,7 +563,7 @@ export function stallOf(S) {
   const key = S.day + '/' + S.town;
   if (!S.stall || S.stall.key !== key) S.stall = { key, sold: [] };
   const r = seeded(S.day * 7919 + Object.keys(TOWNS).indexOf(S.town) * 131 + 17);
-  const d = demandOf(S), gs = GENRE_KEYS, tot = gs.reduce((n, g) => n + d[g], 0);
+  const d = demandOf(S), gs = GENRE_KEYS.filter(g => genreOpen(S, g)), tot = gs.reduce((n, g) => n + d[g], 0);
   const items = [], used = new Set();
   for (let i = 0; i < BAL.stallSize; i++) {
     let x = r() * tot, g = gs[0];
@@ -596,7 +598,7 @@ export function buyStall(S, i) {
 export function talkHint(S, c) {
   if (c.talked) return null;
   c.talked = true;
-  if (S.phase === 'open') S.clock = Math.min(BAL.dayEnd, S.clock + BAL.talkMinutes);
+  if (S.phase === 'open') S.clock = Math.min(dayEndOf(S), S.clock + BAL.talkMinutes);
   const voice = (c.arch && ARCHETYPES[c.arch]?.voice) || 'samimi';
   const lines = TALK.genre[voice] || TALK.genre.samimi;
   let text = pickFresh(S, 'talk', lines).replace(/\{g\}/g, GENRES[c.wants].name.toLowerCase());

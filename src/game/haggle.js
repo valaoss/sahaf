@@ -85,6 +85,9 @@ export function sozOptions(S, c, d) {
   if (known.length) out.push({ kind: 'konu', tag: known.find(t => likes.includes(t)) || known[0] });
   if (knowsAll(S, d.id)) out.push({ kind: 'kisisel' });
   if (past && past !== d.id) out.push({ kind: 'hatira', book: past });
+  if (S.upgrades?.includes('paket')) out.push({ kind: 'hediye' });
+  // hediye sözü paket köşesinin işi: varsa her zaman kartlarda (yer açmak için sondan bir öncekinin yerine)
+  if (out.length > SOZ_MAX && out[out.length - 1].kind === 'hediye') out.splice(SOZ_MAX - 1, out.length - SOZ_MAX);
   return out.slice(0, SOZ_MAX);
 }
 

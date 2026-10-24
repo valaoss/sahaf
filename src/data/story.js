@@ -14,7 +14,7 @@ export const PAGES = [
   { id: 'iz', title: 'Silik cümle', need: { carry: { book: 'yasliadam', town: 'foca' } },
     hint: 'Rafında «Yaşlı Adam ve Deniz» varken Foça\'da dükkân aç. Kitap yoksa toptancıdan sipariş edebilirsin.',
     text: 'Foça\'daki kahvenin yaşlı adamı rafında «Yaşlı Adam ve Deniz»i görünce gülümsedi: "Kostas bu kitabı herkese okuturdu." Harita parçasını ışığa tuttu; arkasında silik bir cümle belirdi: "Rafların dolu olsun, sonra gel."' },
-  { id: 'gizligoz', title: 'Karavanın gizli gözü', need: { shelfLv: 2 }, hint: 'Rafları en büyük hâline (50 kitap) getir.',
+  { id: 'gizligoz', title: 'Karavanın gizli gözü', need: { shelfLv: 3 }, hint: 'Kitap karavanına geç (50 kitap).',
     text: 'Raflar genişlerken bir tahta yerinden oynadı. Altında Nermin Teyzenin son mektubu: "Kostas\'ın kütüphanesi Cunda\'daki tepede, şapelin altındaydı. Kapıyı ancak dolu bir sahaf karavanı açar derdi; şaka sanırdım."' },
   { id: 'kutuphane', title: 'Kayıp kütüphane', need: { finale: 1 }, hint: 'Cunda\'da, Ada tepesinde dükkân aç.',
     text: 'Akşam, şapelin yanındaki eski taş kapı karavanın ışıklarıyla aralandı. İçeride tozlu ama sapasağlam raflar: yüzlerce kitap, her birinin arasında bir not. "Bu kitapları kasabalara geri götür. — K." Kütüphane artık kayıp değil; senin karavanında yaşıyor.' },

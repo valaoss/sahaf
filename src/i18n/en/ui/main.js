@@ -39,6 +39,10 @@ export default {
   "🏅 Yeni pul: {0} {1}": "🏅 New stamp: {0} {1}",
 
   // v3 pazarlık
+  "🧒 Çırak sattı: «{0}» ₺{1}": "🧒 Your apprentice sold «{0}» for ₺{1}",
+  "{0} Yeni araban: {1}! Raflara {2} kitap sığar.": "{0} Your new ride: {1}! The shelves hold {2} books.",
+  "{0} {1} açıldı: artık kolisini alabilirsin.": "{0} {1} unlocked: you can buy its crates now.",
+  "📜 İlk baskı koliye kondu: rafa diz, koleksiyoncuyu bekle.": "📜 The first edition is in your crate: shelve it and wait for a collector.",
   "Kitabı çok beğendi ama etiket fiyatı bütçesini fazlasıyla aşıyordu.": "They loved the book, but the price tag was way over their budget.",
   "Müşteriler kitap seçip tezgâha gelir: pazarlık et! ❓ balonlu müşteri senden öneri ister.": "Customers pick a book and bring it to the counter: haggle! A customer with a ❓ wants a recommendation.",
   // v3 sabah ve açılış

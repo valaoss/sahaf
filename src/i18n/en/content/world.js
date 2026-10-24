@@ -251,10 +251,20 @@ const DECOR = {
 };
 
 const UPGRADES = {
+  paket: { name: "Gift-wrap corner", desc: "Wrap the book in paper and tuck in a note: unlocks a 🎁 word for gift buyers." },
+  fener: { name: "Evening lantern", desc: "The shop closes an hour later: evening strollers drop by too (+15% visitors)." },
+  cirak: { name: "Apprentice", desc: "Accepts offers above your threshold for you, so you only handle the interesting haggles." },
   cay: { name: "Tea corner", desc: "Waiting customers are more patient (×1.3); now and then someone buys a tea (₺3)." },
   koltuk: { name: "Reading armchair", desc: "Read one more book each morning (3 a day): unlocks their tags." },
   plak: { name: "Record player", desc: "Unlocks music themes: Acoustic, Jazz, Lullaby (⚙️ Settings)." },
 };
+
+const SHELF_LEVELS = [
+  { name: "Book handcart" },
+  { name: "Book cart" },
+  { name: "Big book cart" },
+  { name: "Book caravan" },
+];
 
 const PAINTS = {
   nane: { name: "Mint" },
@@ -432,8 +442,8 @@ const TUT_STEPS = [
   { text: "When a customer with a ❓ bubble arrives, tap them and pick the book that best fits what they say." },
   { text: "The day is done! Read the summary, then ☀️ Next morning." },
   { text: "Tap your location at the top: change your 📍 spot and meet other customers." },
-  { text: "Once there's money in the till, decorate the van with the 🪴 at the top right: decorations influence your customers." },
+  { text: "Once there's money in the till, open the 🔨 Workshop at the top right: new carts, sales tools and decorations are there." },
   { text: "One last tip: the 📜 Notebook keeps your aunt's letters and the customers you've met. Happy reading!" },
 ];
 
-export default { TOWNS, SPOTS, COUNTRIES, PAPER, PAPER_TOWN, EVENTS, WEATHER, SEASON, SPECIAL, GOSSIP, DECOR, UPGRADES, PAINTS, SLOTS, STAMPS, PAGES, VOYAGE, GRAND, KOSTAS, TUT_STEPS };
+export default { TOWNS, SPOTS, COUNTRIES, PAPER, PAPER_TOWN, EVENTS, WEATHER, SEASON, SPECIAL, GOSSIP, DECOR, UPGRADES, SHELF_LEVELS, PAINTS, SLOTS, STAMPS, PAGES, VOYAGE, GRAND, KOSTAS, TUT_STEPS };

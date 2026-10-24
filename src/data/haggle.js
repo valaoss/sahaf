@@ -140,6 +140,7 @@ export const SOZ = {
   kondisyon: { kondisyon: 1, hediye: 1, nadirlik: 0.5 },
   nadirlik: { nadirlik: 1, kondisyon: 0.5 },
   hatira: { tavsiye: 1, konu: 0.5, hediye: 0.5 },
+  hediye: { hediye: 1, tavsiye: 0.5 },   // paket köşesi (Atölye) varken
 };
 // biçilen değerin artışı: tam isabet, biraz, koleksiyoncuya ilk baskı. Tam isabette bütçe de esner (kararlılık)
 export const SOZ_LIFT = { full: 0.35, half: 0.12, rare: 0.5, stretch: 1.25 };

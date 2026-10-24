@@ -33,18 +33,22 @@ export const DECOR = {
 export const DECOR_KEYS = Object.keys(DECOR);
 export const DEFAULT_DECOR = { roof: 'kaktus', table: 'bos', ground: 'saksi' };
 
-// Karavan geliştirmeleri
+// Satış araçları ve karavan geliştirmeleri (Atölye). upkeep: tezgâh kirasına eklenen günlük gider
 export const UPGRADES = {
+  paket: { name: 'Paket köşesi', icon: '🎁', price: 160, desc: 'Kitabı kâğıda sarıp not iliştirirsin: hediye arayanlara 🎁 söz açılır.' },
   cay:  { name: 'Çay köşesi', icon: '🫖', price: 240, upkeep: 2, desc: 'Bekleyenler daha sabırlı (×1.3); müşteriler arada bir çay alır (₺3).' },
+  fener: { name: 'Akşam feneri', icon: '🪔', price: 260, upkeep: 2, desc: 'Dükkân bir saat geç kapanır: akşamüstü gezenler de uğrar (+%15 ziyaretçi).' },
+  cirak: { name: 'Çırak', icon: '🧒', price: 450, upkeep: 6, desc: 'Eşiğin üstündeki teklifleri senin yerine kabul eder; sen ilginç pazarlıklara girersin.' },
   koltuk: { name: 'Okuma koltuğu', icon: '🛋️', price: 300, desc: 'Sabahları bir kitap daha okursun (günde 3): etiketleri açılır.' },
   plak: { name: 'Plak çalar', icon: '📻', price: 180, desc: 'Müzik temaları açılır: Akustik, Caz, Ninni (⚙️ Ayarlar).' },
 };
 
-// Raf kapasitesi yükseltmeleri (seviye 0 başlangıç)
+// Araba basamakları (v3 Faz 3; S.shelfLv sırası, 0 başlangıç): raf kapasitesi, fiyat, kalabalığa katkı (yeni araba merak edilir)
 export const SHELF_LEVELS = [
-  { cap: 30, price: 0 },
-  { cap: 40, price: 240 },
-  { cap: 50, price: 520 },
+  { name: 'Kitap el arabası', icon: '🛒', cap: 18, price: 0, traffic: 0 },
+  { name: 'Kitap arabası', icon: '🛺', cap: 30, price: 350, traffic: 2 },
+  { name: 'Büyük kitap arabası', icon: '🚚', cap: 40, price: 800, traffic: 4 },
+  { name: 'Kitap karavanı', icon: '🚐', cap: 50, price: 1600, traffic: 6 },
 ];
 
 // Karavan boyaları: gövde, kenar, alt bant
