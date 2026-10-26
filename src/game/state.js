@@ -10,6 +10,7 @@ import { ARCHETYPES } from '../data/archetypes.js';
 import { REGULARS } from '../data/regulars.js';
 import { seedRng, rndInt } from '../core/rng.js';
 import { learnAll } from './knowledge.js';
+import { koyOn, startTown, isDistrict } from './koy.js';
 
 // Kayıt şeması sürümü. Yeni sürümde: SAVE_V'yi artır, MIGRATIONS'a bir önceki sürümden taşıyan adımı ekle,
 // tests/sim.test.mjs'te o sürümün örnek kaydını yükleyen bir test yaz. Eksik alanları restore() doğrulaması doldurur.
@@ -34,8 +35,8 @@ export function newGame(seed = Date.now()) {
     day: 1,
     phase: 'morning',          // morning → open → evening → (ertesi gün) morning
     coins: BAL.startCoins,
-    town: 'ayvalik',
-    prevTown: 'ayvalik',       // dünkü kasaba (yeni kasaba ilgisi için)
+    town: startTown(),
+    prevTown: startTown(),     // dünkü kasaba (yeni kasaba ilgisi için)
     shelf: {},                 // kitap kimliği → adet
     rare: {},                  // bu kopyalardan kaçı ilk baskı (koleksiyoncuya saklanır)
     featured: [],              // vitrindeki kitaplar (en fazla 3)
@@ -56,7 +57,7 @@ export function newGame(seed = Date.now()) {
     paints: ['nane'],
     awning: 'mercan',          // tente rengi (data/decor.js AWNINGS)
     awnings: ['mercan'],
-    spot: 'iskele',            // kasaba içindeki mekân (data/spots.js)
+    spot: firstSpot(startTown()), // kasaba içindeki mekân (data/spots.js)
     friends: {},               // müdavim → kalp (0..5)
     met: [],                   // tanışılan müdavimler
     gifts: [],                 // hediyesini vermiş müdavimler
@@ -67,7 +68,7 @@ export function newGame(seed = Date.now()) {
     weathersSeen: [],          // dükkân açılan günlerin havaları
     stamps: [],                // pul albümü (data/stamps.js)
     finaleShown: false,        // hikâye kapanış ekranı gösterildi mi
-    unlocked: [...START_TOWNS], // gidilebilen kasabalar (diğerleri hikâyeyle açılır)
+    unlocked: koyOn() ? [startTown()] : [...START_TOWNS], // gidilebilen kasabalar ya da açılmış mahalleler
     kostasFound: [],           // 2. bölüm: bulunan Kostas kitapları (data/kostas.js)
     upgrades: [],              // karavan geliştirmeleri: cay, plak
     regArrivals: [],           // açık gün: gelecek müdavimler [{ t, id }]
@@ -211,7 +212,14 @@ export function restore(saved) {
   S.countries = S.countries.filter(c => COUNTRIES[c]);
   if (!S.countries.includes('tr')) S.countries.unshift('tr');
   S.unlocked = S.unlocked.filter(k => TOWNS[k]);
-  for (const k of TOWN_KEYS) if (!TOWNS[k].unlock && S.countries.includes(TOWNS[k].country || 'tr') && !S.unlocked.includes(k)) S.unlocked.push(k);
+  for (const k of TOWN_KEYS) if (!TOWNS[k].unlock && !TOWNS[k].koy && S.countries.includes(TOWNS[k].country || 'tr') && !S.unlocked.includes(k)) S.unlocked.push(k);
+  // Faz 6: Ege'deki oyuncu Mürekkep Koyu'na, İskele Boyu'na gelir; en sevildiği kasabanın güveninin bir kısmını getirir
+  if (koyOn() && !isDistrict(S.town)) {
+    const best = Math.max(0, ...Object.keys(S.rep).filter(k => !isDistrict(k)).map(k => S.rep[k] || 0));
+    S.rep[startTown()] = Math.max(S.rep[startTown()] || 0, Math.min(20, best));
+    Object.assign(S, { town: startTown(), prevTown: startTown(), spot: firstSpot(startTown()) });
+  }
+  if (koyOn() && !S.unlocked.includes(startTown())) S.unlocked.push(startTown());
   if (!S.unlocked.includes(S.town)) S.unlocked.push(S.town);
   if (!S.passport.tr) S.passport.tr = 1;
   // raf düzeni: biçimi bozuksa yeniden kurulur (game/shelving.js syncLayout)

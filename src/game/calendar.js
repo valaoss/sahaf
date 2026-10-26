@@ -2,6 +2,7 @@
 import { seeded } from '../core/rng.js';
 import { WEATHER, EVENTS, EVENT_CHANCE, GOSSIP, SEASON, SPECIAL } from '../data/calendar.js';
 import { seasonOf, dayOfSeason } from './state.js';
+import { DISTRICTS, districtEvent } from '../data/districts.js';
 
 // ardışık günler birbirine benzemesin: gün numarasını karıştırıp tohum yap
 function dayRng(day, salt) {
@@ -41,12 +42,17 @@ export function dayMods(day, town) {
   for (const g in e?.demand || {}) demand[g] = (demand[g] || 1) * e.demand[g];
   const sp = specialOf(day);
   for (const g in sp?.demand || {}) demand[g] = (demand[g] || 1) * sp.demand[g];
+  // mahalle: kendi müşteri karışımı ve (o gün varsa) olayı
+  const K = DISTRICTS[town]?.koy, de = districtEvent(day, town), arch = { ...(sp?.arch || {}) };
+  for (const src of [K?.mix, de?.arch]) for (const a in src || {}) arch[a] = (arch[a] || 1) * src[a];
+  for (const g in de?.demand || {}) demand[g] = (demand[g] || 1) * de.demand[g];
   return {
-    traffic: w.traffic * se.traffic * (e ? e.traffic : 1) * (sp ? sp.traffic : 1),
-    ask: w.ask * se.ask * (e ? e.ask : 1) * (sp ? sp.ask : 1),
+    traffic: w.traffic * se.traffic * (e ? e.traffic : 1) * (sp ? sp.traffic : 1) * (de ? de.traffic : 1),
+    ask: w.ask * se.ask * (e ? e.ask : 1) * (sp ? sp.ask : 1) * (de ? de.ask : 1),
     special: sp ? sp.id : null,
-    arch: sp?.arch || {},
-    rare: sp?.rare || 1,
+    arch,
+    rare: (sp?.rare || 1) * (de?.rare || 1),
+    dev: de ? de.id : null,
     tip: sp?.tip || 0,
     demand,
     event: e ? ek : null,

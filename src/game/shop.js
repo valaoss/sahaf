@@ -10,6 +10,8 @@ import { ARCHETYPES, ARCH_KEYS } from '../data/archetypes.js';
 import { DECOR, UPGRADES } from '../data/decor.js';
 import { rnd, rndInt, rndPick, weighted } from '../core/rng.js';
 import { shelfCount, shelfCap, takeBook, seasonOf, dayEndOf } from './state.js';
+import { koyOn, isDistrict, homeOf } from './koy.js';
+import { baseScene } from '../data/districts.js';
 import { genreOpen } from './progress.js';
 import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
@@ -71,7 +73,7 @@ export function canTravel(S, key) {
   if (!TOWNS[key]) return 'Böyle bir kasaba yok.';
   if (S.phase !== 'morning') return 'Yola yalnızca sabah çıkılır.';
   if (!openCountries(S).includes(countryOf(key))) return 'Bu ülkeye feribot henüz yok.';
-  if (!S.unlocked.includes(key)) return 'Bu kasabanın yolunu henüz bilmiyorsun.';
+  if (!S.unlocked.includes(key) || koyOn() !== isDistrict(key)) return 'Bu kasabanın yolunu henüz bilmiyorsun.';
   if (key === S.town) return 'Zaten buradasın.';
   if (S.travelled) return 'Bugün zaten yol yaptın.';
   const info = travelInfo(S, key);
@@ -139,7 +141,9 @@ export function decaySat(S) {
 
 // --- Giderler ---
 // Park ücreti: kalabalık yer pahalı; okuma köşesi bağışlanan kasabada ücretsiz
-export const parkFee = (S, spotKey = S.spot) => SPOTS[S.town][spotKey]?.island ? BAL.islandFee : S.donated.includes(S.town) || repLevel(S) >= 3 ? 0
+// Mahallede: mahallenin tezgâh kirası (en yüksek güvende dörtte biri düşer)
+export const parkFee = (S, spotKey = S.spot) => TOWNS[S.town].koy ? Math.round(TOWNS[S.town].koy.rent * (repLevel(S) >= 3 ? 0.75 : 1))
+  : SPOTS[S.town][spotKey]?.island ? BAL.islandFee : S.donated.includes(S.town) || repLevel(S) >= 3 ? 0
   : Math.round(BAL.parkRate * TOWNS[S.town].traffic * SPOTS[S.town][spotKey].traffic);
 // Bakım: takılı süsler (hediyeler bakımsız) ve geliştirmeler
 export function upkeepOf(S) {
@@ -206,7 +210,7 @@ export const plainCopies = (S, id) => (S.shelf[id] || 0) - (S.rare[id] || 0);
 const plainOfGenre = (S, g) => Object.keys(S.shelf).reduce((n, id) => n + (BOOK[id].genre === g ? plainCopies(S, id) : 0), 0);
 
 // Günün havası, mevsimi ve mekânı: cümle bağlamı için
-const askCtx = (S, extra) => ({ weather: weatherOf(S.day), season: seasonOf(S.day), scene: spotOf(S).scene, greet: countryOf(S.town) !== 'tr' ? COUNTRIES[countryOf(S.town)].greet : null, ...extra });
+const askCtx = (S, extra) => ({ weather: weatherOf(S.day), season: seasonOf(S.day), scene: baseScene(spotOf(S).scene), greet: countryOf(S.town) !== 'tr' ? COUNTRIES[countryOf(S.town)].greet : null, ...extra });
 
 function shuffled(S, arr) {
   const a = arr.slice();
@@ -316,7 +320,7 @@ export function deliverFavor(S, id) {
   if (S.today) { S.today.revenue += coins; S.today.favors = (S.today.favors || 0) + 1; }
   fv.done = true;
   learnAll(S, fv.book);
-  const res = { coins, book: fv.book, repUp: addRep(S, REGULARS[id].town, 3) };
+  const res = { coins, book: fv.book, repUp: addRep(S, homeOf(id) || S.town, 3) };
   befriend(S, id, res);
   return res;
 }

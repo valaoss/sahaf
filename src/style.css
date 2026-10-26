@@ -581,6 +581,24 @@ svg.world #wvan { transform-box: view-box; }
 .wcard { position: absolute; right: 1em; bottom: 1em; width: 21em; max-width: calc(100% - 2em); background: var(--cream); border: .18em solid var(--edge); border-radius: 1.2em;
   padding: .8em 1em; box-shadow: 0 .3em 0 var(--edge-d); transform: translateY(1em); opacity: 0; transition: .25s; pointer-events: none; font-size: 1.1em; }
 .wcard.show { transform: none; opacity: 1; pointer-events: auto; }
+/* Mürekkep Koyu haritası (render/koy-map.js, ui/panels/koy.js) */
+.wmap svg.koy { background: #8ccfd8; }
+svg.koy [data-d] { cursor: pointer; }
+svg.koy .klabel.sel rect, svg.koy .klabel.here rect { stroke: #f08a7e; }
+svg.koy .klabel.locked text { fill: #8a7468; }
+svg.koy .kd.locked > :not(.kfog) { filter: saturate(.35) brightness(1.05); }
+svg.koy .kfog { opacity: .9; transition: opacity 1.6s ease; }
+svg.koy .kd.open .kfog { animation: kfogUp 1.8s ease forwards; }
+@keyframes kfogUp { to { opacity: 0; transform: translateY(-30px); } }
+svg.koy .kdraw { stroke-dashoffset: 400; animation: kdraw 1.6s ease forwards; }
+@keyframes kdraw { from { stroke-dasharray: 0 900; } to { stroke-dasharray: 900 0; } }
+.kstats { display: flex; flex-wrap: wrap; gap: .3em .9em; margin: .4em 0; font-size: .92em; }
+.kguven { display: flex; align-items: center; gap: .5em; margin: .3em 0; }
+.kbar { display: inline-block; width: 8em; height: .55em; background: #f1e2c8; border-radius: 1em; overflow: hidden; }
+.kbar i { display: block; height: 100%; background: #f08a7e; border-radius: 1em; }
+.kev { margin: .4em 0; } .kev small { opacity: .8; }
+.kreq { list-style: none; padding: 0; margin: .4em 0; } .kreq li { margin: .2em 0; opacity: .75; } .kreq li.ok { opacity: 1; color: #4f8a5a; font-weight: 600; }
+.kicon { font-size: 1.6em; }
 .wc-head { display: flex; gap: .6em; align-items: center; }
 .wc-head b { display: block; font-size: 1.25em; }
 .wc-head small { color: #8a7468; }

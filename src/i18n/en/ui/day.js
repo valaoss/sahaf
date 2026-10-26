@@ -15,6 +15,7 @@ export default {
   "Pazar tezgâhında %20 indirim": "20% off at the market stall",
   "Müdavimler daha sık uğrar": "Regulars drop by more often",
   "Park ücretsiz, kalabalık +%8": "Free parking, crowd +8%",
+  "Tezgâh kirası düşer, kalabalık +%8": "Lower stall rent, crowd +8%",
 
   // --- üst bilgi ve alt düğmeler (ui.js) ---
   "Gazete": "Newspaper",
@@ -257,6 +258,11 @@ export default {
   "Bu zaten karavanında.": "That's already in your van.",
   "Raflar zaten en büyük hâlinde.": "Your shelves are already as big as they get.",
   "Böyle bir renk yok.": "No such colour.",
+  "Böyle bir mahalle yok.": "No such neighbourhood.",
+  "Bu mahalle zaten açık.": "This neighbourhood is already open.",
+  "Yeni mahalle yalnızca sabah açılır.": "New neighbourhoods open only in the morning.",
+  "Koşullar henüz tutmuyor.": "Not all the conditions are met yet.",
+  "💛 {0} sana ısındı (+{1} güven).": "💛 {0} is warming to you (+{1} trust).",
   "Böyle bir tente yok.": "No such awning.",
   "Okumak için sabahı bekle.": "Wait for the morning to read.",
   "Bu kitap karavanda yok.": "This book isn't in the van.",

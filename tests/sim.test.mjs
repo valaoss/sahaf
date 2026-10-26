@@ -44,6 +44,9 @@ import { makePatron } from '../src/game/shop.js';
 import { learnAll } from '../src/game/knowledge.js';
 import { genreOpen, unlockGenre, isMezatDay, daysToMezat, mezatOf, buyLot, apprenticeTakes, setApprentice, goalOf, affordable } from '../src/game/progress.js';
 import { dayEndOf } from '../src/game/state.js';
+import { DISTRICTS, DISTRICT_KEYS, districtEvent, KOY_HOMES } from '../src/data/districts.js';
+import { koyOn, openReqs, canOpenDistrict, openDistrict, homeOf, guvenGain, guvenOf } from '../src/game/koy.js';
+import { parkFee } from '../src/game/shop.js';
 import { haggleMove, abandonDeal, openingLine } from '../src/game/shop.js';
 import { HAGGLE_DEFAULT } from '../src/game/day.js';
 import { peekCopy, setBookPrice, marketOf } from '../src/game/shelving.js';
@@ -55,6 +58,12 @@ const legacyTest = (name, fn) => test(name + ' (kenarda)', () => {
   const was = { ...FEATURES };
   for (const k in FEATURES) FEATURES[k] = true;
   try { fn(); } finally { Object.assign(FEATURES, was); }
+});
+// Faz 6 öncesi testler: Ege kasabaları (Ayvalık'tan başlanır; mekânlar, müdavimler, kayıt taşıma). Mürekkep Koyu testleri ayrı.
+const egeTest = (name, fn) => test(name + ' (Ege)', () => {
+  const was = FEATURES.ege;
+  FEATURES.ege = true;
+  try { fn(); } finally { FEATURES.ege = was; }
 });
 const emptyShelf = S => { S.shelf = {}; };
 // v3 Faz 3 öncesi testler: bütün türler açık, araba eski başlangıç rafında (30 kitap)
@@ -112,7 +121,7 @@ test('koli: koli ve raf kapasitesi, para ve saat sınırları', () => {
   assert.equal(buyBox(P, 'tarih'), 'Koli yalnızca sabah alınır.');
 });
 
-test('yolculuk: ücret, günde bir kez, yalnız sabah, yeni kasaba ilgisi', () => {
+egeTest('yolculuk: ücret, günde bir kez, yalnız sabah, yeni kasaba ilgisi', () => {
   const S = newGame(1);
   assert.equal(travel(S, 'ayvalik'), 'Zaten buradasın.');
   assert.equal(travel(S, 'foca'), null);
@@ -189,7 +198,7 @@ test('öneri isteği: çoğu raftaki bir kitapla tam karşılanabilir', () => {
   assert.ok(solvable / asks >= BAL.askFromShelf, `${solvable}/${asks}`);
 });
 
-test('süs: satın al, tak, etkiler toplanır; yalnız sabah', () => {
+egeTest('süs: satın al, tak, etkiler toplanır; yalnız sabah', () => {
   const S = newGame(1);
   S.coins = 500;
   assert.equal(equipDecor(S, 'ayicik'), null);
@@ -286,7 +295,7 @@ test('saat parça parça ilerleyince de bütün müşteriler gelir', () => {
   assert.equal(S.phase, 'morning');
 });
 
-test('kayıt: gün ortası sabaha döner, v1 kayıt göç eder, bilinmeyen sürüm reddedilir', () => {
+egeTest('kayıt: gün ortası sabaha döner, v1 kayıt göç eder, bilinmeyen sürüm reddedilir', () => {
   const S = newGame(5);
   openShop(S);
   const R = restore(JSON.parse(JSON.stringify(S)));
@@ -318,7 +327,7 @@ test('kayıt: v2 kaydı (v2 Faz 0 öncesi alanlarla) güncel sürüme taşınır
   assert.deepEqual(M.shelf, S.shelf);
 });
 
-test('v3 sadeleştirme: kenara alınan sistemler gün akışına girmez, yolculuk yalnız Türkiye içinde', () => {
+egeTest('v3 sadeleştirme: kenara alınan sistemler gün akışına girmez, yolculuk yalnız Türkiye içinde', () => {
   const S = newGame(31);
   S.coins = 5000;
   for (let d = 0; d < 40; d++) {
@@ -335,7 +344,7 @@ test('v3 sadeleştirme: kenara alınan sistemler gün akışına girmez, yolculu
   assert.equal(canTravel(S, S.town === 'foca' ? 'cunda' : 'foca'), null, 'yurt içi yol açık');
 });
 
-test('kayıt: v3 kaydı v4\'e taşınır; yurt dışındaki oyuncu Ayvalık\'a döner, kutudaki ve müzayededeki kitaplar koliye gelir', () => {
+egeTest('kayıt: v3 kaydı v4\'e taşınır; yurt dışındaki oyuncu Ayvalık\'a döner, kutudaki ve müzayededeki kitaplar koliye gelir', () => {
   const S = newGame(12);
   Object.assign(S, { town: 'marsilya', prevTown: 'marsilya', spot: Object.keys(SPOTS.marsilya)[0], countries: ['tr', 'gr', 'it', 'fr'] });
   S.passport = { tr: 1, gr: 5, it: 9, fr: 14 };
@@ -789,10 +798,10 @@ test('iflas koruması: kasa ve raf boşsa en ucuz koli kadar destek', () => {
   assert.equal(rescue(S), 0);
 });
 
-test('mekân: sabah seçilir, kalabalığı ve zevki değiştirir, yolculukta ilk mekâna döner', () => {
+egeTest('mekân: sabah seçilir, kalabalığı ve zevki değiştirir, yolculukta ilk mekâna döner', () => {
   for (const t in SPOTS) for (const k in SPOTS[t]) {
     const sp = SPOTS[t][k];
-    assert.ok(['sahil', 'carsi', 'tepe'].includes(sp.scene), k);
+    assert.ok(['sahil', 'carsi', 'tepe', 'kordon', 'park', 'yokus', 'boyaci', 'kosk', 'fener'].includes(sp.scene), k);
     for (const tag of sp.tags) assert.ok(TAGS[tag], k + ':' + tag);
     for (const g in sp.demand) assert.ok(GENRES[g], k + ':' + g);
   }
@@ -813,7 +822,7 @@ test('mekân: sabah seçilir, kalabalığı ve zevki değiştirir, yolculukta il
   assert.equal(chooseSpot(S, 'tepe'), 'Mekân yalnızca sabah değişir.');
 });
 
-test('müdavim: zevkine uyan, karşılanabilir istek; kasabasında uğrar', () => {
+egeTest('müdavim: zevkine uyan, karşılanabilir istek; kasabasında uğrar', () => {
   for (const id of REGULAR_KEYS) {
     const S = newGame(7);
     const c = makeRegular(S, id);
@@ -925,7 +934,7 @@ test('takvim: festival günü o kasabada daha çok ziyaretçi', () => {
   assert.ok(fest > calm * 1.25, `${fest.toFixed(1)} > ${calm.toFixed(1)}`);
 });
 
-test('ana hikâye: sayfalar sırayla açılır, finalde ödül', () => {
+egeTest('ana hikâye: sayfalar sırayla açılır, finalde ödül', () => {
   const S = newGame(3);
   assert.equal(checkStory(S), 'miras');
   assert.equal(checkStory(S), null, 'dört kasaba gezilmeden ikinci sayfa yok');
@@ -953,7 +962,7 @@ test('ana hikâye: sayfalar sırayla açılır, finalde ödül', () => {
   assert.equal(S.pages.length, PAGES.length);
 });
 
-test('ana hikâye: normal oyunda ilerler (gün kapanışında kontrol)', () => {
+egeTest('ana hikâye: normal oyunda ilerler (gün kapanışında kontrol)', () => {
   const S = newGame(12);
   for (let d = 0; d < 12; d++) {
     travel(S, TOWN_KEYS[(d + 1) % 4]);
@@ -1040,7 +1049,7 @@ test('çeşitlilik: istek cümleleri çok farklı, tekrar penceresinde aynı cü
   for (const t of texts) assert.ok(!/[{}]/.test(t) && /^[A-ZÇĞİÖŞÜ]/.test(t) && /[.!?…]$/.test(t), t);
 });
 
-test('çeşitlilik: hedef kitap kısa aralıkla tekrar etmez, müşteri tipleri mevsime göre değişir', () => {
+egeTest('çeşitlilik: hedef kitap kısa aralıkla tekrar etmez, müşteri tipleri mevsime göre değişir', () => {
   const { asks } = manyAsks(5, 3000);
   let near = 0;
   const targets = asks.map(c => c.ask.tags.join('+') + c.wants);
@@ -1260,7 +1269,7 @@ test('müzik: plak çalar temaları farklı akor ve yoğunlukta, hepsi duyulabil
 });
 
 // --- Faz C: dünyanın büyümesi ---
-test('yeni kasabalar: kilitli başlar, hikâyeyle açılır', () => {
+egeTest('yeni kasabalar: kilitli başlar, hikâyeyle açılır', () => {
   const S = newGame(1);
   assert.deepEqual(S.unlocked, ['ayvalik', 'cunda', 'foca', 'alacati']);
   assert.equal(travel(S, 'bozcaada'), 'Bu kasabanın yolunu henüz bilmiyorsun.');
@@ -1273,7 +1282,7 @@ test('yeni kasabalar: kilitli başlar, hikâyeyle açılır', () => {
   assert.deepEqual(checkUnlocks(S), []);
   S.pages = PAGES.map(p => p.id);
   assert.deepEqual(checkUnlocks(S), ['assos', 'istanbul', 'kapadokya'], 'hikâyenin sonunda Assos, İstanbul, Kapadokya');
-  for (const k of TOWN_KEYS) {
+  for (const k of TOWN_KEYS.filter(k => !TOWNS[k].koy)) {
     assert.ok(SPOTS[k] && MOTIFS[k], k);
     assert.equal(REGULAR_KEYS.filter(id => REGULARS[id].town === k).length, 2, k + ' müdavimleri');
     for (const g of GENRE_KEYS) assert.ok(TOWNS[k].demand[g] > 0, k + ':' + g);
@@ -1357,7 +1366,7 @@ test('rehber: adımlar sırayla, doğru olayla ilerler; kapatılabilir; eski oyu
   for (const st of TUT_STEPS) assert.ok(['morning', 'open', 'evening'].includes(st.on) && st.text, st.done);
 });
 
-test('istatistik: satışlar, en iyi gün, en çok satanlar ve kasabalar doğru özetlenir', () => {
+egeTest('istatistik: satışlar, en iyi gün, en çok satanlar ve kasabalar doğru özetlenir', () => {
   const S = newGame(13);
   S.coins = 1e5;
   for (let d = 0; d < 8; d++) { GENRE_KEYS.forEach(g => buyBox(S, g)); if (d === 4) travel(S, 'foca'); simulateDay(S); }
@@ -1371,7 +1380,7 @@ test('istatistik: satışlar, en iyi gün, en çok satanlar ve kasabalar doğru 
   assert.equal(statsOf(newGame(1)).topGenre, null, 'satış yoksa en çok satan tür yok');
 });
 
-test('vitrin: en fazla üç kitap, sabah düzenlenir, müşteri önce vitrindekini alır', () => {
+egeTest('vitrin: en fazla üç kitap, sabah düzenlenir, müşteri önce vitrindekini alır', () => {
   const S = newGame(3);
   S.shelf = { kurk: 5, satranc: 5, anna: 5, gatsby: 5 };
   assert.equal(toggleFeature(S, 'hobbit'), 'Bu kitap rafta yok.');
@@ -1664,7 +1673,7 @@ test('kayıt: bozuk ya da daha yeni sürüm kayıt yedeğe alınır, silinmez; a
   assert.equal(store.get('sahaf.save.v1'), raw);
 });
 
-test('kayıt: elle bozulmuş alanlar düzelir (kasaba, raf seviyesi, tipler, silinmiş kitaplar, düzen)', () => {
+egeTest('kayıt: elle bozulmuş alanlar düzelir (kasaba, raf seviyesi, tipler, silinmiş kitaplar, düzen)', () => {
   const S = playedGame();
   Object.assign(S, { town: 'yokkasaba', shelfLv: 9, shelf: null, crate: 'x', featured: ['yok', 'yok'], recHistory: [null, { book: 'yok' }],
     soldBooks: { yok: 3 }, unlocked: ['yokkasaba'], countries: ['zz'], coins: 'çok', layout: { sections: 'x' }, totals: { sold: 'a' } });
@@ -1687,11 +1696,11 @@ test('kayıt: elle bozulmuş alanlar düzelir (kasaba, raf seviyesi, tipler, sil
   assert.equal(T.layout.sections.length, SECTIONS);
 });
 
-test('kayıt: açık ülkenin sonradan eklenen koşulsuz şehirleri eski kayıtta da yola açılır', () => {
+egeTest('kayıt: açık ülkenin sonradan eklenen koşulsuz şehirleri eski kayıtta da yola açılır', () => {
   const S = newGame(4);
   S.countries = ['tr', 'gr'];
   const T = restore(JSON.parse(JSON.stringify(S)));
-  for (const k of TOWN_KEYS) if (!TOWNS[k].unlock && ['tr', 'gr'].includes(TOWNS[k].country || 'tr')) assert.ok(T.unlocked.includes(k), k);
+  for (const k of TOWN_KEYS) if (!TOWNS[k].unlock && !TOWNS[k].koy && ['tr', 'gr'].includes(TOWNS[k].country || 'tr')) assert.ok(T.unlocked.includes(k), k);
 });
 
 test('kayıt: dükkân açıkken yazılmaz; eski gün ortası kaydı o sabaha döner', () => {
@@ -1832,7 +1841,7 @@ test('fiyat etiketi müşterinin cebine göre: öğrenci ucuzu çok alır, turis
   for (const k of ARCH_KEYS) assert.ok(['tight', 'mid', 'loose', undefined].includes(ARCHETYPES[k].thrift), k);
 });
 
-test('tür doygunluğu: çok satılan tür o kasabada daha az aranır, sabahları toparlanır, başka kasabayı etkilemez', () => {
+egeTest('tür doygunluğu: çok satılan tür o kasabada daha az aranır, sabahları toparlanır, başka kasabayı etkilemez', () => {
   const S = newGame(3);
   const share = (town = S.town) => { const d = demandOf(S, town); return d.roman / Object.values(d).reduce((a, b) => a + b, 0); };
   const fresh = share(), foca = share('foca');
@@ -1847,7 +1856,7 @@ test('tür doygunluğu: çok satılan tür o kasabada daha az aranır, sabahlar�
   assert.ok((P.sat.ayvalik?.roman || 0) > 3);
 });
 
-test('giderler: park ve bakım akşam ödenir, bağışlanan kasabada park ücretsiz, kasa eksiye düşmez', () => {
+egeTest('giderler: park ve bakım akşam ödenir, bağışlanan kasabada park ücretsiz, kasa eksiye düşmez', () => {
   const S = newGame(5);
   S.decor.owned.push('bayrak'); S.decor.on.roof = 'bayrak'; S.upgrades.push('cay');
   const park = SHOP2.parkFee(S), up = SHOP2.upkeepOf(S);
@@ -1867,7 +1876,7 @@ test('giderler: park ve bakım akşam ödenir, bağışlanan kasabada park ücre
   assert.equal(D.coins, 300 - BAL.donateCost);
 });
 
-test('okuma köşesi ve sponsorluk kalabalığı artırır; sponsorluk yalnız yolu açık festivale', () => {
+egeTest('okuma köşesi ve sponsorluk kalabalığı artırır; sponsorluk yalnız yolu açık festivale', () => {
   const visits = mod => { let n = 0; for (let seed = 1; seed <= 30; seed++) { const S = newGame(seed); mod(S); openShop(S); n += S.arrivals.length; } return n; };
   assert.ok(visits(S => { S.donated = ['ayvalik']; }) > visits(() => {}), 'bağış');
   // yolu açık bir kasabada festivali olan ilk gün
@@ -2000,7 +2009,7 @@ const BD = await import('../src/game/bonds.js');
 const { KEEPSAKES } = await import('../src/data/keepsakes.js');
 const { questText: qText } = await import('../src/game/mail.js');
 
-test('kasaba itibarı: günler, tam isabetler ve bağış büyütür; kademeler ayrıcalık açar', () => {
+egeTest('kasaba itibarı: günler, tam isabetler ve bağış büyütür; kademeler ayrıcalık açar', () => {
   const S = newGame(41); S.coins = 999;
   assert.equal(BD.repLevel(S), 0);
   for (let d = 0; d < 8; d++) { openShop(S); closeShop(S); nextMorning(S); }
@@ -2031,7 +2040,7 @@ test('sipariş: rica ya da hikâye kitabı ertesi sabah koliye gelir, koli doluy
   assert.equal(F.orders.length, 1, 'koli dolu: bekler');
 });
 
-test('hatıralar: süs hediyesi olmayan her müdavimin bir hatırası var; kendi kasabasında ziyaretçi getirir', () => {
+egeTest('hatıralar: süs hediyesi olmayan her müdavimin bir hatırası var; kendi kasabasında ziyaretçi getirir', () => {
   for (const id of REGULAR_KEYS) if (!REGULARS[id].gift) {
     const k = KEEPSAKES[id];
     assert.ok(k && k.icon && k.name && k.note.length >= 60 && !/[₺0-9]/.test(k.note), id);
@@ -2046,7 +2055,7 @@ test('hatıralar: süs hediyesi olmayan her müdavimin bir hatırası var; kendi
   assert.equal(BD.repOf(T, 'ayvalik'), 9);
 });
 
-test('ilanlar: tanışılan müdavimlerden ve yaklaşan festivallerden üretilir', () => {
+egeTest('ilanlar: tanışılan müdavimlerden ve yaklaşan festivallerden üretilir', () => {
   let reg = 0, fest = 0;
   for (let seed = 1; seed <= 200; seed++) {
     const S = newGame(seed); S.day = 5 + (seed % 40); S.met = ['hasan', 'ruya']; S.quest = null;
@@ -2162,5 +2171,115 @@ test('Akdeniz defteri: sayfalar sırayla açılır; beş hikâye ve ana hikâye 
   assert.ok(won.includes('akdeniz') && won.includes('acilis'));
 });
 
+// --- v3 Faz 6: Mürekkep Koyu ---
+test('Mürekkep Koyu: İskele Boyu\'ndan başlanır; mahalle koşulla açılır, gidiş ücretsiz, kira mahalleye göre', () => {
+  assert.ok(koyOn());
+  const S = newGame(1);
+  assert.equal(S.town, 'iskele');
+  assert.equal(S.spot, 'kordon');
+  assert.deepEqual(S.unlocked, ['iskele']);
+  assert.equal(canTravel(S, 'park'), 'Bu kasabanın yolunu henüz bilmiyorsun.');
+  S.unlocked.push('ayvalik');
+  assert.equal(canTravel(S, 'ayvalik'), 'Bu kasabanın yolunu henüz bilmiyorsun.', 'Ege kasabaları kenarda');
+  assert.deepEqual(openReqs(S, 'park').map(r => [r.kind, r.ok]), [['rep', false], ['coins', false]]);
+  assert.equal(canOpenDistrict(S, 'park'), 'Koşullar henüz tutmuyor.');
+  S.rep.iskele = 20; S.coins = 100;
+  assert.equal(openDistrict(S, 'park'), 'Paran yetmiyor.');
+  S.coins = 200;
+  assert.equal(openDistrict(S, 'park'), null);
+  assert.equal(S.coins, 50);
+  assert.equal(S.koyNew, 'park');
+  assert.equal(canOpenDistrict(S, 'park'), 'Bu mahalle zaten açık.');
+  assert.equal(parkFee(S), DISTRICTS.iskele.koy.rent);
+  assert.deepEqual(travelInfo(S, 'park'), { abroad: false, cost: 0, days: 0 });
+  assert.equal(travel(S, 'park'), null);
+  assert.equal(S.coins, 50, 'mahalleler arası yol ücretsiz');
+  assert.equal(S.spot, 'cinar');
+  assert.equal(parkFee(S), DISTRICTS.park.koy.rent);
+  S.rep.park = 40;
+  assert.equal(parkFee(S), Math.round(DISTRICTS.park.koy.rent * 0.75), 'en yüksek güvende kira dörtte bir düşer');
+  assert.equal(canOpenDistrict(S, 'boyaci'), 'Koşullar henüz tutmuyor.', 'Boyacılar kitap arabası ister');
+  S.shelfLv = 1; S.coins = 0;
+  assert.equal(openDistrict(S, 'boyaci'), null, 'bedelsiz açılış');
+  assert.equal(openReqs(S, 'carsi').find(r => r.kind === 'reps').have, 1);
+  S.rep.boyaci = 45;
+  assert.ok(openReqs(S, 'carsi').find(r => r.kind === 'reps').ok, 'iki mahallede 40 güven');
+  for (const k of DISTRICT_KEYS) {
+    assert.ok(SPOTS[k] && MOTIFS[k] && TOWNS[k].koy, k);
+    for (const g of GENRE_KEYS) assert.ok(TOWNS[k].demand[g] > 0, k + ':' + g);
+    for (const a in DISTRICTS[k].koy.mix) assert.ok(ARCHETYPES[a], k + ':' + a);
+    for (const t of Object.values(SPOTS[k])[0].tags) assert.ok(TAGS[t], k + ':' + t);
+  }
+});
+
+test('mahalleler: olay, müşteri karışımı, cüzdan ve değer günün kurallarına girer', () => {
+  let day = 1;
+  while (!districtEvent(day, 'fener')) day++;
+  assert.ok(dayMods(day, 'fener').traffic > dayMods(day + 1, 'fener').traffic * 2, 'fuar günü kalabalık');
+  assert.equal(dayMods(day, 'fener').dev, 'fuar');
+  assert.ok(dayMods(day, 'fener').arch.koleksiyoncu >= 8, 'fuarda koleksiyoncu');
+  assert.ok(dayMods(day, 'fener').rare >= 3);
+  const count = (town, arch) => { const S = newGame(3); S.town = town; S.spot = Object.keys(SPOTS[town])[0]; let n = 0; for (let i = 0; i < 300; i++) if (makeCustomer(S).arch === arch) n++; return n; };
+  assert.ok(count('okul', 'ogrenci') > 2 * count('kosk', 'ogrenci'), 'Okul Yokuşu öğrenci dolu');
+  const budget = town => { const S = newGame(5); S.town = town; let b = 0; for (let i = 0; i < 300; i++) b += traitsFor(S, 'emekli').budget; return b; };
+  assert.ok(budget('kosk') > budget('okul') * 1.8, 'Köşkler\'de cüzdan dolu');
+  const S = newGame(9); S.town = 'kosk';
+  const c = { arch: 'emekli', wants: 'tarih', tr: { ...PLAIN_TRAITS } };
+  const W = stickerOf('nutuk', { cond: 'iyi', price: 'pahali' });
+  let buys = 0;
+  for (let i = 0; i < 200; i++) if (approach(S, c, 'nutuk', { cond: 'iyi', price: 'pahali' }).kind === 'buy') buys++;
+  S.town = 'okul';
+  let buys2 = 0;
+  for (let i = 0; i < 200; i++) if (approach(S, c, 'nutuk', { cond: 'iyi', price: 'pahali' }).kind === 'buy') buys2++;
+  assert.ok(W > 0 && buys > buys2, 'pahalı etiketi zengin mahalle kaldırır');
+});
+
+test('güven: satış ve memnun pazarlık büyütür, kızanlar azaltır, en fazla 100; müdavimler mahallelerinde', () => {
+  assert.equal(guvenGain({ soldCount: 8, happyDeals: 2, priceLost: 0 }), 5);
+  assert.equal(guvenGain({ soldCount: 0, happyDeals: 0, priceLost: 6 }), 0);
+  assert.equal(guvenGain({ soldCount: 40, happyDeals: 10 }), 6);
+  const S = newGame(2);
+  placeAll(S); buyBox(S, 'roman'); placeAll(S);
+  const T = simulateDay(S);
+  assert.ok(T.repGain >= 1 && S.rep.iskele === T.repGain);
+  S.rep.iskele = 99; nextMorning(S);
+  const T2 = simulateDay(S);
+  assert.ok(guvenOf(S, 'iskele') <= 100 && T2.repGain <= 1);
+  for (const k of DISTRICT_KEYS) assert.equal(REGULAR_KEYS.filter(id => homeOf(id) === k).length, 2, k + ' müdavimleri');
+  assert.equal(homeOf('atlas'), null, 'taşınmayan müdavim uğramaz');
+  for (const id in KOY_HOMES) assert.ok(REGULARS[id], id);
+});
+
+test('kayıt: Ege\'deki oyuncu Mürekkep Koyu\'na, İskele Boyu\'na taşınır; güveninin bir kısmını getirir', () => {
+  FEATURES.ege = true;
+  const old = newGame(8);
+  FEATURES.ege = false;
+  assert.equal(old.town, 'ayvalik');
+  old.rep = { ayvalik: 33, cunda: 5 };
+  const M = restore(JSON.parse(JSON.stringify(old)));
+  assert.equal(M.town, 'iskele');
+  assert.equal(M.spot, 'kordon');
+  assert.equal(M.rep.iskele, 20);
+  assert.ok(M.unlocked.includes('iskele'));
+  assert.equal(canTravel(M, 'cunda'), 'Bu kasabanın yolunu henüz bilmiyorsun.');
+});
+
+test('hikâye mahallede: iz Eski Çarşı\'da, son sayfa Fener Burnu\'nda; mahalle olayı festival sayılır', () => {
+  const S = newGame(4);
+  S.pages = PAGES.slice(0, 5).map(p => p.id);
+  S.shelf.yasliadam = 1;
+  assert.equal(checkStory(S, { town: 'iskele' }), null);
+  assert.equal(checkStory(S, { town: 'carsi' }), 'iz');
+  S.pages = PAGES.slice(0, PAGES.length - 1).map(p => p.id);
+  assert.equal(checkStory(S, { town: 'cunda', spot: 'tepe' }), null);
+  assert.equal(checkStory(S, { town: 'fener', spot: 'burun' }), 'kutuphane');
+  const X = newGame(6);
+  let day = 1;
+  while (!districtEvent(day, 'iskele')) day++;
+  X.day = day; placeAll(X);
+  const T = simulateDay(X);
+  assert.equal(T.dev, 'balik');
+  assert.equal(X.totals.festivals, 1);
+});
 
 console.log(`\n${passed} test geçti`);

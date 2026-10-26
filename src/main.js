@@ -37,6 +37,7 @@ import { auctionLot, rentBq, fillBq, buyRoses, restoreCopy } from './game/voyage
 import { deliverFavor } from './game/shop.js';
 import { TAGS } from './data/books.js';
 import { buildScene } from './render/scene.js';
+import { baseScene } from './render/spot-art.js';
 import { buildScene2 } from './render2/scene2.js';
 import { createCrowd, personSVG, figureMeta } from './render/people.js';
 import { ARCHETYPES } from './data/archetypes.js';
@@ -44,6 +45,8 @@ import { createAmbient } from './render/ambient.js';
 import { createUI } from './ui/ui.js';
 import { unlockGenre, buyLot, setApprentice, apprenticeTakes } from './game/progress.js';
 import { FEATURES } from './data/features.js';
+import { koyOn, openDistrict } from './game/koy.js';
+import { districtEvent, DISTRICT_KEYS } from './data/districts.js';
 import { WEATHER, EVENTS } from './data/calendar.js';
 
 const MIN_PER_SEC = (BAL.dayEnd - BAL.dayStart) / 120;   // normal hızda bir gün ≈ 2 dakika
@@ -234,6 +237,12 @@ const COMMANDS = {
     changeTown(() => { ui.closePanel(); ui.toast(T`📍 Karavan kuruldu: ${spotOf(S).name}`); });
   },
   map: () => ui.mapPanel(S),
+  // Mürekkep Koyu: yeni mahalle açılır; haritada sis kalkar, yol çizilir
+  district: key => attempt(openDistrict(S, key), () => {
+    tap('MEDIUM'); sfx('heart'); saveGame(S); ui.confetti();
+    ui.mapPanel(S, { reveal: key });
+    ui.toast(T`🏘️ ${TOWNS[key].name} açıldı! Haritadan arabanı oraya götürebilirsin.`);
+  }, () => ui.mapPanel(S, { focus: key })),
   stall: i => attempt(buyStall(S, i), () => { tap(); sfx('page'); saveGame(S); ui.toast(T`🧺 Kitap koliye kondu`); }, () => ui.stockPanel(S)),
   auction: voyageCmd(id => auctionLot(S, id), () => T`🔨 Kitap müzayedede: akşam açık artırmada satılacak.`),
   'bq-rent': voyageCmd(() => rentBq(S), () => T`📦 Bukinist kutusu senin: koliden kitap koy, her gece satsın.`),
@@ -284,7 +293,7 @@ const COMMANDS = {
     const why = travel(S, key);
     if (why) return ui.toast(why);
     // yolda arada bir küçük bir karşılaşma (varınca kartı açılır); feribotta değil
-    const trip = S.lastTrip || {}, road = trip.abroad ? null : roadEvent(S);
+    const trip = S.lastTrip || {}, road = trip.abroad || koyOn() ? null : roadEvent(S);
     if (trip.abroad) { const gift = afterFerry(S); if (gift) setTimeout(() => ui.toast(T`Belediyeden ₺${gift} destek: kasa boştu, bir koli alabilirsin.`), 2600); }
     saveGame(S);
     sfx('whoosh');
@@ -347,6 +356,8 @@ function morningNote() {
   const w = WEATHER[weatherOf(S.day)], ev = eventOf(S.day), orders = S.post?.orders || [];
   const parts = [`${w.icon} ${w.name}`];
   if (ev && EVENTS[ev].town === S.town) parts.push(`🎉 ${EVENTS[ev].name}`);
+  const dev = districtEvent(S.day, S.town);
+  if (dev) parts.push(`${dev.icon} ${dev.name}`);
   if (orders.length) parts.push(T`📦 Siparişin koliye geldi: ${orders.map(b => '«' + BOOK[b].title + '»').join(', ')}`);
   ui.toast(parts.join(' · '));
 }
@@ -364,7 +375,7 @@ function refreshDay() {
   scene.setWeather(weatherOf(S.day));
   setSeason(seasonOf(S.day));
   setRain(weatherOf(S.day) === 'yagmurlu');
-  setAmbience({ scene: spotOf(S).scene, weather: weatherOf(S.day), night: false });
+  setAmbience({ scene: baseScene(spotOf(S).scene), weather: weatherOf(S.day), night: false });
   crowd.setContext({ rain: weatherOf(S.day) === 'yagmurlu', dark: false });
   setMood({ town: S.town, lively: !!(m.event || m.special), night: false });
   scene.setFestival(!!(m.event || m.special));
@@ -376,7 +387,7 @@ function changeTown(done) {
   setTimeout(() => {
     scene.setTown(S.town);
     scene.setSpot(spotOf(S).scene, S.town);
-    setAmbience({ scene: spotOf(S).scene });
+    setAmbience({ scene: baseScene(spotOf(S).scene) });
     refreshDay();
     done && done();
     fade.classList.remove('on');
@@ -425,7 +436,11 @@ if (PREVIEW) {
   // ?panel=atolye: dolu bir atölye · ?panel=stock&mezat: mezat günü
   if (panel === 'atolye') { S.coins = 900; S.upgrades = ['cirak', 'paket']; ui.decorPanel(S); }
   if (q.has('mezat')) { while (S.day % BAL.mezatEvery !== BAL.mezatOn) S.day++; S.coins = 300; ui.stockPanel(S); }
-  if (panel === 'harita') { if (q.has('acik')) { S.unlocked = Object.keys(TOWNS); S.countries = Object.keys(COUNTRIES); } ui.mapPanel(S); }
+  if (panel === 'harita') {
+    if (q.has('acik')) { S.unlocked = koyOn() ? [...DISTRICT_KEYS] : Object.keys(TOWNS); S.countries = Object.keys(COUNTRIES); for (const k of DISTRICT_KEYS) S.rep[k] = 10 + DISTRICT_KEYS.indexOf(k) * 12; }
+    if (q.has('iki')) { S.unlocked = ['iskele', 'park']; S.rep = { iskele: 34, park: 12 }; S.coins = 420; }
+    ui.mapPanel(S, { focus: q.get('mahalle') || undefined });
+  }
   if (panel === 'pasaport') { S.countries = ['tr', 'gr']; S.passport = { tr: 1, gr: 12 }; ui.bookPanel(S); document.querySelector('[data-tab="passport"]')?.click(); }
   if (panel === 'kostas') { S.pages = PAGES.map(p => p.id); S.unlocked.push('bozcaada'); S.kostasFound = ['yasliadam', 'odysseia', 'korfez']; ui.kostasPanel(S); }
   if (q.has('hava')) scene.setWeather(q.get('hava'));

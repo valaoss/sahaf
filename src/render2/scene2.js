@@ -2,6 +2,7 @@
 // motor değişen derinlik bantlarını bitmap'e pişirir ve her karede yalnızca resimleri ve hareketli parçaları çizer.
 // Arayüzü buildScene ile aynıdır (setTown, setSpot, setStock…); ek olarak tick(dt), toClient, onCart, crowdView.
 import { buildScene, SEASON_LOOK, lightPoints } from '../render/scene.js';
+import { baseScene } from '../render/spot-art.js';
 import { loadFonts, snapshotBand } from './bake.js';
 import { drawAnim } from './anim.js';
 import { canvasCrowdView } from './crowd-view.js';
@@ -336,7 +337,7 @@ export function buildScene2(host) {
     onCart(fn) { cartFn = fn; },
     crowdView: () => crowd,
     setTown(key) { base.setTown(key); st.town = key; rebake('bandSky', 'bandF', 'bandH'); },
-    setSpot(scene, town) { base.setSpot(scene, town); st.scene = scene; rebake('bandH', 'bandG'); },
+    setSpot(scene, town) { base.setSpot(scene, town); st.scene = baseScene(scene); rebake('bandH', 'bandG'); },
     setStock(S) { base.setStock(S); rebake('bandStock'); },
     setDecor(on) { base.setDecor(on); rebake('bandG'); },
     setUpgrades(list) { base.setUpgrades(list); rebake('bandG'); },

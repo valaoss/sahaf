@@ -70,7 +70,12 @@ const BUNTING = (() => {
   return `<path d="M0 248 Q800 352 1600 248" fill="none" stroke="#7a5a48" stroke-width="2.5"/><g class="flutter-slow">${flags}</g>`;
 })();
 
+// mahalle sahneleri kendi görsellerini bekliyor; o zamana kadar en yakın eski sahneyle çizilir (data/districts.js baseScene)
+export { baseScene } from '../data/districts.js';
+import { baseScene } from '../data/districts.js';
+
 export function spotArt(scene, town) {
+  scene = baseScene(scene);
   if (scene === 'sahil') return `
     <rect x="0" y="470" width="1600" height="92" fill="url(#sea)"/>
     <g stroke="#e9fbf7" stroke-width="4" stroke-linecap="round"><line x1="900" y1="510" x2="940" y2="510" class="twinkle"/><line x1="1250" y1="530" x2="1280" y2="530" class="twinkle" style="animation-delay:1s"/></g>

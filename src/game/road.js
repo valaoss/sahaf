@@ -2,6 +2,7 @@
 // Tekrar bekçisinden geçer; sonucu gün içi olaylarla aynı biçimde döner ({ text, tags, friend }).
 import { ROAD } from '../data/road.js';
 import { BAL } from '../data/balance.js';
+import { homeOf } from './koy.js';
 import { BOOK, BOOKS } from '../data/books.js';
 import { rnd, rndPick } from '../core/rng.js';
 import { pickFresh, remember } from './memory.js';
@@ -47,7 +48,7 @@ export function chooseRoad(S, id, idx) {
   }
   if (fx.late) { S.buffs.push({ day: S.day, traffic: fx.late }); out.tags.push(tw('⏰ geç açılış')); }
   if (fx.heart) {
-    const cand = REGULAR_KEYS.filter(r => REGULARS[r].town === S.town && (S.friends[r] || 0) < HEARTS_MAX);
+    const cand = REGULAR_KEYS.filter(r => homeOf(r) === S.town && (S.friends[r] || 0) < HEARTS_MAX);
     if (cand.length) { const fr = addHeart(S, rndPick(S, cand)); if (fr) { out.friend = fr; out.tags.push(`💛 ${REGULARS[fr.id].name}`); } }
   }
   return out;

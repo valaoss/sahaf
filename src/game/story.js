@@ -4,6 +4,7 @@ import { TOWNS, TOWN_KEYS } from '../data/towns.js';
 import { BOOK } from '../data/books.js';
 import { KOSTAS, KOSTAS_REWARD, KOSTAS_CHANCE } from '../data/kostas.js';
 import { rnd, rndPick } from '../core/rng.js';
+import { koyOn } from './koy.js';
 import { BAL } from '../data/balance.js';
 
 const CHECK = {
@@ -14,9 +15,9 @@ const CHECK = {
   festival: (S, n) => S.totals.festivals >= n,
   sold: (S, n) => S.totals.sold >= n,
   shelfLv: (S, n) => S.shelfLv >= n,
-  finale: (S, n, T) => !!T && T.town === 'cunda' && T.spot === 'tepe',
+  finale: (S, n, T) => !!T && (koyOn() ? T.town === 'fener' : T.town === 'cunda' && T.spot === 'tepe'),
   // kitabı rafında taşıyarak o kasabada dükkân açmak (gün içinde satıldıysa da sayılır)
-  carry: (S, n, T) => !!T && T.town === n.town && (S.shelf[n.book] > 0 || (T.soldIds || []).includes(n.book)),
+  carry: (S, n, T) => !!T && T.town === (koyOn() ? n.koy : n.town) && (S.shelf[n.book] > 0 || (T.soldIds || []).includes(n.book)),
 };
 
 export const nextPage = S => PAGES[S.pages.length] || null;

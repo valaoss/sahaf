@@ -1,4 +1,6 @@
-// Kasaba içi mekânlar: sabah karavanı nereye kuracağını seçersin (ücretsiz).
+import { DISTRICTS } from './districts.js';
+
+// Kasaba içi mekânlar: sabah karavanı nereye kuracağını seçersin (ücretsiz). Mahallelerin tek mekânı data/districts.js'te.
 // scene: sahil | carsi | tepe (sahne görünümü) · traffic: kalabalık çarpanı · ask: öneri isteme çarpanı
 // demand: tür çarpanları · tags: öneri isteklerinde öne çıkan konular
 export const SPOTS = {
@@ -181,5 +183,7 @@ export const SPOTS = {
       desc: 'Çölün kıyısı. Turistler, develer ve dört bin yıllık sorular.' },
   },
 };
+
+for (const k in DISTRICTS) SPOTS[k] = DISTRICTS[k].spot;
 
 export const firstSpot = town => Object.keys(SPOTS[town])[0];

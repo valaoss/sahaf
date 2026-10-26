@@ -50,5 +50,20 @@ export default {
   "💌 Teyzenden bir mektup var: sağ üstteki 📜 Defter'de.": "💌 There's a letter from your aunt: in the 📜 Notebook at the top right.",
   // kayıt sorunları
   "Bu kayıt oyunun daha yeni bir sürümünden; yeni oyun başladı. Eski kaydın yedeği Ayarlar'da saklı.": "This save is from a newer version of the game, so a new game started. A backup of the old save is kept in Settings.",
+  "🏘️ {0} açıldı! Haritadan arabanı oraya götürebilirsin.": "🏘️ {0} is open! Take your cart there from the map.",
+  // Mürekkep Koyu haritası ve mahalle kartı (ui/panels/koy.js)
+  "💛 {0} güveni {1} (şimdi {2})": "💛 {0} trust {1} (now {2})",
+  "💛 {0} mahallede güven {1} (şimdi {2})": "💛 Trust {1} in {0} neighbourhoods (now {2})",
+  "bugün ~{0} kişi": "~{0} people today",
+  "kira ₺{0}/gün": "rent ₺{0}/day",
+  "Aranan:": "Wanted:",
+  "Güven": "Trust",
+  "Mürekkep Koyu": "Inkwell Bay",
+  "Bir mahalleye dokun · iki parmakla yakınlaştır": "Tap a neighbourhood · pinch to zoom",
+  "🚐 Buraya git": "🚐 Go here",
+  "₺{0} · Mahalleyi aç": "₺{0} · Open neighbourhood",
+  "Mahalleyi aç": "Open neighbourhood",
+  "Sisli mahalle": "Misty neighbourhood",
+  "Güven: burada dükkân açtığın her gün, her satış ve memnun ayrılan her pazarlık artırır; kızıp gidenler azaltır. Güven yükseldikçe müşteriler daha az pazarlık eder, {0} güvende kira dörtte bir düşer.": "Trust: every day you open here, every sale and every haggle that ends happily raises it; customers who leave angry lower it. The higher your trust, the less people haggle, and at {0} trust the rent drops by a quarter.",
   "Kayıt okunamadı; yeni oyun başladı. Eski kaydın yedeği Ayarlar'da saklı.": "The save couldn't be read, so a new game started. A backup of the old save is kept in Settings.",
 };

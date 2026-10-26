@@ -43,6 +43,8 @@ import { K, $, toast, openPanel, closePanel, isOpen, portraitBox, hhmm, chips, h
 import { stockPanel, spotPanel, giftPanel, decorPanel } from './panels/shop.js';
 import { recPanel, hapPanel } from './panels/rec.js';
 import { mapPanel } from './panels/map.js';
+import { koyMapPanel, districtPanel } from './panels/koy.js';
+import { koyOn, isDistrict } from '../game/koy.js';
 import { summaryPanel, paperPanel } from './panels/day.js';
 import { voyagePanel, grandPanel, mailPanel, kostasPanel, kostasFoundPanel, statsPanel, bookPanel, albumPanel, finalePanel } from './panels/book.js';
 import { settingsPanel } from './panels/settings.js';
@@ -175,7 +177,8 @@ export function createUI(root, act) {
     }
   }
 
-  const api = { grandPanel, voyagePanel, useStage, stageOn: () => !!K.stage?.on, stageTick: () => K.stage?.tick(), hud, toast, speech, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, spotPanel, giftPanel, decorPanel, mapPanel, recPanel, hagglePanel, summaryPanel, closePanel, isOpen };
+  const api = { grandPanel, voyagePanel, useStage, stageOn: () => !!K.stage?.on, stageTick: () => K.stage?.tick(), hud, toast, speech, interiorPanel, coach, statsPanel, flyCoin, confetti, hapPanel, kostasPanel, kostasFoundPanel, mailPanel, paperPanel, bookPanel, albumPanel, finalePanel, settingsPanel, stockPanel, giftPanel, decorPanel, recPanel,
+    spotPanel: S => koyOn() && isDistrict(S.town) ? districtPanel(S) : spotPanel(S), mapPanel: (S, o) => koyOn() ? koyMapPanel(S, o) : mapPanel(S), hagglePanel, summaryPanel, closePanel, isOpen };
   K.ui = api;
   return api;
 }

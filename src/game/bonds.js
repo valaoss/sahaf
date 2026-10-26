@@ -7,12 +7,13 @@ import { GENRES } from '../data/genres.js';
 import { REGULARS } from '../data/regulars.js';
 import { BAL } from '../data/balance.js';
 import { rndPick } from '../core/rng.js';
+import { homeOf } from './koy.js';
 
 export const REP_LEVELS = [
   { min: 0, name: 'Yabancı', icon: '🚐', perk: '' },
   { min: 8, name: 'Tanıdık', icon: '👋', perk: 'Pazar tezgâhında %20 indirim' },
   { min: 20, name: 'Sevilen', icon: '💛', perk: 'Müdavimler daha sık uğrar' },
-  { min: 40, name: 'Kasabanın sahafı', icon: '🏠', perk: 'Park ücretsiz, kalabalık +%8' },
+  { min: 40, name: 'Kasabanın sahafı', icon: '🏠', perk: 'Tezgâh kirası düşer, kalabalık +%8' },
 ];
 export const repOf = (S, town = S.town) => S.rep[town] || 0;
 export function repLevel(S, town = S.town) {
@@ -68,4 +69,4 @@ export function receiveOrders(S) {
 }
 
 // --- Hatıralar: bu kasabanın müdavimlerinden kalanlar kadar fazladan ziyaretçi ---
-export const keepsakeTraffic = (S, town = S.town) => S.keepsakes.filter(id => REGULARS[id]?.town === town).length * BAL.keepsakeTraffic;
+export const keepsakeTraffic = (S, town = S.town) => S.keepsakes.filter(id => REGULARS[id] && homeOf(id) === town).length * BAL.keepsakeTraffic;

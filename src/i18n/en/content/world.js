@@ -1,6 +1,20 @@
 // English overlay: towns, spots, countries, calendar, decor, stamps, story, voyage, Kostas notes, tutorial.
 
 const TOWNS = {
+  iskele: { name: "The Quay", blurb: "A stone promenade, a wooden pier, gulls. Tourists, families and fishermen; crime and children's books sell.",
+    koy: { ev: { name: "Fishermen's Fête", note: "The boats are dressed with flags; the promenade is packed and the children are out on the pier." } } },
+  park: { name: "Plane Tree Park", blurb: "A pond and benches in the shade of a giant plane tree. Pensioners, parents, lovers; poetry, novels and children's books.",
+    koy: { ev: { name: "Concert under the Plane Tree", note: "A quartet is playing under the plane tree this afternoon; the benches are full and everyone lingers." } } },
+  okul: { name: "School Hill", blurb: "Stone steps, bicycles, posters. Students and young writers: short on money, long on numbers.",
+    koy: { ev: { name: "Start of term", note: "Schools are back: the hill is full of students clutching reading lists." } } },
+  carsi: { name: "Old Bazaar", blurb: "An arcaded square, stalls, crowds. Everything sells, but everyone haggles.",
+    koy: { ev: { name: "Market day", note: "The weekly market fills the square: baskets, shouting, bargaining. Big crowds, short tempers." } } },
+  boyaci: { name: "Painters' Lane", blurb: "Colourful shutters, easels, cats in the windows. Artists and devoted readers; poetry and first editions.",
+    koy: { ev: { name: "Street exhibition", note: "The shutters have become canvases; painters are out in the lane and everyone wants to chat." } } },
+  kosk: { name: "Mansion Ridge", blurb: "Mansions with gardens, lamp posts, quiet. Collectors and wealthy readers: few people, full wallets.",
+    koy: { ev: { name: "Book tea in a mansion garden", note: "A mansion is holding a book tea in its garden; the guests stop by your stall on the way home." } } },
+  fener: { name: "Lighthouse Point", blurb: "A lighthouse and the wind. Once a week a booksellers' fair sets up: collectors hunting first editions.",
+    koy: { ev: { name: "Booksellers' fair", note: "A booksellers' fair at the foot of the lighthouse: collectors are after first editions, wallets open." } } },
   ayvalik: { name: "Ayvalık", blurb: "Olive groves and old stone houses. Readers here love novels and history." },
   cunda: { name: "Cunda", blurb: "A little island with quiet streets. Plenty of poetry lovers, not many crowds." },
   foca: { name: "Foça", blurb: "Seal rocks and a castle. History buffs and mystery fans gather here." },
@@ -32,6 +46,13 @@ const TOWNS = {
 };
 
 const SPOTS = {
+  iskele: { kordon: { name: "Promenade", desc: "A stone promenade and balustrade; the bay's houses behind." } },
+  park: { cinar: { name: "Under the plane tree", desc: "By the pond, in the shade, birdsong. Lots of people ask for recommendations." } },
+  okul: { yokus: { name: "Top of the steps", desc: "Busy at the end of school: hurried and curious." } },
+  carsi: { meydan: { name: "Arcaded square", desc: "A corner between the stalls. Lots of sales, lots of haggling." } },
+  boyaci: { kepenk: { name: "The shutters", desc: "In front of the studios. Few customers, but curious ones." } },
+  kosk: { bahce: { name: "Mansion gardens", desc: "Iron railings, rose gardens. Clean and rare books are sought after." } },
+  fener: { burun: { name: "Below the lighthouse", desc: "A windy headland. Quiet except on fair day." } },
   ayvalik: {
     iskele: { name: "The Pier", desc: "Fishing boats and gulls. Lots of poetry and novel readers." },
     carsi: { name: "Bazaar", desc: "Busy and in a hurry. Families and kids; few ask for recommendations." },
@@ -323,13 +344,13 @@ const PAGES = {
   },
   dostlar: {
     title: "The old man at the café",
-    hint: "Open shop in all four towns.",
-    text: "At the café in Foça, an old man told you that Kostas had a friend in every town: \"They entrust his notebook to the bookseller who gives the right book to the right person,\" he said. He was holding a yellowed page: \"Books are written to be read, not to be hoarded. — K.\"",
+    hint: "Open shop in four neighbourhoods.",
+    text: "At the café on the promenade, an old man told you that Kostas had a friend in every neighbourhood: \"They entrust his notebook to the bookseller who gives the right book to the right person,\" he said. He was holding a yellowed page: \"Books are written to be read, not to be hoarded. — K.\"",
   },
   liste: {
     title: "The list inside the book",
     hint: "Make 10 perfect recommendations.",
-    text: "A customer pulled a slip of paper from the book you recommended: a list in Kostas's handwriting. \"Ayvalık: olives. Cunda: wind. Foça: seals. Alaçatı: windmills.\" Below it, a single line: \"The key is friendship.\"",
+    text: "A customer pulled a slip of paper from the book you recommended: a list in Kostas's handwriting. \"The Quay: gulls. Plane Tree: leaves. School Hill: steps. Old Bazaar: arches.\" Below it, a single line: \"The key is friendship.\"",
   },
   fener: {
     title: "The lantern at the door",
@@ -338,23 +359,23 @@ const PAGES = {
   },
   zarf: {
     title: "The envelope at the festival",
-    hint: "Open shop in a town on its festival day.",
-    text: "In the festival crowd, an old woman came up to your van and left an envelope. Inside was a scrap of a map: an island, a hill, a tiny cross. Before you could ask who it was from, she had vanished into the crowd.",
+    hint: "Open shop in a neighbourhood on its fête or event day.",
+    text: "In the festival crowd, an old woman came up to your van and left an envelope. Inside was a scrap of a map: a headland, a lighthouse, a tiny cross. Before you could ask who it was from, she had vanished into the crowd.",
   },
   iz: {
     title: "The faded sentence",
-    hint: "Open shop in Foça with «The Old Man and the Sea» on your shelf. If you don't have it, you can order it from the wholesaler.",
-    text: "When the old man from the café in Foça saw «The Old Man and the Sea» on your shelf, he smiled: \"Kostas made everyone read this one.\" He held the map scrap up to the light; a faded sentence appeared on the back: \"Fill your shelves, then come back.\"",
+    hint: "Open shop in the Old Bazaar with «The Old Man and the Sea» on your shelf. If you don't have it, you can order it from the wholesaler.",
+    text: "This time the old man from the promenade café was under the arches of the Old Bazaar. When he saw «The Old Man and the Sea» on your shelf, he smiled: \"Kostas made everyone read this one.\" He held the map scrap up to the light; a faded sentence appeared on the back: \"Fill your shelves, then come back.\"",
   },
   gizligoz: {
     title: "The van's secret compartment",
     hint: "Upgrade your shelves to the largest size (50 books).",
-    text: "As the shelves grew, a floorboard came loose. Beneath it lay Aunt Nermin's last letter: \"Kostas's library was on the hill in Cunda, beneath the chapel. He used to say only a full bookshop van could open the door; I thought he was joking.\"",
+    text: "As the shelves grew, a floorboard came loose. Beneath it lay Aunt Nermin's last letter: \"Kostas's library was on Lighthouse Point, beneath the old keeper's house. He used to say only a full bookshop van could open the door; I thought he was joking.\"",
   },
   kutuphane: {
     title: "The lost library",
-    hint: "Open shop on the Island hilltop in Cunda.",
-    text: "That evening, the old stone door beside the chapel swung open in the glow of your van's lights. Inside stood dusty but sturdy shelves: hundreds of books, each with a note tucked between its pages. \"Take these books back to the towns. — K.\" The library is lost no longer; it lives in your van now.",
+    hint: "Open shop on Lighthouse Point.",
+    text: "That evening, the old stone door beside the keeper's house swung open in the glow of your van's lights. Inside stood dusty but sturdy shelves: hundreds of books, each with a note tucked between its pages. \"Take these books back to the neighbourhoods. — K.\" The library is lost no longer; it lives in your van now.",
   },
 };
 

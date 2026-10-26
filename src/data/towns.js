@@ -1,3 +1,5 @@
+import { DISTRICTS } from './districts.js';
+
 // Kasabalar: her birinin kalabalığı, okur zevki (tür ağırlıkları) ve renkleri farklı.
 // country: data/countries.js · geo: [boylam, enlem] (dünya haritası ve yol mesafesi) · map: eski Ege haritasındaki yer
 export const TOWNS = {
@@ -175,6 +177,8 @@ export const TOWNS = {
     sky: ['#f7cf9c', '#fff0d0'], sea: ['#d9c08e', '#c9ab78'],
   },
 };
+// Mürekkep Koyu'nun mahalleleri de kasaba gibi işlenir (koy alanıyla ayrılır; mekânları data/spots.js'e katılır)
+for (const k in DISTRICTS) { const { spot, ...town } = DISTRICTS[k]; TOWNS[k] = town; }
 export const TOWN_KEYS = Object.keys(TOWNS);
-// oyunun başında açık olan kasabalar
-export const START_TOWNS = TOWN_KEYS.filter(k => !TOWNS[k].unlock && (TOWNS[k].country || 'tr') === 'tr');
+// Ege kipinde oyunun başında açık olan kasabalar
+export const START_TOWNS = TOWN_KEYS.filter(k => !TOWNS[k].unlock && !TOWNS[k].koy && (TOWNS[k].country || 'tr') === 'tr');

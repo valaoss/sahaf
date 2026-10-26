@@ -544,6 +544,42 @@ Her faz ayrı commit ve yayın olur.
 - **Harita:** katmanlı harita; canlılık animasyonları; sis kalkma ve yol açılma.
 - **Eski sahne:** Mahalle sahnelerinin arka planı mevcut `spot-art` / `atmos` çizimlerinden türetilir.
 - **Bitiş ölçütü:** Mahalle seçimi kazancı ölçülebilir biçimde değiştirir (simülasyonda mahalleler arası anlamlı fark). Harita telefonda akıcıdır.
+- **Durum (25.10.2026): kurallar ve harita yapıldı; görseller GPT ile üretilecek (`docs/gorsel-promptlari.md`).**
+  - **Mahalleler** (`data/districts.js`): Motor her mahalleyi kasaba gibi işler (`TOWNS`/`SPOTS` içine katılır, `koy` alanıyla ayrılır).
+    - Ege kasabaları `FEATURES.ege` ile kenarda; eski testleri `egeTest` o kipte çalıştırır.
+    - Mahalle başına: kira, müşteri karışımı (`mix`), cüzdan (`purse`), pazarlık eğilimi (`haggle`), kitaba biçilen değer (`worth`), açılış koşulu ve kendi olayı (balıkçı şenliği, konser, dönem başı, pazar, sokak sergisi, kitap çayı, haftalık sahaf fuarı).
+  - **Kurallar** (`game/koy.js`):
+    - Açılış: bedel, başka mahallede güven, n mahallede güven ya da araba basamağı.
+    - Mahalleler arası yol ücretsiz.
+    - Güven: mahalle itibarı, en fazla 100. Dükkân açmak, satış ve memnun pazarlık artırır, kızgın ayrılan azaltır. 40'ta kira dörtte bir düşer, pazarlık zaten azalıyordu.
+    - Mahalle olayı festival sayılır.
+    - Müdavimler ikişer ikişer mahallelere taşındı.
+    - Hikâye: iz Eski Çarşı'da, kütüphane Fener Burnu'nda.
+    - Eski kayıt İskele Boyu'na taşınır ve en sevildiği kasabanın güveninden 20'ye kadarını getirir.
+  - **Harita** (`render/koy-map.js`, `ui/panels/koy.js`):
+    - Görünüm: eğik bakışlı koy, yollar, tarlalar. Mahallelerin kendi yapıları var; kilitli olanlar sisli ve soluk.
+    - Canlılık: yürüyenler, martılar, tekneler, su ışıltısı, baca dumanı, dönen fener ışığı.
+    - Kart: bugünkü kalabalık, kira, aranan türler, güven çubuğu, olay, müdavimler, açılış koşulları.
+    - Açılınca sis kalkar, yol çizilir.
+    - Telefonda harita boydan doldurur ve bulunduğun mahalleye ortalanır.
+    - Bu çizim geçici: GPT görselleri gelince yerini alır.
+  - **Sahneler:** Yeni mekânlar şimdilik en yakın eski sahneyle çizilir (`SCENE_BASE`: kordon → sahil, park/köşk/fener → tepe, yokuş/boyacılar → çarşı). Ses ve müşteri cümleleri de aynı eşlemeyi kullanır.
+  - **Ölçüm** (`npm run sim -- mahalle`): orta oyun, 20 gün, güven 30, günlük net.
+
+    | Mahalle | Ziyaretçi/gün | Net/gün | Pahalı etiketle |
+    |---|---|---|---|
+    | İskele Boyu | 33 | ₺290 | ₺291 |
+    | Çınaraltı Parkı | 28 | ₺251 | ₺251 |
+    | Okul Yokuşu | 42 | ₺238 | ₺213 |
+    | Eski Çarşı | 50 | ₺318 | ₺330 |
+    | Boyacılar Sokağı | 29 | ₺312 | ₺322 |
+    | Köşkler Sırtı | 24 | ₺285 | ₺328 |
+    | Fener Burnu | 22 | ₺256 | ₺272 |
+
+    - En iyi ile en kötü mahalle arasında günlük fark %33.
+    - Pahalı etiket Köşkler'de +%15, Okul Yokuşu'nda −%10.
+    - 60 günde mahalle açıp her sabah yer seçen oyuncu hep İskele'de kalandan %12 önde (5,3 mahalle açık). 30. günde açılış bedelleri yüzünden geride.
+  - **Ölçülmeyen:** Haritanın telefondaki kare hızı.
 
 ### Faz 7 — Teyzenin dükkânı ve cila (öncelik 6)
 - **Dükkân:** Dükkân basamağı; iç mekân rafları (aynı veri güdümlü raf sistemi); genişletmeler.

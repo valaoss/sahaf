@@ -126,6 +126,7 @@ export function diagnose(S, D) {
   if (D.priceWon) out.push(T`🏷️ Ucuz etiket <b>${D.priceWon}</b> kişiyi ikna etti` + (D.word > 1 ? T` — yarın burada kalabalık %${Math.round((D.word - 1) * 100)} fazla` : '') + '.');
   if ((D.saturated || []).length) out.push(T`📉 ${D.saturated.map(g => GENRES[g].icon + ' ' + GENRES[g].name).join(', ')} bu kasabada çok satıldı; ilgi düştü, birkaç günde toparlanır.`);
   if (D.sponsored) out.push(T`🎪 Sponsor olduğun festival: kalabalık ×${BAL.sponsorTraffic}.`);
+  if (D.repGain && TOWNS[D.town]?.koy) out.push(T`💛 ${TOWNS[D.town].name} sana ısındı (+${D.repGain} güven).`);
   if (D.repUp) out.push(T`🏘️ ${TOWNS[D.town].name} · artık <b>${REP_LEVELS[D.repUp].icon} ${tw(REP_LEVELS[D.repUp].name)}</b>: ${tw(REP_LEVELS[D.repUp].perk)}.`);
   if (D.favors) out.push(T`🎁 Bugün ${D.favors} rica getirdin.`);
   return out.length ? `<div class="diag">${out.map(x => `<p>${x}</p>`).join('')}</div>` : '';

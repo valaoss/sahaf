@@ -18,6 +18,8 @@ export function distance(a, b) {
 
 // yol bilgisi: { abroad, cost, days }
 export function travelInfo(S, key) {
+  // Mürekkep Koyu içinde araba itilerek gidilir: ücretsiz
+  if (TOWNS[key]?.koy && TOWNS[S.town]?.koy) return { abroad: false, cost: 0, days: 0 };
   const abroad = countryOf(key) !== countryOf(S.town), d = distance(S.town, key);
   const cost = abroad ? Math.min(BAL.ferryMax, Math.max(BAL.ferryMin, Math.round(BAL.ferryMin + d * BAL.ferryPerDeg)))
     : Math.max(BAL.travelCost, Math.round(d * BAL.roadPerDeg));

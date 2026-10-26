@@ -9,7 +9,7 @@ import { PAINTS, AWNINGS } from '../data/decor.js';
 import { shelfCap, genreCounts } from '../game/state.js';
 import { syncLayout, sectionCap } from '../game/shelving.js';
 import { DECOR_ART } from './decor-art.js';
-import { spotArt, GROUND, SHOW_HOUSES } from './spot-art.js';
+import { spotArt, GROUND, SHOW_HOUSES, baseScene } from './spot-art.js';
 import { landmarkArt, ARCH } from './landmarks.js';
 import { svgView, personSVG } from './people.js';
 import { cartArt } from './cart-art.js';
@@ -467,6 +467,7 @@ export function buildScene(host) {
     },
     // kasaba içindeki mekân: arka plan, zemin, evlerin görünürlüğü
     setSpot(scene, town) {
+      scene = baseScene(scene);
       $('spotBack').innerHTML = spotArt(scene, town);
       $('landmark').innerHTML = landmarkArt(town);
       $('ground').setAttribute('fill', TOWNS[town]?.country === 'eg' && scene === 'tepe' ? 'url(#sand)' : GROUND[scene]);

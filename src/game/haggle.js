@@ -7,6 +7,7 @@ import { GENRES } from '../data/genres.js';
 import { BOOK } from '../data/books.js';
 import { ARCHETYPES } from '../data/archetypes.js';
 import { REGULARS } from '../data/regulars.js';
+import { TOWNS } from '../data/towns.js';
 import { TRAITS, QUIRKS, QUIRK_CHANCE, TASTE, OFFER_MAX, TOO_HIGH, HAPPY_BELOW, TRUST_PER_LEVEL, HABIT, LINES, HINTS, CARE_WEIGHTS, SOZ, SOZ_LIFT, SOZ_MAX } from '../data/haggle.js';
 import { rnd, rndPick, weighted } from '../core/rng.js';
 import { knownTags, knowsAll } from './knowledge.js';
@@ -31,6 +32,9 @@ export function traitsFor(S, arch = null, regular = false) {
     if (Q.touchy) t.touchy = Math.min(0.95, t.touchy + Q.touchy);
   }
   if (regular) { t.greed *= 0.5; t.patience += 1; t.touchy *= 0.5; }
+  // mahalle: Köşkler'de cüzdan dolu ve pazarlık az, Okul Yokuşu'nda cep dar, Eski Çarşı'da herkes pazarlık eder
+  const K = TOWNS[S.town]?.koy;
+  if (K) { t.budget = Math.round(t.budget * K.purse); t.greed = Math.min(0.45, t.greed * K.haggle); }
   t.patience = Math.max(1, t.patience);
   // derdi: bu kitapta neye önem verdiği (müdavim konuya ya da tavsiyeye bakar)
   t.care = regular ? (rnd(S) < 0.5 ? 'konu' : 'tavsiye') : weighted(S, CARE_WEIGHTS[arch] || CARE_WEIGHTS[A.thrift || 'mid']);
@@ -56,7 +60,7 @@ export function worthOf(S, c, id, cp, grade = null) {
   const market = GENRES[BOOK[id].genre].price * BAL.conds[cp.cond].sell * (cp.rare ? BAL.rareMul : 1);
   const taste = grade ? TASTE[grade] || 1 : BOOK[id].genre === c.wants ? TASTE.wanted : TASTE.other;
   const quality = ARCHETYPES[c.arch]?.thrift === 'loose' && cp.price === 'pahali' ? 1.12 : 1;
-  return market * taste * quality * span(S, TASTE.noise);
+  return market * taste * quality * (TOWNS[S.town]?.koy?.worth || 1) * span(S, TASTE.noise);
 }
 
 // Müşteri bir kopyaya bakar: { kind, P, O, R, W }. kind: buy (pazarlıksız etiket fiyatını öder) | offer (pazarlığa gelir) | leave (vazgeçer).

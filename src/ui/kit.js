@@ -75,7 +75,7 @@ export const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${Strin
 export const chips = (obj, cls = '') => Object.keys(obj).sort((a, b) => obj[b] - obj[a])
   .map(g => `<span class="chip ${cls}" style="--c:${GENRES[g].color}">${GENRES[g].icon} ${GENRES[g].name} <b>×${obj[g]}</b></span>`).join('');
 export const hearts = n => '♥'.repeat(n) + '♡'.repeat(HEARTS_MAX - n);
-export const SCENE_ICON = { sahil: '🏖️', carsi: '🛍️', tepe: '⛰️' };
+export const SCENE_ICON = { sahil: '🏖️', carsi: '🛍️', tepe: '⛰️', kordon: '⚓', park: '🌳', yokus: '🎒', boyaci: '🎨', kosk: '🏡', fener: '🗼' };
 export const level = (x, lo, hi) => x >= hi ? T`çok` : x <= lo ? T`az` : T`orta`;
 // Cümledeki etiket söyleyişlerini işaretle (öneri ipucu): <mark data-tag="..">
 export function markAsk(text) {

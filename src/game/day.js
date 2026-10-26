@@ -7,6 +7,7 @@ import { rnd, rndInt } from '../core/rng.js';
 import { REGULARS, REGULAR_KEYS, VISIT_CHANCE } from '../data/regulars.js';
 import { makeCustomer, makeRegular, makePatron, resolveCustomer, recommend, bestBook, spotOf, rescue, parkFee, upkeepOf, decaySat, sponsoredToday } from './shop.js';
 import { patronArrivals } from './patrons.js';
+import { koyOn, homeOf, guvenGain, GUVEN_MAX } from './koy.js';
 import { effects } from './decor.js';
 import { dayMods, weatherOf } from './calendar.js';
 import { checkStory, checkUnlocks } from './story.js';
@@ -52,12 +53,12 @@ export function openShop(S) {
   // kasabanın müdavimleri bazı günler uğrar
   // sevilen bir kasabada müdavimler daha sık uğrar
   const visit = VISIT_CHANCE * (repLevel(S) >= 2 ? 1.5 : 1);
-  S.regArrivals = REGULAR_KEYS.filter(id => REGULARS[id].town === S.town && rnd(S) < visit)
+  S.regArrivals = REGULAR_KEYS.filter(id => homeOf(id) === S.town && rnd(S) < visit)
     .map(id => ({ id, t: Math.round(BAL.dayStart + 30 + rnd(S) * (len - 90)) })).sort((a, b) => a.t - b.t);
   // kartını bırakmış tanıdıklar (game/patrons.js)
   S.patArrivals = patronArrivals(S, len);
   scheduleHappenings(S);
-  S.today = { town: S.town, spot: S.spot, newTown, weather: weatherOf(S.day), event: mods.event, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 },
+  S.today = { town: S.town, spot: S.spot, newTown, weather: weatherOf(S.day), event: mods.event, dev: mods.dev, visitors: 0, sold: {}, missed: {}, revenue: 0, tips: 0, recs: { perfect: 0, good: 0, miss: 0 },
     secSold: [0, 0, 0, 0, 0, 0], sponsored: sponsoredToday(S), costs: { park: parkFee(S), upkeep: upkeepOf(S) },
     island: onIsland(S), roseDay: roseDay(S) };
   return null;
@@ -97,21 +98,23 @@ export function closeShop(S) {
   S.totals.revenue += T.revenue;
   if (T.revenue > S.totals.bestDay) { S.totals.bestDay = T.revenue; S.totals.bestDayNo = S.day; }
   S.townDays[T.town] = (S.townDays[T.town] || 0) + 1;
-  if (T.event) {
+  if (T.event || T.dev) {
     S.totals.festivals++;
-    if (!S.festKinds.includes(T.event)) S.festKinds.push(T.event);
+    if (!S.festKinds.includes(T.event || T.dev)) S.festKinds.push(T.event || T.dev);
   }
   // Akdeniz'in işleri: ada günü, müzayede, solan güller
   if (T.island) S.voyage.stats.islandDays = stat(S, 'islandDays') + 1;
   T.auction = resolveAuction(S);
   T.rosesLeft = S.voyage.roses;
   S.voyage.roses = 0;
-  // itibar: dükkân açılan her gün bir puan
-  const up = addRep(S, T.town, 1);
+  // itibar (mahallede güven): dükkân açılan her gün bir puan; mahallede satış ve memnun pazarlık da artırır, en fazla 100
+  const gain = koyOn() ? Math.max(0, Math.min(guvenGain(T), GUVEN_MAX - (S.rep[T.town] || 0))) : 1;
+  const up = addRep(S, T.town, gain);
   if (up) T.repUp = up;
+  T.repGain = gain;
   T.quest = settleQuest(S, T);
   T.page = checkStory(S, T);
-  T.unlocked = checkUnlocks(S);
+  T.unlocked = koyOn() ? [] : checkUnlocks(S);
   T.countries = FEATURES.akdeniz ? checkCountries(S) : [];
   T.voyage = checkVoyage(S);
   T.grand = checkGrand(S, T);

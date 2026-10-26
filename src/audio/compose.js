@@ -14,6 +14,8 @@ const PROGRESSIONS = {
 };
 // Kasaba motifleri: pentatonik basamaklar (0–4), sekiz ölçüde bir çan sesiyle çalınır; kasabayı kulaktan tanıtır
 export const MOTIFS = {
+  // Mürekkep Koyu'nun mahalleleri
+  iskele: [0, 2, 1, 4], park: [4, 3, 2, 3], okul: [0, 1, 3, 4], carsi: [2, 0, 2, 4], boyaci: [3, 4, 1, 2], kosk: [4, 2, 0, 1], fener: [0, 4, 3, 0],
   ayvalik: [0, 2, 4, 2],
   cunda: [4, 3, 1, 0],
   foca: [0, 1, 2, 4],

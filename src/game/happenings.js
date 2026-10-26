@@ -2,6 +2,7 @@
 import { BAL } from '../data/balance.js';
 import { BOOK, BOOKS } from '../data/books.js';
 import { REGULARS } from '../data/regulars.js';
+import { homeOf } from './koy.js';
 import { HAPPENINGS } from '../data/happenings.js';
 import { rnd, rndPick, weighted } from '../core/rng.js';
 import { shelfCount, shelfCap, takeBook, seasonOf } from './state.js';
@@ -92,7 +93,7 @@ function gainRare(S) {
 }
 
 function heartForSomeone(S) {
-  const here = S.met.filter(id => REGULARS[id].town === S.town);
+  const here = S.met.filter(id => homeOf(id) === S.town);
   const pool = (here.length ? here : S.met).filter(id => (S.friends[id] || 0) < 5).sort();
   if (!pool.length) return null;
   const id = rndPick(S, pool);

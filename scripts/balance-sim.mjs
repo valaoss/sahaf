@@ -213,6 +213,74 @@ if (!ONLY || ONLY === 'pazarlik') {
 
 // Akdeniz bölümü v3 sadeleştirmesiyle kaldırıldı (ülkeler kenarda: data/features.js).
 
+// --- Mahalleler (-- mahalle): aynı orta oyun oyuncusu (kitap arabası, bütün türler açık) 20 gün tek bir mahallede.
+// Sonra 60 günlük gerçekçi oyunda mahalle açan ve her sabah yer seçen oyuncu, hep İskele'de kalanla karşılaştırılır.
+if (!ONLY || ONLY === 'mahalle') {
+  const { DISTRICTS, DISTRICT_KEYS } = await import('../src/data/districts.js');
+  const { openDistrict } = await import('../src/game/koy.js');
+  const { dayMods } = await import('../src/game/calendar.js');
+  console.log('\nMahalleler (orta oyun: kitap arabası, bütün türler açık, güven 30; 20 gün, günlük ortalama):');
+  const res = {};
+  for (const k of DISTRICT_KEYS) {
+    let net = 0, rev = 0, rent = 0, vis = 0, sold = 0, deals = 0, paid = 0, sticker = 0, dear = 0;
+    for (let r = 0; r < RUNS; r++) {
+      // aynı mahalle, bütün bölümlerde pahalı etiket
+      const X = newGame(6000 + r), xr = reader(6000 + r);
+      Object.assign(X, { coins: 400, shelfLv: 1, genres: [...GENRE_KEYS], unlocked: [...DISTRICT_KEYS] });
+      for (const d of DISTRICT_KEYS) X.rep[d] = 30;
+      if (k !== X.town) travel(X, k);
+      for (let d = 0; d < 20; d++) { rescue(X); careful(X); tagAll('pahali')(X); stockSmart(X); const T = simulateDay(X, () => 0, xr, { favors: true }); dear += T.revenue - T.costs.park; }
+      const S = newGame(6000 + r), rec = reader(6000 + r);
+      Object.assign(S, { coins: 400, shelfLv: 1, genres: [...GENRE_KEYS], unlocked: [...DISTRICT_KEYS] });
+      for (const d of DISTRICT_KEYS) S.rep[d] = 30;
+      if (k !== S.town) travel(S, k);
+      for (let d = 0; d < 20; d++) {
+        rescue(S); careful(S); stockSmart(S);
+        const T = simulateDay(S, () => 0, rec, { favors: true });
+        rev += T.revenue; rent += T.costs.park; vis += T.visitors; sold += T.soldCount;
+        if (T.deals) { deals += T.deals.n; paid += T.deals.paid; sticker += T.deals.sticker; }
+      }
+    }
+    const n = RUNS * 20;
+    res[k] = (rev - rent) / n;
+    console.log(`${DISTRICTS[k].name.padEnd(18)} günde ${(vis / n).toFixed(1)} ziyaretçi, ${(sold / n).toFixed(1)} satış (₺${(rev / Math.max(1, sold)).toFixed(1)}/kitap), ${(deals / n).toFixed(1)} pazarlık (etiketin %${Math.round(100 * paid / Math.max(1, sticker))}'i) | ciro ₺${(rev / n).toFixed(0)} − kira ₺${(rent / n).toFixed(0)} = ₺${(res[k]).toFixed(0)} · pahalı etiketle ₺${(dear / n).toFixed(0)}`);
+  }
+  const v = Object.values(res);
+  console.log(`  → en iyi ile en kötü mahalle arası günlük fark ₺${(Math.max(...v) - Math.min(...v)).toFixed(0)} (%${Math.round(100 * (Math.max(...v) / Math.min(...v) - 1))})`);
+
+  // her sabah: açık mahalleler arasında bugünkü kalabalığa, cüzdana ve kiraya göre en iyisi; parası yetince yeni mahalle açar
+  // beklenen net: bugünkü kalabalık × kitap başına değer − kira (doymuş türler de hesaba katılır: dün satılan yerde talep düşük)
+  const score = (S, k) => Math.min(TOWNS[k].traffic * dayMods(S.day, k).traffic, 34) * 9 * DISTRICTS[k].koy.worth * Math.min(1.2, DISTRICTS[k].koy.purse) - DISTRICTS[k].koy.rent - (k === S.town ? 0 : 12);
+  const chooser = S => {
+    // açılış bedeli bir haftalık kazançtan azsa ve araba birikimine dokunmuyorsa aç
+    for (const k of DISTRICT_KEYS) { const c = DISTRICTS[k].koy.open?.coins || 0; if (c && c * 0.5 + 250 < S.coins - (SHELF_LEVELS[S.shelfLv + 1]?.price || 0) * 0.5) openDistrict(S, k); else if (!c) openDistrict(S, k); }
+    const best = S.unlocked.filter(k => DISTRICTS[k]).sort((a, b) => score(S, b) - score(S, a))[0];
+    if (best && best !== S.town) travel(S, best);
+    // değerli mahallede pahalı, öğrencide ucuz etiket
+    const w = DISTRICTS[S.town].koy.worth;
+    tagAll(w >= 1.1 ? 'pahali' : w < 0.95 ? 'ucuz' : 'normal')(S);
+  };
+  const PLAY = { 'hep İskele': () => {}, 'mahalle açar ve seçer': chooser };
+  console.log('\nGerçekçi oyuncu, 60 gün (akıllı stok + yatırım):');
+  const fin = {};
+  for (const [name, move] of Object.entries(PLAY)) {
+    const curve = Array(DAYS).fill(0), opened = [];
+    for (let r = 0; r < RUNS; r++) {
+      const S = newGame(7000 + r), rec = reader(7000 + r);
+      for (let d = 0; d < DAYS; d++) {
+        rescue(S); careful(S); move(S); invest(S); stockSmart(S);
+        simulateDay(S, () => 0, rec, { favors: true });
+        curve[d] += S.coins / RUNS;
+      }
+      opened.push(S.unlocked.filter(k => DISTRICTS[k]).length);
+    }
+    fin[name] = curve[DAYS - 1];
+    console.log(`${name.padEnd(24)} ${[7, 14, 30, 60].map(d => `${d}.g ₺${Math.round(curve[d - 1])}`).join(' · ')} | ortalama ${(opened.reduce((a, b) => a + b, 0) / RUNS).toFixed(1)} mahalle açık`);
+  }
+  console.log(`  → yer seçen oyuncu hep İskele'de kalandan %${Math.round(100 * (fin['mahalle açar ve seçer'] / fin['hep İskele'] - 1))}`);
+}
+if (ONLY === 'mahalle') process.exit(0);
+
 // Kitap bilgisi: her şeyi bilen oyuncu ile yalnız öğrendiği etiketlere bakan oyuncu (tanıtımı okumaz: alt sınır).
 // Bilgili oyuncu sabahları okuma köşesinde bilmediği iki kitabı okur. Tam isabet oranı dönem dönem.
 if (ONLY && ONLY !== 'bilgi') process.exit(0);
