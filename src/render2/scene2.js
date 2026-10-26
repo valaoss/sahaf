@@ -3,6 +3,7 @@
 // Arayüzü buildScene ile aynıdır (setTown, setSpot, setStock…); ek olarak tick(dt), toClient, onCart, crowdView.
 import { buildScene, SEASON_LOOK, lightPoints } from '../render/scene.js';
 import { baseScene } from '../render/spot-art.js';
+import { plateNow, plateCrop } from '../render/plates.js';
 import { loadFonts, snapshotBand } from './bake.js';
 import { drawAnim } from './anim.js';
 import { canvasCrowdView } from './crowd-view.js';
@@ -84,7 +85,7 @@ export function buildScene2(host) {
   const BOX = { ...BANDS, bandStock: STOCK };
   const bands = {}, dirty = new Set(Object.keys(BOX));
   let baking = false, ready = null, t = 0;
-  const st = { buildAt: -9, windy: false, weather: 'gunesli', season: 'İlkbahar', day: 0, paint: true, festival: false, town: 'ayvalik', scene: 'sahil', open: false, openAt: -9 };
+  const st = { buildAt: -9, windy: false, weather: 'gunesli', season: 'İlkbahar', day: 0, paint: true, festival: false, town: 'ayvalik', scene: 'sahil', open: false, openAt: -9, plate: null };
   // kamera: z yakınlık, (fx, fy) odak; hedefe doğru yumuşakça akar
   const cam = { z: 1, fx: 830, fy: 600, tz: 1, tfx: 830, tfy: 600 };
   const view = () => { const s = k * cam.z; return { s, tx: ox + (1 - cam.z) * cam.fx * k, ty: oy + (1 - cam.z) * cam.fy * k }; };
@@ -142,7 +143,7 @@ export function buildScene2(host) {
     clone.querySelectorAll('.win').forEach(n => n.setAttribute('fill', night ? '#ffe08a' : '#9cc7e0'));
     clone.querySelectorAll('.paintable').forEach(n => { if (st.paint) n.setAttribute('filter', 'url(#watercolor)'); });
     if (!st.paint) clone.querySelectorAll('.paintfx').forEach(n => n.remove());
-    clone.querySelectorAll('#lights, #cartHit, #ambientBack, #ambientFront').forEach(n => n.remove());
+    clone.querySelectorAll('#lights, #cartHit, #ambientBack, #ambientFront, #plate').forEach(n => n.remove());
     clone.querySelectorAll('[fill="url(#sky)"], [fill="url(#sunGlow)"], circle[fill="#fff0bd"]').forEach(n => n.remove());
   };
 
@@ -242,24 +243,27 @@ export function buildScene2(host) {
     if (L.night < .95 && !rainy) atmos.sun(ctx, st.day);
     if (L.night > .4) atmos.moon(ctx, L.night);
     drawBand('bandSky', opts);
-    drawBand('bandF', opts);
-    atmos.seaFar(ctx, t, L.night);
-    life.drawBack(ctx, t);
+    // boyalı görsel varsa uzak deniz, evler ve zemin onun içinde; yoksa kodla çizilmiş bantlar
+    const plate = st.plate, crop = plate && plateCrop(plate);
+    if (plate) ctx.drawImage(plate, ...crop, 0, 0, 1600, 900);
+    else { drawBand('bandF', opts); atmos.seaFar(ctx, t, L.night); }
+    life.drawBack(ctx, t, !plate);
     drawBand('bandH', opts);
-    if (st.scene === 'sahil') atmos.seaNear(ctx, t);
+    if (st.scene === 'sahil' && !plate) atmos.seaNear(ctx, t);
+    // dikey ekranda sahnenin altı: zeminin son şeridi aynalanarak döşenir (dikiş görünmez)
+    const bottom = (H - v.ty) / v.s;
+    const extend = (img, sx, sy, sw, sh) => {
+      for (let y = 900, i = 0; y < bottom; y += STRIP, i++) {
+        if (i % 2) ctx.drawImage(img, sx, sy, sw, sh, 0, y, 1600, STRIP);
+        else { ctx.save(); ctx.translate(0, 2 * y + STRIP); ctx.scale(1, -1); ctx.drawImage(img, sx, sy, sw, sh, 0, y, 1600, STRIP); ctx.restore(); }
+      }
+    };
+    if (plate && bottom > 900) extend(plate, crop[0], crop[1] + crop[3] * (900 - STRIP) / 900, crop[2], crop[3] * STRIP / 900);
     // zemin: önce durağan resim, sonra raf ve masa kitapları, en üstte zeminin hareketlileri (tente, süsler)
     const G = bands.bandG;
     if (G) {
       ctx.drawImage(G.img, G.box.x, G.box.y, G.box.w, G.box.h);
-      // dikey ekranda sahnenin altı: zeminin son şeridi aynalanarak döşenir (dikiş görünmez)
-      const bottom = (H - v.ty) / v.s;
-      if (bottom > 900) {
-        const sy = (900 - STRIP - G.box.y) / G.box.h * G.img.height, sh = STRIP / G.box.h * G.img.height;
-        for (let y = 900, i = 0; y < bottom; y += STRIP, i++) {
-          if (i % 2) ctx.drawImage(G.img, 0, sy, G.img.width, sh, G.box.x, y, G.box.w, STRIP);
-          else { ctx.save(); ctx.translate(0, 2 * y + STRIP); ctx.scale(1, -1); ctx.drawImage(G.img, 0, sy, G.img.width, sh, G.box.x, y, G.box.w, STRIP); ctx.restore(); }
-        }
-      }
+      if (!plate && bottom > 900) extend(G.img, 0, (900 - STRIP - G.box.y) / G.box.h * G.img.height, G.img.width, STRIP / G.box.h * G.img.height);
     }
     drawBand('bandStock', opts);
     if (G) for (const a of G.anims) drawAnim(ctx, a, t, opts);
@@ -315,6 +319,7 @@ export function buildScene2(host) {
   }
 
   const rebake = (...ids) => { for (const id of ids) dirty.add(id); schedule(); };
+  let spotSeq = 0;
 
   return {
     ...base,
@@ -337,7 +342,12 @@ export function buildScene2(host) {
     onCart(fn) { cartFn = fn; },
     crowdView: () => crowd,
     setTown(key) { base.setTown(key); st.town = key; rebake('bandSky', 'bandF', 'bandH'); },
-    setSpot(scene, town) { base.setSpot(scene, town); st.scene = baseScene(scene); rebake('bandH', 'bandG'); },
+    // boyalı görsel hazırsa hemen, değilse yüklenince yerine geçer (bantlar gizlenen parçalar olmadan yeniden pişer)
+    setSpot(scene, town) {
+      const p = base.setSpot(scene, town), my = ++spotSeq;
+      st.scene = baseScene(scene); st.plate = plateNow(scene); rebake('bandH', 'bandG');
+      p.then(img => { if (my === spotSeq && img && img !== st.plate) { st.plate = img; rebake('bandH', 'bandG'); } });
+    },
     setStock(S) { base.setStock(S); rebake('bandStock'); },
     setDecor(on) { base.setDecor(on); rebake('bandG'); },
     setUpgrades(list) { base.setUpgrades(list); rebake('bandG'); },

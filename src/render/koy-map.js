@@ -1,10 +1,12 @@
 // Mürekkep Koyu haritası (v3 Faz 6): eğik bakışlı minyatür kasaba, 1600×1000 SVG.
 // Kıyı, yollar, her mahallenin kendi yapıları (2.5B kutu evler, simge yapı), kilitli mahallelerde sis.
 // Canlılık sahnedeki CSS sınıflarıyla (style.css): bob tekne, twinkle su ışıltısı, sway ağaç, steam baca dumanı; martılar ve yürüyenler animateMotion.
-// Görseller kodla çizilir (plan 7. bölüm, yol A); boyanmış katmanlar gelirse aynı yerlere oturur.
+// Boyalı harita (public/art/harita.png, render/plates.js) varsa deniz, kır, yollar ve mahalle yapıları onun içindedir;
+// sis, ad etiketleri, güven çubukları, yürüyenler, martılar ve karavan her iki durumda da kodla çizilir.
 import { DISTRICTS, DISTRICT_KEYS } from '../data/districts.js';
 import { seeded } from '../core/rng.js';
 import { TOWNS } from '../data/towns.js';
+import { mapPlateUrl } from './plates.js';
 
 export const KW = 1600, KH = 1000;
 
@@ -136,7 +138,7 @@ const fog = (x, y) => `<g class="kfog" filter="url(#kblur)">${[[-90, 10, 90, 46]
 
 // harita: S'ye göre açık/kilitli mahalleler, güven çubukları; o.reveal: az önce açılan mahalle (sis kalkar, yol çizilir)
 export function koyMapSVG(S, o = {}) {
-  const open = k => S.unlocked.includes(k);
+  const open = k => S.unlocked.includes(k), plate = mapPlateUrl();
   const r = seeded(7);
   let sea = '';
   for (let i = 0; i < 40; i++) {
@@ -150,6 +152,8 @@ export function koyMapSVG(S, o = {}) {
   for (const [a, b, [cx, cy]] of ROADS) {
     const [x1, y1] = P(a), [x2, y2] = P(b), live = open(a) && open(b), d = `M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`;
     const fresh = o.reveal && (a === o.reveal || b === o.reveal) && live;
+    // boyalı haritada yollar görselde: yalnız az önce açılan yol bir kez çizilir
+    if (plate) { if (fresh) roads += `<path d="${d}" fill="none" stroke="#fff6dc" stroke-width="5" stroke-linecap="round" stroke-dasharray="10 12" class="kdraw"/>`; continue; }
     roads += `<path d="${d}" fill="none" stroke="${live ? '#e6cfa4' : '#e8dcc6'}" stroke-width="${live ? 16 : 10}" stroke-linecap="round" ${live ? '' : 'stroke-dasharray="4 14" opacity=".7"'}/>`;
     if (live) roads += `<path d="${d}" fill="none" stroke="#d2b682" stroke-width="3" stroke-dasharray="10 12" ${fresh ? 'class="kdraw"' : ''}/>`;
   }
@@ -165,7 +169,7 @@ export function koyMapSVG(S, o = {}) {
   let towns = '', labels = '';
   for (const k of keys) {
     const D = DISTRICTS[k], [x, y] = P(k), on = open(k), g = Math.min(100, S.rep[k] || 0), here = S.town === k;
-    towns += `<g class="kd ${on ? 'open' : 'locked'}" data-d="${k}"><g transform="translate(${x} ${y}) scale(1.25) translate(${-x} ${-y})">${ART[k](x, y, DISTRICT_KEYS.indexOf(k))}</g>${on && o.reveal !== k ? '' : fog(x, y)}
+    towns += `<g class="kd ${on ? 'open' : 'locked'}" data-d="${k}">${plate ? '' : `<g transform="translate(${x} ${y}) scale(1.25) translate(${-x} ${-y})">${ART[k](x, y, DISTRICT_KEYS.indexOf(k))}</g>`}${on && o.reveal !== k ? '' : fog(x, y)}
       <ellipse cx="${x}" cy="${y + 10}" rx="150" ry="90" fill="transparent"/></g>`;
     labels += `<g class="klabel ${on ? '' : 'locked'} ${here ? 'here' : ''}" data-d="${k}" transform="translate(${x} ${y + 92})">
       <rect x="-82" y="-16" width="164" height="${on ? 40 : 30}" rx="15" fill="#fffaf0" stroke="${here ? '#f08a7e' : '#e2c29c'}" stroke-width="${here ? 4 : 2.5}"/>
@@ -179,12 +183,12 @@ export function koyMapSVG(S, o = {}) {
       <linearGradient id="kland" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e3dcae"/><stop offset=".6" stop-color="#eee2bd"/><stop offset="1" stop-color="#f3e2bf"/></linearGradient>
       <filter id="kblur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="10"/></filter>
     </defs>
-    <rect width="${KW}" height="${KH}" fill="url(#ksea)"/>${sea}
+    ${plate ? `<image href="${plate}" width="${KW}" height="${KH}" preserveAspectRatio="xMidYMid slice"/>` : `<rect width="${KW}" height="${KH}" fill="url(#ksea)"/>${sea}
     <path d="${land}" fill="#d9c79a" transform="translate(0 10)"/>
     <path d="${land}" fill="url(#kland)"/>
     <path d="M1600 0 L1600 260 C1500 200 1420 130 1300 110 C1180 90 1080 60 980 0Z" fill="#cfd9a3" opacity=".8"/>
     <path d="M0 0 L0 250 C120 230 260 170 380 120 C470 80 540 30 600 0Z" fill="#c9d7a0" opacity=".7"/>
-    ${scenery()}
+    ${scenery()}`}
     ${roads}${towns}${walkers}
     <g class="kgulls">${gull('M-40 520 C300 460 600 560 1700 470', 26, 3)}${gull('M1700 800 C1200 760 700 880 -60 820', 32, 11)}${gull('M-40 640 C400 600 900 700 1700 620', 38, 20)}</g>
     ${labels}

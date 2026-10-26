@@ -4,11 +4,15 @@ Bu belgedeki görseller GPT'nin görsel üretimiyle yapılacak; kod onları haz�
 
 ## Nasıl kullanılır
 - **Stil:** Her prompta referans görseli ekle (gönderdiğin boyalı karavan resmi). Bütün görseller aynı elden çıkmış gibi dursun.
-- **Boyut:** 1536×1024 yatay iste. Ben 16:9'a (1536×864) kırparım. Bu yüzden önemli her şey üstten ve alttan %8 içeride olmalı.
+- **Boyut:** 1536×1024 yatay iste. Oyun sahneleri ortadan 16:9'a (1536×864) kırpar. Bu yüzden önemli her şey üstten ve alttan %8 içeride olmalı.
 - **Kaydet:**
   - Mahalle sahneleri `public/art/sahne/<ad>.png` olarak. Adlar her başlığın yanında yazılı.
   - Koy haritası `public/art/harita.png` olarak.
-- **Sonra bana söyle:** Görselleri oyuna ben bağlarım. Haritada mahallelerin yerini görsele göre ayarlarım; sis, ad etiketleri, güven çubukları ve yürüyenler kodda kalır.
+- **Oyuna kendiliğinden girer:** Yuvalar hazır (`src/render/plates.js`). Dosya klasördeyse oyun onu kullanır, yoksa kodla çizilmiş hâl kalır. Geliştirme sunucusu açıksa dosyayı ekleyince sayfa kendiliğinden yenilenir.
+  - Sahnede görsel; uzak denizin, evlerin, mekân çiziminin ve zeminin yerine geçer. Gök, güneş, ay, bulutlar, martılar, araba, masa, süsler ve müşteriler kodda kalır.
+  - Haritada görsel; denizin, kırın, yolların ve mahalle yapılarının yerine geçer. Sis, ad etiketleri, güven çubukları, yürüyenler ve karavan kodda kalır.
+  - Görsel 16:9'dan farklıysa ortadan kırpılır. Dikey telefonda zeminin alt şeridi aynalanarak aşağı uzatılır.
+- **Sonra bana söyle:** Görsel gelince yerleşimi kontrol ederim. Gerekirse haritada mahalle noktalarını ve yürüyenlerin yollarını görsele göre kaydırırım.
 - **Saydam gökyüzü:** Sahnelerde gökyüzü saydam olursa oyunun kendi göğü (sabah pembe, öğle, akşam mor, ay, bulutlar) görünür. GPT saydam veremezse düz açık bir gökyüzü de olur; o zaman günün saati yalnız renk tonuyla değişir.
 
 ## Ortak stil cümlesi (her promptun başına ekle)

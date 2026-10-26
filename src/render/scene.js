@@ -10,6 +10,7 @@ import { shelfCap, genreCounts } from '../game/state.js';
 import { syncLayout, sectionCap } from '../game/shelving.js';
 import { DECOR_ART } from './decor-art.js';
 import { spotArt, GROUND, SHOW_HOUSES, baseScene } from './spot-art.js';
+import { plateUrl, plateNow, loadPlate } from './plates.js';
 import { landmarkArt, ARCH } from './landmarks.js';
 import { svgView, personSVG } from './people.js';
 import { cartArt } from './cart-art.js';
@@ -158,21 +159,25 @@ const MARKUP = `
   </g>
 
   <g id="bandH">
+  <g id="plate"></g>
   <g id="landmark" class="paintable"></g>
   <g id="houses" class="paintable"></g>
   <g id="spotBack"></g>
-  <rect x="0" y="330" width="1600" height="232" fill="url(#haze)" pointer-events="none"/>
+  <rect id="hazeBand" x="0" y="330" width="1600" height="232" fill="url(#haze)" pointer-events="none"/>
   <g id="festival"></g>
   <g id="ambientBack"></g>
   </g>
 
   <g id="bandG">
   <!-- zemin -->
+  <g id="groundArt">
   <rect id="ground" x="0" y="560" width="1600" height="340" fill="url(#cobble)"/>
   <rect id="curb" x="0" y="556" width="1600" height="10" fill="#e3c597"/>
   <rect x="0" y="560" width="1600" height="340" fill="url(#groundDepth)" pointer-events="none"/>
+  </g>
 
   <!-- zeytin ağacı -->
+  <g id="olive">
   <ellipse cx="160" cy="642" rx="80" ry="12" fill="#d9bb8b" opacity=".7"/>
   <g transform="translate(150 640)"><g class="sway">
     <path d="M-8 0 C-6 -50 -16 -80 -4 -120 L8 -120 C2 -80 12 -50 10 0Z" fill="#8a6a4f"/>
@@ -180,6 +185,7 @@ const MARKUP = `
     <g id="treeB" fill="#b5cb94"><circle cx="-30" cy="-158" r="22"/><circle cx="30" cy="-190" r="24"/></g>
     <g fill="#5d6e45"><circle cx="-10" cy="-150" r="5"/><circle cx="38" cy="-140" r="5"/><circle cx="-44" cy="-120" r="5"/><circle cx="16" cy="-184" r="5"/></g>
   </g></g>
+  </g>
 
   <!-- sergi masası -->
   <g transform="translate(390 610)">
@@ -428,7 +434,14 @@ export function buildScene(host) {
   fit();
   drawLights($('lights'));
   const svg = host.querySelector('svg');
-  let cartLv = -1, cartPaint = 'nane', cartLamp = null;
+  let cartLv = -1, cartPaint = 'nane', cartLamp = null, plateSeq = 0;
+  // boyalı görsel (render/plates.js): uzak deniz, evler, mekân çizimi ve zemin yerine görsel; gök, araba ve süsler kalır
+  const showPlate = img => {
+    $('plate').innerHTML = img ? `<image href="${img.src}" width="1600" height="900" preserveAspectRatio="xMidYMid slice"/>` : '';
+    for (const id of ['bandF', 'landmark', 'spotBack', 'hazeBand', 'groundArt', 'olive']) $(id).style.display = img ? 'none' : '';
+    if (img) $('houses').style.display = 'none';
+    return img;
+  };
   const drawCart = (lv, paint) => {
     if (lv === cartLv && paint === cartPaint) return;
     cartLv = lv; cartPaint = paint;
@@ -465,14 +478,19 @@ export function buildScene(host) {
       // iç bölgede deniz feneri olmaz
       $('lighthouse').style.display = t.inland ? 'none' : '';
     },
-    // kasaba içindeki mekân: arka plan, zemin, evlerin görünürlüğü
+    // kasaba içindeki mekân: arka plan, zemin, evlerin görünürlüğü.
+    // Dönüş: mekânın boyalı görseli (Promise; görsel yoksa null). Yüklenince kodla çizilmiş arka plan gizlenir.
     setSpot(scene, town) {
+      const raw = scene, my = ++plateSeq;
       scene = baseScene(scene);
       $('spotBack').innerHTML = spotArt(scene, town);
       $('landmark').innerHTML = landmarkArt(town);
       $('ground').setAttribute('fill', TOWNS[town]?.country === 'eg' && scene === 'tepe' ? 'url(#sand)' : GROUND[scene]);
       $('curb').setAttribute('fill', scene === 'sahil' ? '#ecd3a4' : scene === 'tepe' ? '#c9d38f' : '#e3c597');
       $('houses').style.display = SHOW_HOUSES[scene] ? '' : 'none';
+      const now = showPlate(plateNow(raw));
+      if (now || !plateUrl(raw)) return Promise.resolve(now);
+      return loadPlate(raw).then(img => my === plateSeq ? showPlate(img) : null);
     },
     // hava: yağmur çizgileri, bulut gölgesi, rüzgârda hızlanan bulutlar
     setWeather(key) {

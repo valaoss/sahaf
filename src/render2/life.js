@@ -43,7 +43,7 @@ export function createLife() {
       for (const a of [gulls, boats, flies]) for (let i = a.length - 1; i >= 0; i--) { a[i].t += dt; if (a[i].t >= a[i].dur) a.splice(i, 1); }
     },
     // ufuk: martılar ve tekneler (evlerin arkasında)
-    drawBack(ctx, t) {
+    drawBack(ctx, t, withBoats = true) {
       ctx.lineCap = 'round';
       for (const g of gulls) {
         const f = g.t / g.dur, x = g.dir > 0 ? -80 + 1760 * f : 1680 - 1760 * f;
@@ -51,7 +51,7 @@ export function createLife() {
         ctx.save(); ctx.translate(x, g.y); ctx.scale(g.s * g.dir, g.s * flap);
         ctx.strokeStyle = '#6b5a52'; ctx.lineWidth = 3.5 / g.s; ctx.stroke(GULL); ctx.restore();
       }
-      for (const b of boats) {
+      if (withBoats) for (const b of boats) {
         const x = 1680 - 1840 * (b.t / b.dur), bob = Math.sin(TAU * t / 3.2);
         ctx.save(); ctx.translate(x, b.y - 3 * (bob + 1)); ctx.rotate(bob * .03);
         ctx.fillStyle = '#fffaf2'; ctx.fill(HULL); ctx.fillStyle = '#5b8bd0'; ctx.fill(STRIPE);
